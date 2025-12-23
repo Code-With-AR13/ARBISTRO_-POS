@@ -1,4 +1,6 @@
 using ARBISTO_POS.Data;
+using ARBISTO_POS.Models;
+using ARBISTO_POS.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -26,7 +28,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
-        options.Cookie.Name = "AjAuth";
+        options.Cookie.Name = "ARAuth";
     });
 
 // builder.Services.AddHttpClient<WhatsAppService>();
@@ -48,7 +50,7 @@ using (var scope = app.Services.CreateScope())
         db.AppUsers.Add(new AppUser
         {
             FullName = "System Admin",
-            Email = "admin@example.com",
+            Email = "admin@testing.com",
             Role = "Admin",
             IsActive = true,
             PasswordHash = h,

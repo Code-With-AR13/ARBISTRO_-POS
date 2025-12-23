@@ -1,0 +1,51 @@
+﻿@using System.Text.Encodings.Web
+@{
+    // Collect ModelState errors for toast display
+    var modelErrors = ViewData?.ModelState?
+        .Values.SelectMany(v => v.Errors)
+        .Select(e => e.ErrorMessage)
+        .Where(m => !string.IsNullOrWhiteSpace(m))
+        .ToList() ?? new List<string>();
+
+    // Helper to safely JS-escape a string for inline script
+    string JSEscape(string s) =>
+        (s ?? "").Replace("\\", "\\\\").Replace("'", "\\'").Replace("\r", "").Replace("\n", " ");
+}
+
+<script>
+    $(function () {
+      // TempData-based toasts (from redirects)
+      @if (TempData["ToastrSuccess"] is string s1)
+    {
+              <text>toastr.success('@JSEscape(s1)');</text>
+      }
+      @if (TempData["ToastrError"] is string s2)
+    {
+              <text>toastr.error('@JSEscape(s2)');</text>
+      }
+      @if (TempData["ToastrInfo"] is string s3)
+    {
+              <text>toastr.info('@JSEscape(s3)');</text>
+      }
+      @if (TempData["ToastrWarning"] is string s4)
+    {
+              <text>toastr.warning('@JSEscape(s4)');</text>
+      }
+
+      // Also support your existing "Success" TempData key from Index/Delete
+      @if (TempData["Success"] is string s5)
+    {
+              <text>toastr.success('@JSEscape(s5)');</text>
+      }
+      @if (TempData["Error"] is string s6)
+    {
+              <text>toastr.error('@JSEscape(s6)');</text>
+      }
+
+      // Show all ModelState errors as error toasts (works on Create/Edit validation)
+      @foreach (var msg in modelErrors)
+      {
+                  <text>toastr.error('@JSEscape(msg)');</text>
+      }
+    });
+</script>

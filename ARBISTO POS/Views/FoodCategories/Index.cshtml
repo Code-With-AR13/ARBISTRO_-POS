@@ -1,0 +1,183 @@
+﻿@model IEnumerable<ARBISTO_POS.Models.FoodCategories>
+@{
+    ViewData["Title"] = "Categories";
+}
+
+<main class="nxl-container-fluid">
+    <div class="nxl-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">@ViewData["Title"]</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item active">@ViewData["Title"]</li>
+                </ul>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <a asp-controller="FoodCategories" asp-action="Create" class="btn btn-primary">
+                        <i class="feather-plus me-2"></i>
+                        <span>New Category</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="feather-check-circle me-2"></i>
+                <strong>Success!</strong> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="main-content">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card stretch stretch-full">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="feather-list me-2"></i>All Categories
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle dataTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Description</th>
+                                            <th class="text-center" style="width: 120px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model != null && Model.Any())
+                                        {
+                                            @foreach (var category in Model)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="me-3">
+                                                                @if (!string.IsNullOrEmpty(category.CateImage))
+                                                                {
+                                                                    <img src="@category.CateImage"
+                                                                         alt="@category.CateName"
+                                                                         class="rounded-circle border"
+                                                                         style="width: 80px; height: 80px; object-fit: cover;"
+                                                                         onerror="this.src='/assets/images/upload.jpg'">
+                                                                }
+                                                                else
+                                                                {
+                                                                    <img src="~/assets/images/upload.jpg"
+                                                                         alt="No Image"
+                                                                         class="rounded-circle border"
+                                                                         style="width: 80px; height: 80px; object-fit: cover;">
+                                                                }
+                                                            </div>
+                                                            <div class="d-flex flex-column">
+                                                                <span class="fw-semibold">@category.CateName</span>
+                                                                <small class="text-muted">ID: @category.Id</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        @if (!string.IsNullOrEmpty(category.Description))
+                                                        {
+                                                            @(category.Description.Length > 80
+                                                                                                            ? category.Description.Substring(0, 80) + "..."
+                                                                                                            : category.Description)
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted fst-italic">No description</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <div class="d-inline-flex gap-1">
+                                                            <a asp-controller="FoodCategories"
+                                                               asp-action="Edit"
+                                                               asp-route-id="@category.Id"
+                                                               class="btn btn-sm btn-light"
+                                                               title="Edit">
+                                                                <i class="feather-edit-3"></i>
+                                                            </a>
+
+                                                            <!-- ✅ PERFECT DELETE FORM -->
+                                                            <form method="post"
+                                                                  asp-controller="FoodCategories"
+                                                                  asp-action="DeleteConfirmed"
+                                                                  asp-route-id="@category.Id"
+                                                                  class="d-inline"
+                                                                  id="delete-form-@category.Id">
+                                                                @Html.AntiForgeryToken()
+
+                                                                <button type="button"
+                                                                        class="btn btn-sm btn-light js-delete"
+                                                                        data-id="@category.Id"
+                                                                        title="Delete">
+                                                                    <i class="feather-trash-2"></i>
+                                                                </button>
+                                                            </form>
+
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+@section Scripts {
+
+    <script>
+        $(document).ready(function () {
+            if ($.fn.DataTable) {
+                $('.dataTable').DataTable();
+            }
+
+            setTimeout(function () {
+                $('.alert-success, .alert-danger').fadeOut('slow');
+            }, 5000);
+
+            $('[title]').tooltip();
+
+
+
+                  $(document).on('click', '.js-delete', function (e) {
+            e.preventDefault();
+
+            var id = $(this).data('id');
+            var $form = $('#delete-form-' + id);
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'This category will be permanently deleted!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $form.submit();   // ✅ POST FIRES
+                }
+            });
+        });
+        });
+    </script>
+}
+

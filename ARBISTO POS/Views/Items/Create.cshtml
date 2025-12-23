@@ -1,0 +1,364 @@
+﻿@model ARBISTO_POS.Models.Items
+
+@{
+    ViewData["Title"] = "Create Item";
+}
+
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Items" asp-action="Index">Items</a></li>
+            <li class="breadcrumb-item active">Create</li>
+        </ul>
+    </div>
+    <div class="page-header-right ms-auto">
+        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+            <a asp-action="Index" class="btn btn-primary">
+                <i class="feather-arrow-left me-2"></i>
+                <span>Back To List</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card border-top-0">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="feather-plus-circle me-2"></i>Add New Item
+                    </h5>
+                </div>
+
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <form asp-action="Create" method="post" enctype="multipart/form-data">
+                        <div class="row">
+                            <!-- Image Upload Section -->
+                            <div class="col-lg-4 mb-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <label class="form-label fw-semibold">Item Image</label>
+                                        <div class="position-relative mx-auto" style="width: 200px; height: 200px;">
+                                            <div class="border border-2 border-dashed rounded-3 overflow-hidden h-100 w-100 position-relative bg-white"
+                                                 id="avatarDiv" style="cursor: pointer;">
+                                                <img id="avatarPreview"
+                                                     src="~/assets/images/upload.jpg"
+                                                     class="img-fluid h-100 w-100"
+                                                     style="object-fit: cover;"
+                                                     alt="Upload Image">
+                                                <div class="position-absolute start-0 top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50"
+                                                     id="uploadOverlay"
+                                                     style="opacity: 0; transition: opacity 0.3s;">
+                                                    <i class="feather-camera text-white" style="font-size: 32px;"></i>
+                                                </div>
+                                            </div>
+                                            <input asp-for="ImageFile"
+                                                   type="file"
+                                                   accept="image/png,image/jpg,image/jpeg"
+                                                   id="fileInput"
+                                                   style="display: none;" />
+                                        </div>
+                                        <div class="mt-3">
+                                            <small class="text-muted d-block"><i class="feather-info me-1"></i>Click image to upload</small>
+                                            <small class="text-muted d-block">Max Size: 2MB</small>
+                                        </div>
+                                        <span asp-validation-for="ImageFile" class="text-danger small"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form Fields -->
+                            <div class="col-lg-8">
+                                <div class="mb-3">
+                                    <label asp-for="ItemName" class="form-label fw-semibold">Item Name <span class="text-danger">*</span></label>
+                                    <input asp-for="ItemName" class="form-control" placeholder="e.g., Chicken Burger" />
+                                    <span asp-validation-for="ItemName" class="text-danger small"></span>
+                                </div>
+
+                                <!-- AJAX Category Dropdown -->
+                                <div class="mb-3">
+                                    <label asp-for="FoodCategoryId" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                                    <select asp-for="FoodCategoryId" class="form-select select2-ajax-category" style="width: 100%;">
+                                        <option value="">Search for Category...</option>
+                                    </select>
+                                    <span asp-validation-for="FoodCategoryId" class="text-danger small"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="ItemDiscription" class="form-label fw-semibold">Description</label>
+                                    <textarea asp-for="ItemDiscription" class="form-control" rows="3" placeholder="Enter details..."></textarea>
+                                    <span asp-validation-for="ItemDiscription" class="text-danger small"></span>
+                                </div>
+
+                                <!-- AJAX Ingredient Dropdown -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Ingredient <span class="text-danger">*</span></label>
+                                    <select id="ingredientSelect" class="form-select select2-ajax-ingredient" style="width: 100%;">
+                                        <option value="">Search for Ingredient...</option>
+                                    </select>
+                                </div>
+
+                                <!-- Ingredients Table -->
+                                <div class="clearfix mb-4">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="ingredientsTable">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="text-center" style="width: 25%;">Ingredient Name</th>
+                                                    <th class="text-center" style="width: 12%;">Available Qty</th>
+                                                    <th class="text-center" style="width: 12%;">Consumption Qty</th>
+                                                    <th class="text-center" style="width: 12%;">Cost</th>
+                                                    <th class="text-center" style="width: 12%;">Price</th>
+                                                    <th class="text-center" style="width: 10%;">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="ingredientTableBody">
+                                                <!-- Rows will be added here dynamically -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="ItemCost" class="form-label fw-semibold">Cost Price <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">Rs.</span>
+                                            <input asp-for="ItemCost" type="number" class="form-control" id="totalCost" placeholder="0" readonly />
+                                        </div>
+                                        <span asp-validation-for="ItemCost" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="ItemPrice" class="form-label fw-semibold">Sale Price <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">Rs.</span>
+                                            <input asp-for="ItemPrice" type="number" class="form-control" id="totalPrice" placeholder="0" readonly />
+                                        </div>
+                                        <span asp-validation-for="ItemPrice" class="text-danger small"></span>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2 justify-content-end mt-4">
+                                    <a asp-action="Index" class="btn btn-light">
+                                        <i class="feather-x me-1"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="feather-save me-1"></i>Create Item
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />    
+    <script>
+        $(document).ready(function () {
+            let rowCounter = 0;
+
+            // ✅ AJAX Select2 for Categories
+            $('.select2-ajax-category').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search for Category...',
+                allowClear: true,
+                ajax: {
+                    url: '@Url.Action("GetCategories", "Items")',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            search: params.term
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data.results
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0
+            });
+
+            // ✅ AJAX Select2 for Ingredients
+            $('#ingredientSelect').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search for Ingredient...',
+                allowClear: true,
+                ajax: {
+                    url: '@Url.Action("GetIngredients", "Items")',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            search: params.term
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data.results.map(function (item) {
+                                return {
+                                    id: item.id,
+                                    text: item.name,
+                                    data: item  // ✅ Store complete item data
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0
+            });
+
+            // ✅ When ingredient is selected, add to table
+            $('#ingredientSelect').on('select2:select', function (e) {
+                let ingredient = e.params.data.data;
+
+                console.log('Selected Ingredient:', ingredient); // 🔍 DEBUG
+
+                if (!ingredient || !ingredient.id) {
+                    alert('Invalid ingredient selected');
+                    return;
+                }
+
+                // Check if ingredient already exists in table
+                if ($(`#ingredientTableBody tr[data-ingredient-id="${ingredient.id}"]`).length > 0) {
+                    alert('This ingredient is already added!');
+                    $('#ingredientSelect').val(null).trigger('change');
+                    return;
+                }
+
+                addIngredientRow(ingredient);
+                $('#ingredientSelect').val(null).trigger('change');
+            });
+
+            // ✅ Add ingredient row to table
+            function addIngredientRow(ingredient) {
+                rowCounter++;
+                let rowId = 'row_' + rowCounter;
+
+                console.log('Adding Row - AvailableQty:', ingredient.availableQty); // 🔍 DEBUG
+
+                let row = `
+                    <tr id="${rowId}" data-ingredient-id="${ingredient.id}" data-row-index="${rowCounter}">
+                        <td>
+                            <input type="text" class="form-control form-control-sm" value="${ingredient.name || 'Unknown'}" readonly />
+                            <input type="hidden" name="ingredients[${rowCounter}].IngredientId" value="${ingredient.id}" />
+                        </td>
+                        <td class="text-center">
+                            <input type="number" class="form-control form-control-sm text-center availableQty" value="${ingredient.availableQty || 0}" readonly />
+                            <input type="hidden" name="ingredients[${rowCounter}].AvailableQty" value="${ingredient.availableQty || 0}" />
+                        </td>
+                        <td class="text-center">
+                            <input type="number" class="form-control form-control-sm text-center consumptionQty" value="1"  />
+                            <input type="hidden" name="ingredients[${rowCounter}].ConsumptionQty" class="consumptionQtyHidden" value="1" />
+                        </td>
+                        <td class="text-center">
+                            <div class="input-group input-group-sm">                                
+                                <input type="number" class="form-control form-control-sm text-center costPrice" value="${ingredient.cost || 0}" readonly />
+                            </div>
+                            <input type="hidden" name="ingredients[${rowCounter}].Cost" class="costPriceHidden" value="${ingredient.cost || 0}" />
+                        </td>
+                        <td class="text-center">
+                            <div class="input-group input-group-sm">                                
+                                <input type="number" class="form-control form-control-sm text-center salePrice" value="${ingredient.price || 0}" />
+                            </div>
+                            <input type="hidden" name="ingredients[${rowCounter}].Price" class="salePriceHidden" value="${ingredient.price || 0}" />
+                        </td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-danger deleteRow" title="Delete">
+                                <i class="feather-trash-2"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+
+                $('#ingredientTableBody').append(row);
+                attachRowHandlers(rowId);
+                calculateTotals();
+            }
+
+            // ✅ Attach event handlers to row elements
+                    function attachRowHandlers(rowId) {
+            let row = $('#' + rowId);
+
+            row.find('.consumptionQty').on('input', function () {
+                let val = parseFloat(this.value) || 0;
+                row.find('.consumptionQtyHidden').val(val);
+                calculateTotals();
+            });
+
+            row.find('.salePrice').on('input', function () {
+                let val = parseFloat(this.value) || 0;
+                row.find('.salePriceHidden').val(val);
+                calculateTotals();
+            });
+
+            row.find('.deleteRow').on('click', function () {
+                row.remove();
+                calculateTotals();
+            });
+        }
+
+        function calculateTotals() {
+            let totalCost = 0;
+            let totalPrice = 0;
+
+            $('#ingredientTableBody tr').each(function () {
+                let cost = parseFloat($(this).find('.costPrice').val()) || 0;
+                let price = parseFloat($(this).find('.salePrice').val()) || 0;
+                let qty = parseFloat($(this).find('.consumptionQty').val()) || 0;
+
+                totalCost += cost * qty;
+                totalPrice += price * qty;
+            });
+
+            $('#totalCost').val(Math.round(totalCost));
+            $('#totalPrice').val(Math.round(totalPrice));
+        }
+
+            // ✅ Image Upload Logic
+            const avatarDiv = $('#avatarDiv');
+            const fileInput = $('#fileInput');
+            const avatarPreview = $('#avatarPreview');
+            const uploadOverlay = $('#uploadOverlay');
+
+            avatarDiv.on('click', function () { fileInput.click(); });
+            avatarDiv.on('mouseenter', function () { uploadOverlay.css('opacity', '1'); })
+                    .on('mouseleave', function () { uploadOverlay.css('opacity', '0'); });
+
+            fileInput.on('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('File size must be less than 2MB');
+                        fileInput.val('');
+                        return;
+                    }
+                    const validTypes = ['image/png', 'image/jpg', 'image/jpeg'];
+                    if (!validTypes.includes(file.type)) {
+                        alert('Only PNG, JPG, and JPEG files are allowed');
+                        fileInput.val('');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        avatarPreview.attr('src', event.target.result);
+                        avatarDiv.addClass('border-success');
+                        setTimeout(() => { avatarDiv.removeClass('border-success'); }, 1000);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
+}
