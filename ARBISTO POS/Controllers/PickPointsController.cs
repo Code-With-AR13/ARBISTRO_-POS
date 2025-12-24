@@ -88,7 +88,6 @@ namespace ARBISTO_POS.Controllers
             return View(model);
         }
 
-        // ================= DELETE =================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -96,19 +95,19 @@ namespace ARBISTO_POS.Controllers
             try
             {
                 var point = await _context.PickPoints.FindAsync(id);
-                if (point == null) return NotFound();
+                if (point == null)
+                    return Json(new { success = false, message = "Pick point not found!" });
 
                 _context.PickPoints.Remove(point);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = "Pick point deleted successfully!";
+                return Json(new { success = true, message = "Pick point deleted successfully!" });
             }
             catch
             {
-                TempData["ErrorMessage"] = "Error deleting pick point!";
+                return Json(new { success = false, message = "Error deleting pick point!" });
             }
-
-            return RedirectToAction(nameof(Index));
         }
+
     }
 }

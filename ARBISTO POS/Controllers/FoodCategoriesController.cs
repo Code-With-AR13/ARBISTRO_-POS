@@ -85,45 +85,51 @@ namespace ARBISTO_POS.Controllers
             return View(category);
         }
 
-        // GET (agar future me confirmation page chahiye)
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null) return NotFound();
-
-            var category = await _context.FoodCategories.FindAsync(id);
-            if (category == null) return NotFound();
-
-            return View(category);
-        }
-
         [HttpPost]
-        //[ValidateAntiForgeryToken]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             try
             {
                 var category = await _context.FoodCategories.FindAsync(id);
-                if (category == null) return NotFound();
+                if (category == null)
+                    return Json(new { success = false, message = "Category not found" });
 
-                // Delete image first
+                // Check if this category is being used in FoodItems
+                bool isUsed = await _context.Items.AnyAsync(f => f.FoodCategoryId == id);
+                if (isUsed)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "This category cannot be deleted because it is used in some Items."
+                    });
+                }
+
+                // delete image
                 if (!string.IsNullOrEmpty(category.CateImage))
                 {
-                    var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, category.CateImage.TrimStart('/'));
+                    var imagePath = Path.Combine(
+                        _webHostEnvironment.WebRootPath,
+                        category.CateImage.TrimStart('/')
+                    );
+
                     if (System.IO.File.Exists(imagePath))
                         System.IO.File.Delete(imagePath);
                 }
 
                 _context.FoodCategories.Remove(category);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Category deleted successfully!";
-            }
-            catch (Exception)
-            {
-                TempData["ErrorMessage"] = "Error deleting category!";
-            }
 
-            return RedirectToAction(nameof(Index));
+                return Json(new { success = true, message = "Category deleted successfully!" });
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Error deleting category!" });
+            }
         }
+
+
 
 
 

@@ -212,52 +212,47 @@ namespace ARBISTO_POS.Controllers
             TempData["SuccessMessage"] = "Item created successfully!";
             return RedirectToAction(nameof(Index));
         }
-        // GET: Items/Delete/5  (optional – agar confirm page nahi chahiye to use na karo)
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null) return NotFound();
-
-            var item = await _context.Items
-                .Include(i => i.ItemIngredients)
-                .FirstOrDefaultAsync(i => i.ItemId == id);
-
-            if (item == null) return NotFound();
-
-            return View(item);
-        }
-
-        // POST: Items/Delete/5
+        // POST: Items/Delete (AJAX)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var item = await _context.Items
-                .Include(i => i.ItemIngredients)
-                .FirstOrDefaultAsync(i => i.ItemId == id);
-
-            if (item == null) return NotFound();
-
-            // 🖼️ delete image
-            if (!string.IsNullOrEmpty(item.CateImage))
+            try
             {
-                string imagePath = Path.Combine(
-                    _webHostEnvironment.WebRootPath,
-                    item.CateImage.TrimStart('/')
-                );
+                var item = await _context.Items
+                    .Include(i => i.ItemIngredients)
+                    .FirstOrDefaultAsync(i => i.ItemId == id);
 
-                if (System.IO.File.Exists(imagePath))
-                    System.IO.File.Delete(imagePath);
+                if (item == null)
+                    return Json(new { success = false, message = "Item not found" });
+
+                // 🖼️ delete image
+                if (!string.IsNullOrEmpty(item.CateImage))
+                {
+                    string imagePath = Path.Combine(
+                        _webHostEnvironment.WebRootPath,
+                        item.CateImage.TrimStart('/')
+                    );
+
+                    if (System.IO.File.Exists(imagePath))
+                        System.IO.File.Delete(imagePath);
+                }
+
+                // 🔥 delete child records first
+                if (item.ItemIngredients != null && item.ItemIngredients.Any())
+                    _context.ItemIngredients.RemoveRange(item.ItemIngredients);
+
+                _context.Items.Remove(item);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Item deleted successfully!" });
             }
-
-            // 🔥 delete child records first
-            _context.ItemIngredients.RemoveRange(item.ItemIngredients);
-            _context.Items.Remove(item);
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Item deleted successfully!";
-            return RedirectToAction(nameof(Index));
+            catch
+            {
+                return Json(new { success = false, message = "Unable to delete item!" });
+            }
         }
+
 
 
     }

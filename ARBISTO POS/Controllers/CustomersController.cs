@@ -172,28 +172,17 @@ namespace ARBISTO_POS.Controllers
             return View(Customers);
         }
 
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null) return NotFound();
+        
 
-            var item = await _context.Customers
-                .FirstOrDefaultAsync(i => i.Id == id);
-
-            if (item == null) return NotFound();
-
-            return View(item);
-        }
-
-        [HttpPost, ActionName("Delete")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var item = await _context.Customers
-                .FirstOrDefaultAsync(i => i.Id == id);
+            var item = await _context.Customers.FirstOrDefaultAsync(i => i.Id == id);
+            if (item == null)
+                return Json(new { success = false, message = "Customer not found" });
 
-            if (item == null) return NotFound();
-
-            // 🖼️ Delete image
+            // delete image
             if (!string.IsNullOrEmpty(item.CusImage))
             {
                 string imagePath = Path.Combine(
@@ -208,9 +197,9 @@ namespace ARBISTO_POS.Controllers
             _context.Customers.Remove(item);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Customers deleted successfully!";
-            return RedirectToAction(nameof(Index));
+            return Json(new { success = true, message = "Customer deleted successfully" });
         }
+
 
 
 

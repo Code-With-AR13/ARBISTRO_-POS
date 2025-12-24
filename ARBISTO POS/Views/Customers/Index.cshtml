@@ -63,7 +63,7 @@
                                         {
                                             @foreach (var item in Model)
                                             {
-                                                <tr>
+                                                <tr id="row-@item.Id">
                                                     <td>
                                                         <div class="d-flex align-items-center">
                                                             <div class="me-3">
@@ -132,41 +132,67 @@
     </div>
 </main>
 
-@section Scripts {   
+@section Scripts {
     <script>
         $(document).ready(function () {
-            $('.dataTable').DataTable();
-            // hide success alert
+
+            var table = $('.dataTable').DataTable();
+
             setTimeout(function () {
-                $('.alert-success').fadeOut('slow');
+                $('.alert-success, .alert-danger').fadeOut('slow');
             }, 5000);
 
-            // tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-            tooltipTriggerList.map(function (el) { return new bootstrap.Tooltip(el); });
-
-            // SweetAlert delete
             $('.js-delete').on('click', function (e) {
                 e.preventDefault();
 
                 const id = $(this).data('id');
                 const form = $('#delete-form-' + id);
+                const token = form.find('input[name="__RequestVerificationToken"]').val();
 
                 Swal.fire({
                     title: 'Are you sure?',
-                    text: 'This Customers will be permanently deleted.',
+                    text: 'This customer will be permanently deleted.',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, delete it',
-                    cancelButtonText: 'Cancel'
+                    confirmButtonText: 'Yes, delete it'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        form.submit();   // POST /Ingredients/Delete/{id}
+
+                        $.ajax({
+                            url: form.attr('action'),
+                            type: 'POST',
+                            data: {
+                                id: id,
+                                __RequestVerificationToken: token
+                            },
+                            success: function (res) {
+                                if (res.success) {
+
+                                    // remove row from DataTable
+                                    table
+                                        .row($('#row-' + id))
+                                        .remove()
+                                        .draw(false);
+
+                                    Swal.fire(
+                                        'Deleted!',
+                                        res.message,
+                                        'success'
+                                    );
+                                } else {
+                                    Swal.fire('Error', res.message, 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire('Error', 'Something went wrong', 'error');
+                            }
+                        });
                     }
                 });
             });
         });
     </script>
 }
+

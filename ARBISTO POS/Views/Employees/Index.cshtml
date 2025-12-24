@@ -25,6 +25,7 @@
                 </div>
             </div>
         </div>
+        <div id="ajax-alert-placeholder"></div>
 
         @if (TempData["SuccessMessage"] != null)
         {
@@ -165,21 +166,19 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            if ($.fn.DataTable) {
-                $('.dataTable').DataTable();
-            }
+
+            var table = $('.dataTable').DataTable();
 
             setTimeout(function () {
                 $('.alert-success, .alert-danger').fadeOut('slow');
             }, 5000);
 
-            $('[title]').tooltip();
-
             $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
                 var id = $(this).data('id');
-                var $form = $('#delete-form-' + id);
+                var form = $('#delete-form-' + id);
+                var token = form.find('input[name="__RequestVerificationToken"]').val();
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -188,14 +187,42 @@
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, delete it!',
-                    cancelButtonText: 'Cancel'
+                    confirmButtonText: 'Yes, delete it!'
                 }).then((result) => {
+
                     if (result.isConfirmed) {
-                        $form.submit();   // ✅ POST FIRES
+                        $.ajax({
+                            url: form.attr('action'),
+                            type: 'POST',
+                            data: {
+                                id: id,
+                                __RequestVerificationToken: token
+                            },
+                            success: function (res) {
+                                if (res.success) {
+
+                                    // ✅ Remove row from DataTable
+                                    var row = form.closest('tr');
+                                    table.row(row).remove().draw();
+
+                                    // ✅ Success message (same page)
+                                    Swal.fire(
+                                        'Deleted!',
+                                        'Employee deleted successfully.',
+                                        'success'
+                                    );
+                                } else {
+                                    Swal.fire('Error!', res.message, 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire('Error!', 'Something went wrong!', 'error');
+                            }
+                        });
                     }
                 });
             });
+
         });
     </script>
 }

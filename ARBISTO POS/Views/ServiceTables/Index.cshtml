@@ -111,14 +111,13 @@
                                                                 <i class="feather-edit-3"></i>
                                                             </a>
 
-                                                            <form asp-controller="ServiceTables"
-                                                                  asp-action="DeleteConfirmed"
+                                                            <form id="delete-form-@table.Id"
+                                                                  asp-controller="ServiceTables"
+                                                                  asp-action="DeleteConfirmedAjax"
                                                                   asp-route-id="@table.Id"
                                                                   method="post"
-                                                                  class="d-inline"
-                                                                  id="delete-form-@table.Id">
+                                                                  class="d-inline">
                                                                 @Html.AntiForgeryToken()
-
                                                                 <button type="button"
                                                                         class="btn btn-sm btn-light js-delete"
                                                                         data-id="@table.Id"
@@ -126,6 +125,8 @@
                                                                     <i class="feather-trash-2"></i>
                                                                 </button>
                                                             </form>
+
+
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -147,7 +148,7 @@
         $(document).ready(function () {
 
             if ($.fn.DataTable) {
-                $('.dataTable').DataTable();
+                var table = $('.dataTable').DataTable();
             }
 
             setTimeout(function () {
@@ -157,8 +158,10 @@
             $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
-                const id = $(this).data('id');
-                const form = $('#delete-form-' + id);
+                var id = $(this).data('id');
+                var form = $('#delete-form-' + id);
+                var row = $(this).closest('tr');
+                var token = form.find('input[name="__RequestVerificationToken"]').val();
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -171,10 +174,34 @@
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        form.submit();
+                        $.ajax({
+                            url: form.attr('action'),
+                            type: 'POST',
+                            data: {
+                                __RequestVerificationToken: token
+                            },
+                            success: function (response) {
+                                if (response.success) {
+                                    Swal.fire('Deleted!', response.message, 'success');
+                                    // Remove row from DataTable
+                                    if ($.fn.DataTable) {
+                                        table.row(row).remove().draw();
+                                    } else {
+                                        row.remove();
+                                    }
+                                } else {
+                                    Swal.fire('Error!', response.message, 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire('Error!', 'Something went wrong!', 'error');
+                            }
+                        });
                     }
                 });
             });
+
         });
     </script>
 }
+

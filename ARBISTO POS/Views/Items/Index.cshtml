@@ -62,7 +62,7 @@
                                         {
                                             @foreach (var item in Model)
                                             {
-                                                <tr>
+                                                <tr id="row-@item.ItemId">
                                                     <td>
                                                         <div class="d-flex align-items-center">
                                                             <div class="me-3">
@@ -121,11 +121,12 @@
                                                             <form asp-action="Delete"
                                                                   asp-route-id="@item.ItemId"
                                                                   method="post"
-                                                                  class="d-inline delete-form">
+                                                                  class="d-inline delete-form"
+                                                                  id="delete-form-@item.ItemId">
                                                                 @Html.AntiForgeryToken()
-
                                                                 <button type="button"
                                                                         class="btn btn-sm btn-light js-delete"
+                                                                        data-id="@item.ItemId"
                                                                         title="Delete">
                                                                     <i class="feather-trash-2"></i>
                                                                 </button>
@@ -149,12 +150,18 @@
     <script>
         $(document).ready(function () {
 
-            $('.dataTable').DataTable();
+            var table = $('.dataTable').DataTable();
 
-            $('.js-delete').on('click', function (e) {
+                    setTimeout(function () {
+            $('.alert-success, .alert-danger').fadeOut('slow');
+        }, 5000);
+
+            $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
-                const form = $(this).closest('form');
+                const id = $(this).data('id');
+                const form = $('#delete-form-' + id);
+                const token = form.find('input[name="__RequestVerificationToken"]').val();
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -166,18 +173,41 @@
                     confirmButtonText: 'Yes, delete it',
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
+
                     if (result.isConfirmed) {
-                        form.submit(); // ✅ SIMPLE POST
+
+                        $.ajax({
+                            url: form.attr('action'),
+                            type: 'POST',
+                            data: {
+                                id: id,
+                                __RequestVerificationToken: token
+                            },
+                            success: function (res) {
+
+                                if (res.success) {
+
+                                    table
+                                        .row($('#row-' + id))
+                                        .remove()
+                                        .draw(false);
+
+                                    Swal.fire('Deleted!', res.message, 'success');
+
+                                } else {
+                                    Swal.fire('Error', res.message, 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire('Error', 'Something went wrong', 'error');
+                            }
+                        });
                     }
                 });
             });
-
-            // auto hide success message
-            setTimeout(function () {
-                $('.alert-success').fadeOut('slow');
-            }, 4000);
         });
     </script>
 }
+
 
 

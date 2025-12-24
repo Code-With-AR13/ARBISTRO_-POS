@@ -88,7 +88,6 @@ namespace ARBISTO_POS.Controllers
             return View(model);
         }
 
-        // ================= DELETE =================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -96,19 +95,19 @@ namespace ARBISTO_POS.Controllers
             try
             {
                 var method = await _context.PaymentMethods.FindAsync(id);
-                if (method == null) return NotFound();
+                if (method == null)
+                    return Json(new { success = false, message = "Payment method not found!" });
 
                 _context.PaymentMethods.Remove(method);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = "Payment method deleted successfully!";
+                return Json(new { success = true, message = "Payment method deleted successfully!" });
             }
             catch
             {
-                TempData["ErrorMessage"] = "Error deleting payment method!";
+                return Json(new { success = false, message = "Error deleting payment method!" });
             }
-
-            return RedirectToAction(nameof(Index));
         }
+
     }
 }

@@ -213,45 +213,43 @@ namespace ARBISTO_POS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: Ingredients/Delete/{id}
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-                return NotFound();
-
-            var ingredient = await _context.Modifiers
-                .FirstOrDefaultAsync(m => m.ItemId == id);
-
-            if (ingredient == null)
-                return NotFound();
-
-            return View(ingredient);
-        }
-
-        // POST: Ingredients/Delete/{id}
-        [HttpPost, ActionName("Delete")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var ingredient = await _context.Modifiers.FindAsync(id);
-
-            if (ingredient != null)
+            try
             {
-                if (!string.IsNullOrEmpty(ingredient.ModeImage))
+                var modifier = await _context.Modifiers
+                    .Include(m => m.ModifierIngredients)
+                    .FirstOrDefaultAsync(m => m.ItemId == id);
+
+                if (modifier == null)
+                    return Json(new { success = false, message = "Modifier not found!" });
+
+                // Delete image
+                if (!string.IsNullOrEmpty(modifier.ModeImage))
                 {
-                    string imagePath = Path.Combine(_webHostEnvironment.WebRootPath, ingredient.ModeImage.TrimStart('/'));
+                    var imagePath = Path.Combine(_webHostEnvironment.WebRootPath,
+                                                 modifier.ModeImage.TrimStart('/'));
                     if (System.IO.File.Exists(imagePath))
                         System.IO.File.Delete(imagePath);
                 }
 
-                _context.Modifiers.Remove(ingredient);
+                // Delete child records first
+                if (modifier.ModifierIngredients != null && modifier.ModifierIngredients.Any())
+                    _context.ModifierIngredients.RemoveRange(modifier.ModifierIngredients);
+
+                _context.Modifiers.Remove(modifier);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = "Modifier deleted successfully!";
+                return Json(new { success = true, message = "Modifier deleted successfully!" });
             }
-
-            return RedirectToAction(nameof(Index));
+            catch
+            {
+                return Json(new { success = false, message = "Unable to delete modifier!" });
+            }
         }
+
 
 
     }

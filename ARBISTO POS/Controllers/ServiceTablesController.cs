@@ -97,33 +97,20 @@ namespace ARBISTO_POS.Controllers
             return View(table);
         }
 
-        //// ================= DELETE =================
-        //public async Task<IActionResult> Delete(int? id)
-        //{
-        //    if (id == null) return NotFound();
-
-        //    var table = await _context.ServiceTables.FindAsync(id);
-        //    if (table == null) return NotFound();
-
-        //    return View(table);
-        //}
-
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmedAjax(int id)
         {
             try
             {
                 var table = await _context.ServiceTables.FindAsync(id);
-                if (table == null) return NotFound();
+                if (table == null)
+                    return Json(new { success = false, message = "Table not found!" });
 
-                // delete image
+                // Delete image
                 if (!string.IsNullOrEmpty(table.TabImage))
                 {
-                    var imagePath = Path.Combine(
-                        _webHostEnvironment.WebRootPath,
-                        table.TabImage.TrimStart('/'));
-
+                    var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, table.TabImage.TrimStart('/'));
                     if (System.IO.File.Exists(imagePath))
                         System.IO.File.Delete(imagePath);
                 }
@@ -131,15 +118,14 @@ namespace ARBISTO_POS.Controllers
                 _context.ServiceTables.Remove(table);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = "Service table deleted successfully!";
+                return Json(new { success = true, message = "Service table deleted successfully!" });
             }
             catch
             {
-                TempData["ErrorMessage"] = "Error deleting service table!";
+                return Json(new { success = false, message = "Error deleting service table!" });
             }
-
-            return RedirectToAction(nameof(Index));
         }
+
 
 
         // ================= IMAGE SAVE =================

@@ -66,7 +66,7 @@
                                         {
                                             foreach (var point in Model)
                                             {
-                                                <tr>
+                                                <tr id="row-@point.Id">
                                                     <td>
                                                         <div class="d-flex align-items-center">
                                                             <div class="d-flex flex-column">
@@ -101,14 +101,13 @@
                                                                 <i class="feather-edit-3"></i>
                                                             </a>
 
-                                                            <form asp-controller="PickPoints"
+                                                            <form id="delete-form-@point.Id"
+                                                                  asp-controller="PickPoints"
                                                                   asp-action="DeleteConfirmed"
                                                                   asp-route-id="@point.Id"
                                                                   method="post"
-                                                                  class="d-inline"
-                                                                  id="delete-form-@point.Id">
+                                                                  class="d-inline">
                                                                 @Html.AntiForgeryToken()
-
                                                                 <button type="button"
                                                                         class="btn btn-sm btn-light js-delete"
                                                                         data-id="@point.Id"
@@ -136,19 +135,14 @@
     <script>
         $(document).ready(function () {
 
-            if ($.fn.DataTable) {
-                $('.dataTable').DataTable();
-            }
-
-            setTimeout(function () {
-                $('.alert-success').fadeOut('slow');
-            }, 5000);
+            var table = $('.dataTable').DataTable();
 
             $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
                 const id = $(this).data('id');
                 const form = $('#delete-form-' + id);
+                const token = form.find('input[name="__RequestVerificationToken"]').val();
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -161,10 +155,29 @@
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        form.submit();
+                        $.ajax({
+                            url: form.attr('action'),
+                            type: 'POST',
+                            data: { id: id, __RequestVerificationToken: token },
+                            success: function (res) {
+                                if (res.success) {
+                                    table.row($('#row-' + id)).remove().draw(false);
+                                    Swal.fire('Deleted!', res.message, 'success');
+                                } else {
+                                    Swal.fire('Error', res.message, 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire('Error', 'Something went wrong', 'error');
+                            }
+                        });
                     }
                 });
             });
+
+            // auto hide success message
+            setTimeout(() => $('.alert-success').fadeOut('slow'), 5000);
         });
     </script>
 }
+

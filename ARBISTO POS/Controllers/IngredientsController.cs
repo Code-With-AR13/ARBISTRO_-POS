@@ -179,28 +179,32 @@ namespace ARBISTO_POS.Controllers
             return View(ingredient);
         }
 
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null) return NotFound();
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
             var item = await _context.Ingredients
                 .FirstOrDefaultAsync(i => i.Id == id);
 
-            if (item == null) return NotFound();
+            if (item == null)
+                return Json(new { success = false, message = "Ingredient not found" });
 
-            return View(item);
-        }
+            // Check if this ingredient is being used in other tables
+            bool isUsed = await _context.ModifierIngredients.AnyAsync(mi => mi.IngredientId == id);
+            // Add more checks if needed, e.g. in Items:
+            isUsed = isUsed || await _context.ItemIngredients.AnyAsync(ri => ri.IngredientId == id);
 
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var item = await _context.Ingredients                
-                .FirstOrDefaultAsync(i => i.Id == id);
+            if (isUsed)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "This ingredient cannot be deleted because it is used in some Modifiers or Items."
+                });
+            }
 
-            if (item == null) return NotFound();
-
-            // 🖼️ Delete image
+            // delete image
             if (!string.IsNullOrEmpty(item.CateImage))
             {
                 string imagePath = Path.Combine(
@@ -210,14 +214,14 @@ namespace ARBISTO_POS.Controllers
 
                 if (System.IO.File.Exists(imagePath))
                     System.IO.File.Delete(imagePath);
-            }            
+            }
 
             _context.Ingredients.Remove(item);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Ingredients deleted successfully!";
-            return RedirectToAction(nameof(Index));
+            return Json(new { success = true, message = "Ingredient deleted successfully!" });
         }
+
 
 
 

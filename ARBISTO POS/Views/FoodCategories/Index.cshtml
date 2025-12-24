@@ -59,7 +59,7 @@
                                         {
                                             @foreach (var category in Model)
                                             {
-                                                <tr>
+                                                <tr id="row-@category.Id">
                                                     <td>
                                                         <div class="d-flex align-items-center">
                                                             <div class="me-3">
@@ -140,27 +140,21 @@
     </div>
 </main>
 
-@section Scripts {
+<script>
+    $(document).ready(function () {
 
-    <script>
-        $(document).ready(function () {
-            if ($.fn.DataTable) {
-                $('.dataTable').DataTable();
-            }
+        var table = $('.dataTable').DataTable();
 
             setTimeout(function () {
-                $('.alert-success, .alert-danger').fadeOut('slow');
-            }, 5000);
+        $('.alert-success, .alert-danger').fadeOut('slow');
+    }, 5000);
 
-            $('[title]').tooltip();
-
-
-
-                  $(document).on('click', '.js-delete', function (e) {
+        $(document).on('click', '.js-delete', function (e) {
             e.preventDefault();
 
             var id = $(this).data('id');
-            var $form = $('#delete-form-' + id);
+            var form = $('#delete-form-' + id);
+            var token = form.find('input[name="__RequestVerificationToken"]').val();
 
             Swal.fire({
                 title: 'Are you sure?',
@@ -172,12 +166,39 @@
                 confirmButtonText: 'Yes, delete it!',
                 cancelButtonText: 'Cancel'
             }).then((result) => {
+
                 if (result.isConfirmed) {
-                    $form.submit();   // ✅ POST FIRES
+
+                    $.ajax({
+                        url: form.attr('action'),
+                        type: 'POST',
+                        data: {
+                            id: id,
+                            __RequestVerificationToken: token
+                        },
+                        success: function (res) {
+
+                            if (res.success) {
+
+                                table
+                                    .row($('#row-' + id))
+                                    .remove()
+                                    .draw(false);
+
+                                Swal.fire('Deleted!', res.message, 'success');
+
+                            } else {
+                                Swal.fire('Error', res.message, 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Error', 'Something went wrong', 'error');
+                        }
+                    });
                 }
             });
         });
-        });
-    </script>
-}
+    });
+</script>
+
 

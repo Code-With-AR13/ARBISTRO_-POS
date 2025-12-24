@@ -89,33 +89,38 @@ namespace ARBISTO_POS.Controllers
         }
 
         [HttpPost]
-        //[ValidateAntiForgeryToken]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             try
             {
                 var employee = await _context.Employees.FindAsync(id);
-                if (employee == null) return NotFound();
+                if (employee == null)
+                    return Json(new { success = false, message = "Employee not found!" });
 
-                // Delete employee image
+                // Delete image
                 if (!string.IsNullOrEmpty(employee.EmpImage))
                 {
-                    var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, employee.EmpImage.TrimStart('/'));
+                    var imagePath = Path.Combine(
+                        _webHostEnvironment.WebRootPath,
+                        employee.EmpImage.TrimStart('/')
+                    );
+
                     if (System.IO.File.Exists(imagePath))
                         System.IO.File.Delete(imagePath);
                 }
 
                 _context.Employees.Remove(employee);
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Employee deleted successfully!";
+                await _context.SaveChangesAsync();                
+
+                return Json(new { success = true });
             }
             catch (Exception)
             {
-                TempData["ErrorMessage"] = "Error deleting employee!";
+                return Json(new { success = false, message = "Error deleting employee!" });
             }
-
-            return RedirectToAction(nameof(Index));
         }
+
 
         // ================= IMAGE HANDLING =================
         private async Task SaveImage(Employees employee)
