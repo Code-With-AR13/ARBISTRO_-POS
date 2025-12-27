@@ -1,0 +1,213 @@
+﻿@model IEnumerable<ARBISTO_POS.Models.SaleOrders>
+
+@{
+    ViewData["Title"] = "Sale Orders";
+}
+
+<main class="nxl-container-fluid">
+    <div class="nxl-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">Sale Orders</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Home" asp-action="Index">Home</a>
+                    </li>
+                    <li class="breadcrumb-item active">Sale Orders</li>
+                </ul>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <a asp-controller="SaleOrder" asp-action="Create" class="btn btn-primary">
+                        <i class="feather-plus me-2"></i>
+                        <span>New Sale Order</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="feather-check-circle me-2"></i>
+                <strong>Success!</strong> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="main-content">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card stretch stretch-full">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="feather-list me-2"></i>All Sale Orders
+                            </h5>
+                        </div>
+
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle dataTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Order No</th>
+                                            <th>Customer Name</th>
+                                            <th>Order Type</th>
+                                            <th>Order Status</th>
+                                            <th>Description</th>
+                                            <th class="text-center" style="width:120px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model != null && Model.Any())
+                                        {
+                                            foreach (var pay in Model)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="d-flex flex-column">
+                                                                <span class="fw-semibold">@pay.OrderNumber</span>
+                                                                <small class="text-muted">Created At: @pay.OrderDate</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="d-flex flex-column">
+                                                                <span class="fw-semibold">
+                                                                    @pay.Customer?.Name
+                                                                </span>
+
+                                                                <small class="text-muted">
+                                                                    Created At: @pay.Customer?.PhoneNo
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        @if (pay.OrderType == "Dining")
+                                                        {
+                                                            <span class="badge bg-primary">Dining</span>
+                                                        }
+                                                        else if (pay.OrderType == "Pickup")
+                                                        {
+                                                            <span class="badge bg-warning text-dark">Pickup</span>
+                                                        }
+                                                        else if (pay.OrderType == "Delivery")
+                                                        {
+                                                            <span class="badge bg-success">Delivery</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary">@pay.OrderType</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (pay.OrderStatus == "In Progress")
+                                                        {
+                                                            <span class="badge bg-primary">In Progress</span>
+                                                        }                                                        
+                                                        else if (pay.OrderType == "Ready")
+                                                        {
+                                                            <span class="badge bg-Info">Ready</span>
+                                                        }
+                                                        else if (pay.OrderType == "Completed")
+                                                        {
+                                                            <span class="badge bg-success">Completed</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary">@pay.OrderType</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (!string.IsNullOrEmpty(pay.Notes))
+                                                        {
+                                                            @(pay.Notes.Length > 80
+                                                                                                            ? pay.Notes.Substring(0, 80) + "..."
+                                                                                                            : pay.Notes)
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted fst-italic">No description</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <div class="d-inline-flex gap-1">
+                                                            <a asp-controller="PaymentMethods"
+                                                               asp-action="Edit"
+                                                               asp-route-id="@pay.OrderId"
+                                                               class="btn btn-sm btn-light"
+                                                               title="Edit">
+                                                                <i class="feather-edit-3"></i>
+                                                            </a>                                                            
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+
+            var table = $('.dataTable').DataTable();
+
+            // $(document).on('click', '.js-delete', function (e) {
+            //     e.preventDefault();
+
+            //     const id = $(this).data('id');
+            //     const form = $('#delete-form-' + id);
+            //     const token = form.find('input[name="__RequestVerificationToken"]').val();
+
+            //     Swal.fire({
+            //         title: 'Are you sure?',
+            //         text: 'This payment method will be permanently deleted!',
+            //         icon: 'warning',
+            //         showCancelButton: true,
+            //         confirmButtonColor: '#d33',
+            //         cancelButtonColor: '#6c757d',
+            //         confirmButtonText: 'Yes, delete it!',
+            //         cancelButtonText: 'Cancel'
+            //     }).then((result) => {
+            //         if (result.isConfirmed) {
+            //             $.ajax({
+            //                 url: form.attr('action'),
+            //                 type: 'POST',
+            //                 data: { id: id, __RequestVerificationToken: token },
+            //                 success: function (res) {
+            //                     if (res.success) {
+            //                         table.row($('#row-' + id)).remove().draw(false);
+            //                         Swal.fire('Deleted!', res.message, 'success');
+            //                     } else {
+            //                         Swal.fire('Error', res.message, 'error');
+            //                     }
+            //                 },
+            //                 error: function () {
+            //                     Swal.fire('Error', 'Something went wrong', 'error');
+            //                 }
+            //             });
+            //         }
+            //     });
+            // });
+
+            // Auto-hide success message
+            setTimeout(() => $('.alert-success').fadeOut('slow'), 5000);
+        });
+    </script>
+}
+

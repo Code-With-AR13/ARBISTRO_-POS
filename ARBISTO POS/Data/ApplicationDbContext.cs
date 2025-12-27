@@ -21,6 +21,8 @@ namespace ARBISTO_POS.Data
         public DbSet<PaymentMethods> PaymentMethods { get; set; }
         public DbSet<PickPoints> PickPoints { get; set; }
         public DbSet<Employees> Employees { get; set; }
+        public DbSet<SaleOrders> SaleOrders { get; set; }
+        public DbSet<SaleOrderItems> SaleOrderItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -66,14 +66,10 @@
                         <a asp-controller="Home" asp-action="index" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-airplay"></i></span>
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"></span>
-                        </a>
-                        @* <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.html">CRM</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="analytics.html">Analytics</a></li>
-                        </ul> *@
+                        </a>                        
                     </li>
                     <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
+                        <a asp-controller="SaleOrder" asp-action="Index" class="nxl-link">
                             <span class="nxl-micon">
                                 <i class="feather-trending-up"></i>
                             </span>
@@ -87,14 +83,14 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item">
-                                <a class="nxl-link" href="reports-sales.html">
+                                <a class="nxl-link" asp-controller="SaleOrder" asp-action="Create">
                                     <span class="nxl-micon">
                                         <i class="feather-shopping-cart "></i>
                                     </span>POS
                                 </a>
                             </li>
                             <li class="nxl-item">
-                                <a class="nxl-link" href="reports-leads.html">
+                                <a class="nxl-link" asp-controller="SaleOrder" asp-action="Kitchen">
                                     <span class="nxl-micon">
                                         <i class="feather-home"></i>
                                     </span>Kitchen

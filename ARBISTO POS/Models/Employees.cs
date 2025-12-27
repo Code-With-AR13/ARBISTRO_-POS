@@ -24,8 +24,9 @@ namespace ARBISTO_POS.Models
         [StringLength(20)]
         public string PhoneNumber { get; set; }
 
-        public string? Address { get; set; }                  
-        
+        public string? Address { get; set; }
+        public string EmpRole { get; set; }
+
         [StringLength(20)]
         public string? Shift { get; set; }
 

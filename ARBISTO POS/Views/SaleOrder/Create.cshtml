@@ -1,0 +1,457 @@
+﻿@using ARBISTO_POS.ViewModels
+@model PosViewModel
+
+@{
+    ViewData["Title"] = "POS";
+    Layout = "_POSLayout";
+}
+
+<style>
+    .card-hover {
+        transition: transform 0.3s, box-shadow 0.3s;
+        transform-style: preserve-3d;
+        cursor: pointer;
+    }
+
+        .card-hover:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+</style>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-white shadow-sm">
+    <div class="container-fluid">
+        <a class="navbar-brand ps-4" href="#">
+            <img src="~/assets/images/logo-full.png" alt="Logo" class="b-brand" style="max-height:50px;" />
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <!-- Moved form start tag to wrap only the relevant content and added closing tag -->
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center gap-3 pe-3">
+                    <li class="nav-item d-flex align-items-center gap-2 border-primary">
+                        <select asp-for="Order.OrderType" class="form-select border border-primary form-select-sm" style="width:150px;" id="orderTypeSelect">
+                            <option id="dineInBtn" value="DINE IN" selected>DINE IN</option>
+                            <option id="pickupBtn" value="PICKUP POINT">PICKUP POINT</option>
+                            <option id="deliveryBtn" value="DELIVERY">DELIVERY</option>
+                        </select>
+                    </li>
+
+                    <li class="nav-item">
+                        <a asp-controller="SaleOrder" asp-action="Kitchen"  class="btn btn-warning px-3 py-2 fs-6">In Progress</a>
+                    </li>
+
+                    <li class="nav-item d-none d-sm-flex">
+                        <div class="full-screen-switcher">
+                            <a href="javascript:void(0);" class="btn btn-dark px-3 py-2 position-relative" onclick="$('body').fullScreenHelper('toggle');">
+                                <i class="feather-maximize maximize"></i>
+                                <i class="feather-minimize minimize"></i>
+                            </a>
+                        </div>
+                    </li>
+
+                    <li class="nav-item position-relative">
+                        <button type="button" class="btn btn-danger px-3 py-2 position-relative">
+                            <i class="feather-list"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">0</span>
+                        </button>
+                    </li>
+
+                    <li class="nav-item dropdown">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" class="d-flex align-items-center">
+                            <img src="~/assets/images/logo-abbr (2).png" alt="user-image" class="rounded-circle" style="width:48px; height:48px; object-fit:cover;" />
+                        </a>
+                        @if (User?.Identity?.IsAuthenticated == true)
+                        {
+                            <div class="dropdown-menu dropdown-menu-end shadow">
+                                <a class="dropdown-item" href="#"><i class="feather-user me-2"></i>Profile</a>
+                                <a class="dropdown-item" href="#"><i class="feather-settings me-2"></i>Settings</a>
+                                <a class="dropdown-item" asp-controller="Home" asp-action="Index"><i class="feather-arrow-left me-2"></i>Back to Dashboard</a>
+                                <div class="dropdown-divider"></div>
+                                <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dropdown-item text-danger"><i class="feather-log-out me-2"></i>Logout</button>
+                                </form>
+                            </div>
+                        }
+                        else
+                        {
+                            <a class="dropdown-item" asp-controller="Auth" asp-action="Login"><i class="isax isax-login-1 me-2"></i>LogIn</a>
+                        }
+                    </li>
+                </ul>
+            </div>
+        </form>
+    </div>
+</nav>
+
+<div class="d-flex" style="height: calc(100vh - 70px); overflow: hidden;">
+    <!-- LEFT: Categories -->
+    <div class="bg-white border-end p-3 d-flex flex-column flex-shrink-0"
+         style="width: 200px; min-width:190px; max-width:190px; overflow-y:auto;">
+        <h6 class="fw-bold mb-3">Categories</h6>
+        <div class="flex-grow-1">
+            @foreach (var cat in Model.Categories)
+            {
+                <a asp-action="Create"
+                   asp-route-categoryId="@cat.Id"
+                   class="list-group-item list-group-item-action mb-2 d-flex flex-column align-items-center text-center @(cat == Model.Categories.First() ? "active" : "")">
+                    <img src="@cat.CateImage" alt="@cat.CateName" class="img-fluid rounded mb-1" style="width:90%; height:140px; object-fit:cover;">
+                    <span class="text-dark">@cat.CateName</span>
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- CENTER: Menu Items -->
+    <div class="flex-grow-1 p-4 bg-light overflow-auto d-flex flex-column">
+
+        <!-- Search -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <input type="text" class="form-control me-2" placeholder="Search items..." id="itemSearch">
+        </div>
+
+        @if (Model.Items == null || !Model.Items.Any())
+        {
+            <!-- CENTER MESSAGE -->
+            <div class="flex-grow-1 d-flex align-items-center justify-content-center text-center text-muted">
+                <div>
+                    <i class="bi bi-basket fs-1 mb-2 d-block"></i>
+                    <div class="fw-semibold">No items Found For this Category</div>
+                    <small>Select Another Category</small>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- ITEMS GRID -->
+            <div class="d-flex flex-wrap justify-content-start gap-2">
+                @foreach (var p in Model.Items)
+                {
+                    <div class="d-flex justify-content-center">
+                        <div class="card h-90 shadow-sm card-hover menu-item-card"
+                             style="width: 140px; overflow: hidden;"
+                             data-item-id="@p.ItemId"
+                             data-item-name="@p.ItemName"
+                             data-item-price="@p.ItemPrice"
+                              data-item-image="@p.CateImage">
+
+                            @if (!string.IsNullOrEmpty(p.CateImage))
+                            {
+                                <img src="@p.CateImage"
+                                     alt="@p.ItemName"
+                                     class="card-img-top w-100 img-hover-zoom"
+                                     style="height:100px; object-fit:cover;"
+                                     onerror="this.src='/assets/images/upload.jpg'">
+                            }
+                            else
+                            {
+                                <img src="~/assets/images/upload.jpg"
+                                     alt="No Image"
+                                     class="card-img-top w-100 img-hover-zoom"
+                                     style="height:100px; object-fit:cover;">
+                            }
+
+                            <div class="card-body p-2 text-center">
+                                <h6 class="card-title fw-bold mb-1 text-truncate">@p.ItemName</h6>
+                                <p class="fw-bold text-danger mb-0">$@p.ItemPrice</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+    </div>
+
+
+    <!-- RIGHT: Order Panel -->
+    <div class="bg-white border-start p-4 d-flex flex-column flex-shrink-0"
+         style="width: 615px; min-width:615px; max-width:615px; overflow-y:auto;">       
+            <div class="row g-2 mb-3">
+                <!-- Customer -->
+                <div class="col d-flex flex-column">
+                    <label asp-for="CustomerId" class="form-label fw-semibold">Customers <span class="text-danger">*</span></label>
+                    <select asp-for="Order.CustomerId" class="form-select select2-ajax-category" style="width: 100%;">
+                        <option value="">Select Customer</option>
+                    </select>
+                    <span asp-validation-for="CustomerId" class="text-danger small"></span>
+                </div>
+
+                <!-- Dine In Table Button -->
+                <div class="col d-flex flex-column order-type-input" id="tableSelectDiv">
+                    <label class="form-label small fw-semibold"><i class="bi bi-table"></i> Table</label>
+                    <button type="button" class="btn btn-outline-primary flex-grow-1 fs-6 active py-1"><div>Select Table</div></button>
+                </div>
+
+                <!-- Pickup Dropdown -->
+                <div class="col d-flex flex-column order-type-input d-none" id="pickupSelectDiv">
+                    <label class="form-label small fw-semibold"><i class="bi bi-bag"></i> Pickup Point</label>
+                    <select asp-for="Order.PickUpId" class="form-select select2-ajax-Pickup" style="width: 100%;">
+                        <option value="">Select Pickup Point(OPT)</option>
+                    </select>
+                </div>
+
+                <!-- Delivery Input -->
+                <div class="col d-flex flex-column order-type-input d-none" id="deliveryInputDiv">
+                    <label class="form-label small fw-semibold"><i class="bi bi-truck"></i> Shipping Address</label>
+                    <button type="button" class="btn btn-outline-primary flex-grow-1 fs-6 active py-1"><div>Select Shipping</div></button>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="flex-grow-1 overflow-auto mb-3 border rounded p-3 bg-light" id="orderList">
+                <div class="text-center text-muted">
+                    <i class="bi bi-basket fs-1 mb-2"></i>
+                    <div class="fw-semibold">No items in order</div>
+                    <small>Click on menu items to add them</small>
+                </div>
+            </div>
+
+            <!-- Totals -->
+            <div class="d-flex justify-content-between mb-1">
+                <span>Subtotal</span>
+                <span id="subtotal">$0.00</span>
+            </div>
+
+            <!-- Discount -->
+            <div class="d-flex justify-content-between mb-1">
+                <span>
+                    Discount
+                    <button type="button" class="border-0 bg-transparent p-0 ms-1 text-muted" style="cursor:pointer;">
+                        <i class="feather-edit-3"></i>
+                    </button>
+                </span>
+                <span id="discount">$0.00</span>
+            </div>
+
+            <!-- Tax -->
+            <div class="d-flex justify-content-between mb-1">
+                <span>
+                    Tax
+                    <button type="button" class="border-0 bg-transparent p-0 ms-1 text-muted" style="cursor:pointer;">
+                        <i class="feather-edit-3"></i>
+                    </button>
+                </span>
+                <span id="tax">$0.00</span>
+            </div>
+
+            <!-- Grand Total -->
+            <div class="d-flex mb-3">
+                <button type="button" class="btn btn-primary flex-fill fs-5" id="grandTotalBtn"><div>$0.00</div></button>
+            </div>
+
+
+            <!-- Bottom Action Buttons -->
+            <div class="mt-auto">
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-danger flex-fill fs-6">Hold</button>
+                    <button type="button" class="btn btn-warning flex-fill fs-6">Reset</button>
+                    <button type="button" class="btn btn-success flex-fill fs-6">Place Order</button>
+                </div>
+            </div>       
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // For customer Select2
+             $(document).ready(function() {
+            // ✅ AJAX Select2 for Customer
+            $('.select2-ajax-category').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Customers',
+                allowClear: true,
+                ajax: {
+                    url: '@Url.Action("GetCustomers", "SaleOrder")',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            search: params.term
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data.results
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0
+            });
+            // ✅ AJAX Select2 for Pickup Points
+            $('.select2-ajax-Pickup').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Pickup Points(OPT)',
+                allowClear: true,
+                ajax: {
+                    url: '@Url.Action("GetPickupPoints", "SaleOrder")',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            search: params.term
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data.results
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0
+            });
+        });
+        // ORDER TYPE LOGIC
+        const dineInBtn = document.getElementById('dineInBtn');
+        const pickupBtn = document.getElementById('pickupBtn');
+        const deliveryBtn = document.getElementById('deliveryBtn');
+
+        const tableDiv = document.getElementById('tableSelectDiv');
+        const pickupDiv = document.getElementById('pickupSelectDiv');
+        const deliveryDiv = document.getElementById('deliveryInputDiv');
+
+        const orderTypeSelect = document.getElementById('orderTypeSelect');
+
+        function hideAllOrderInputs() {
+            tableDiv.classList.add('d-none');
+            pickupDiv.classList.add('d-none');
+            deliveryDiv.classList.add('d-none');
+
+            dineInBtn.classList.remove('active');
+            pickupBtn.classList.remove('active');
+            deliveryBtn.classList.remove('active');
+        }
+
+        dineInBtn.addEventListener('click', () => { hideAllOrderInputs(); tableDiv.classList.remove('d-none'); dineInBtn.classList.add('active'); orderTypeSelect.value='DINE IN'; });
+        pickupBtn.addEventListener('click', () => { hideAllOrderInputs(); pickupDiv.classList.remove('d-none'); pickupBtn.classList.add('active'); orderTypeSelect.value='PICKUP POINT'; });
+        deliveryBtn.addEventListener('click', () => { hideAllOrderInputs(); deliveryDiv.classList.remove('d-none'); deliveryBtn.classList.add('active'); orderTypeSelect.value='DELIVERY'; });
+
+        orderTypeSelect.addEventListener('change', () => {
+            hideAllOrderInputs();
+            const selected = orderTypeSelect.value;
+            if(selected==='DINE IN'){ tableDiv.classList.remove('d-none'); dineInBtn.classList.add('active'); }
+            else if(selected==='PICKUP POINT'){ pickupDiv.classList.remove('d-none'); pickupBtn.classList.add('active'); }
+            else if(selected==='DELIVERY'){ deliveryDiv.classList.remove('d-none'); deliveryBtn.classList.add('active'); }
+        });
+
+        // MENU ITEMS TO ORDER
+        const orderList = document.getElementById('orderList');
+        const currentOrder = [];
+
+        document.querySelectorAll('.menu-item-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const id = card.getAttribute('data-item-id');
+                const name = card.getAttribute('data-item-name');
+                const price = parseFloat(card.getAttribute('data-item-price'));
+                const image = card.getAttribute('data-item-image');
+
+                const existing = currentOrder.find(i => i.id===id);
+                if(existing){ existing.qty += 1; }
+                else{ currentOrder.push({id,name,price,image,qty:1}); }
+
+                renderOrder();
+            });
+        });
+
+                function renderOrder(){
+            orderList.innerHTML = '';
+            let subtotal = 0;
+
+            if(currentOrder.length===0){
+                orderList.innerHTML = `<div class="text-center text-muted">
+                    <i class="bi bi-basket fs-1 mb-2"></i>
+                    <div class="fw-semibold">No items in order</div>
+                    <small>Click on menu items to add them</small>
+                </div>`;
+                document.getElementById('subtotal').textContent='$0.00';
+                document.getElementById('discount').textContent='$0.00';
+                document.getElementById('tax').textContent='$0.00';
+                document.getElementById('grandTotalBtn').innerHTML='<div>$0.00</div>';
+                return;
+            }
+
+                                           currentOrder.forEach((item, index) => {
+            subtotal += item.price * item.qty;
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'position-relative d-flex align-items-center mb-2 p-2 border rounded';
+
+            // Set default image if item.image is empty, null, or undefined
+            const itemImage = item.image ? item.image : '/assets/images/upload.jpg'; // default image
+
+            itemDiv.innerHTML = `
+                <button class="border-0 btn btn-sm btn-light text-danger position-absolute top-0 end-0 remove-item"
+                        style="line-height:1; padding:2px 6px;">
+                    ✕
+                </button>
+
+                <img src="${itemImage}"
+                     class="rounded me-2"
+                     style="width:60px;height:60px;object-fit:cover;">
+
+                <div class="flex-grow-1">
+                    <div class="fw-semibold">${item.name}</div>
+                    <small class="text-muted">$${item.price.toFixed(2)} X ${item.qty}</small>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-secondary decrease-qty">−</button>
+                    <span class="fw-semibold">${item.qty}</span>
+                    <button class="btn btn-sm btn-outline-secondary increase-qty">+</button>
+                    <span class="fw-bold text-danger ms-2">
+                        $${(item.price * item.qty).toFixed(2)}
+                    </span>
+                </div>
+            `;
+
+            // Buttons
+            const increaseBtn = itemDiv.querySelector('.increase-qty');
+            const decreaseBtn = itemDiv.querySelector('.decrease-qty');
+            const removeBtn   = itemDiv.querySelector('.remove-item');
+
+            increaseBtn.addEventListener('click', () => {
+                item.qty++;
+                renderOrder();
+            });
+
+            decreaseBtn.addEventListener('click', () => {
+                item.qty--;
+                if (item.qty <= 0) currentOrder.splice(index, 1);
+                renderOrder();
+            });
+
+            removeBtn.addEventListener('click', () => {
+                currentOrder.splice(index, 1);
+                renderOrder();
+            });
+
+            orderList.appendChild(itemDiv);
+        });
+
+
+
+
+
+            // Example discount: 10% of subtotal
+            const discount = subtotal * 0;
+            // Example tax: 5% of subtotal
+            const tax = subtotal * 0;
+            const grandTotal = subtotal - discount + tax;
+
+            document.getElementById('subtotal').textContent=`$${subtotal.toFixed(2)}`;
+            document.getElementById('discount').textContent=`$${discount.toFixed(2)}`;
+            document.getElementById('tax').textContent=`$${tax.toFixed(2)}`;
+            document.getElementById('grandTotalBtn').innerHTML=`<div>$${grandTotal.toFixed(2)}</div>`;
+        }
+
+    </script>
+}

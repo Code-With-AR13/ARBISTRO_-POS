@@ -1,0 +1,30 @@
+﻿@{
+    ViewData["Title"] = "Kitchen";
+}
+<main class="nxl-container-fluid">
+    <div class="nxl-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">Kitchen</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Home" asp-action="Index">Home</a>
+                    </li>
+                    <li class="breadcrumb-item active">Kitchen</li>
+                </ul>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <a asp-controller="SaleOrder" asp-action="Create" class="btn btn-primary">
+                        <i class="feather-plus me-2"></i>
+                        <span>New Sale Order</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+

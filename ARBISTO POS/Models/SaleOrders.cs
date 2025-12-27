@@ -1,0 +1,72 @@
+﻿using ARBISTO_POS.Migrations;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace ARBISTO_POS.Models
+{
+    public class SaleOrders
+    {
+        [Key]
+        public int OrderId { get; set; }
+
+        // ================= Order Info =================
+        [Required]
+        public string OrderNumber { get; set; }   // ORD-1001
+
+        public DateTime OrderDate { get; set; } = DateTime.UtcNow;
+
+        // ================= Order Type =================
+        [Required]
+        public string OrderType { get; set; }     // DineIn, TakeAway, Delivery
+
+        // ================= Status =================
+        public string OrderStatus { get; set; }   // Pending, Preparing, Ready
+
+        // ================= Customer =================
+        public int CustomerId { get; set; }
+
+        [ForeignKey(nameof(CustomerId))]
+        public Customers Customer { get; set; }
+
+        // ================= Table (Dine-In) =================
+        public int TableId { get; set; }
+
+        [ForeignKey(nameof(TableId))]
+        public ServiceTables Table { get; set; }
+
+        // ================= Pickup (TakeAway) =================
+        public int? PickUpId { get; set; }
+
+        [ForeignKey(nameof(PickUpId))]
+        public PickPoints PickUp { get; set; }
+        
+
+        // ================= Payment =================
+        public int PaymentId { get; set; }
+
+        [ForeignKey(nameof(PaymentId))]
+        public PaymentMethods Payment { get; set; }
+
+        public string PaymentStatus { get; set; } // Paid, Unpaid, Partial
+
+        // ================= Amounts =================
+        public decimal SubTotal { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal GrandTotal { get; set; }
+
+        // ================= Staff / Chef =================
+        public int ChefId { get; set; }
+
+        [ForeignKey(nameof(ChefId))]
+        public Employees Chef { get; set; }       
+
+        // ================= Extra =================
+        public string Notes { get; set; }
+
+        // ================= Navigation =================
+        public ICollection<SaleOrderItems> OrderItems { get; set; }
+    }
+}

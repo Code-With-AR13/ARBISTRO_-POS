@@ -150,6 +150,24 @@
                                     </div>
                                 </div>
 
+                                <!-- Role -->
+                                <div class="mb-3">
+                                    <label asp-for="EmpRole" class="form-label fw-semibold">Role</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="feather-users"></i></span>
+                                        <select class="form-select" asp-for="EmpRole">
+                                            <option value="">-- Select Role --</option>                                           
+                                            <option value="Manager">Manager</option>
+                                            <option value="Cashier">Cashier</option>                                           
+                                            <option value="Waiter">Waiter</option>
+                                            <option value="Chef">Chef</option>                                            
+                                            <option value="DeliveryRider">Delivery Rider</option>
+                                            <option value="Cleaner">Cleaner</option>
+                                        </select>
+                                        <span asp-validation-for="EmpRole" class="text-danger small"></span>
+                                    </div>
+                                </div>
+
                                 <!-- Salary -->
                                 <div class="mb-3">
                                     <label asp-for="Salary" class="form-label fw-semibold">Salary</label>

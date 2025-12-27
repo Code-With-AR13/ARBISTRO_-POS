@@ -117,9 +117,10 @@
                                             <option value="Female" selected="@(Model.Gender == "Female")">Female</option>
                                             <option value="Other" selected="@(Model.Gender == "Other")">Other</option>
                                         </select>
+                                        <span asp-validation-for="Gender" class="text-danger small"></span>
                                     </div>
                                 </div>
-
+                               
                                 <!-- Email -->
                                 <div class="mb-3">
                                     <label asp-for="Email" class="form-label fw-semibold">Email</label>
@@ -155,6 +156,24 @@
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="feather-clock"></i></span>
                                         <input type="text" class="form-control" asp-for="Shift" placeholder="Morning / Evening" />
+                                    </div>
+                                </div>
+
+                                <!-- Role -->
+                                <div class="mb-3">
+                                    <label asp-for="EmpRole" class="form-label fw-semibold">Role</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="feather-users"></i></span>
+                                        <select class="form-select" asp-for="EmpRole">
+                                            <option value="">-- Select Role --</option>
+                                            <option value="Manager" selected="@(Model.EmpRole == "Manager")">Manager</option>
+                                            <option value="Cashier" selected="@(Model.EmpRole == "Cashier")">Cashier</option>
+                                            <option value="Waiter" selected="@(Model.EmpRole == "Waiter")">Waiter</option>
+                                            <option value="Chef" selected="@(Model.EmpRole == "Chef")">Chef</option>
+                                            <option value="Delivery Rider" selected="@(Model.EmpRole == "Delivery Rider")">Delivery Rider</option>
+                                            <option value="Cleaner" selected="@(Model.EmpRole == "Cleaner")">Cleaner</option>
+                                        </select>
+                                        <span asp-validation-for="EmpRole" class="text-danger small"></span>
                                     </div>
                                 </div>
 
