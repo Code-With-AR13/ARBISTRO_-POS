@@ -83,46 +83,42 @@
                                                                 </span>
 
                                                                 <small class="text-muted">
-                                                                    Created At: @pay.Customer?.PhoneNo
+                                                                    Phone No: @pay.Customer?.PhoneNo
                                                                 </small>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        @if (pay.OrderType == "Dining")
+                                                        @if (pay.OrderType == "DINE IN")
                                                         {
-                                                            <span class="badge bg-primary">Dining</span>
+                                                            <span class="badge bg-primary">Dine In</span>
                                                         }
-                                                        else if (pay.OrderType == "Pickup")
+                                                        else if (pay.OrderType == "PICKUP POINT")
                                                         {
-                                                            <span class="badge bg-warning text-dark">Pickup</span>
+                                                            <span class="badge bg-secondary">Pickup Point</span>
                                                         }
-                                                        else if (pay.OrderType == "Delivery")
+                                                        else if (pay.OrderType == "DELIVERY")
                                                         {
                                                             <span class="badge bg-success">Delivery</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-secondary">@pay.OrderType</span>
-                                                        }
+                                                        }                                                        
                                                     </td>
                                                     <td>
                                                         @if (pay.OrderStatus == "In Progress")
                                                         {
                                                             <span class="badge bg-primary">In Progress</span>
-                                                        }                                                        
-                                                        else if (pay.OrderType == "Ready")
+                                                        }  
+                                                        else if (pay.OrderStatus == "Pending")
+                                                        {
+                                                            <span class="badge bg-warning">Pending</span>
+                                                        }
+                                                        else if (pay.OrderStatus == "Ready")
                                                         {
                                                             <span class="badge bg-Info">Ready</span>
                                                         }
-                                                        else if (pay.OrderType == "Completed")
+                                                        else if (pay.OrderStatus == "Completed")
                                                         {
                                                             <span class="badge bg-success">Completed</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-secondary">@pay.OrderType</span>
-                                                        }
+                                                        }                                                                                                               
                                                     </td>
                                                     <td>
                                                         @if (!string.IsNullOrEmpty(pay.Notes))

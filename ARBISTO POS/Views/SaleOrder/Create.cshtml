@@ -24,15 +24,12 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-white shadow-sm">
     <div class="container-fluid">
         <a class="navbar-brand ps-4" href="#">
-            <img src="~/assets/images/logo-full.png" alt="Logo" class="b-brand" style="max-height:50px;" />
+            <img src="~/assets/images/LOGO-Name.png" alt="Logo" class="b-brand" style="max-height:40px;" />
         </a>
-
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <!-- Moved form start tag to wrap only the relevant content and added closing tag -->
-        <form asp-action="Create" method="post">
-            @Html.AntiForgeryToken()
+        <!-- Moved form start tag to wrap only the relevant content and added closing tag -->        
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center gap-3 pe-3">
                     <li class="nav-item d-flex align-items-center gap-2 border-primary">
@@ -44,8 +41,30 @@
                     </li>
 
                     <li class="nav-item">
-                        <a asp-controller="SaleOrder" asp-action="Kitchen"  class="btn btn-warning px-3 py-2 fs-6">In Progress</a>
+                        <a asp-controller="SaleOrder" asp-action="Kitchen" class="btn btn-warning px-3 py-2 fs-6 blink">In Progress</a>
                     </li>
+
+                    <style>
+                        /* Blink animation */
+                        @@keyframes blink-animation {
+                            0% {
+                                opacity: 1;
+                            }
+
+                            50% {
+                                opacity: 0.5;
+                            }
+
+                            100% {
+                                opacity: 1;
+                            }
+                        }
+
+                        .blink {
+                            animation: blink-animation 3s infinite; /* 1s duration, infinite loop */
+                        }
+                    </style>
+
 
                     <li class="nav-item d-none d-sm-flex">
                         <div class="full-screen-switcher">
@@ -56,10 +75,13 @@
                         </div>
                     </li>
 
+                    <!-- Button to Open Modal -->
                     <li class="nav-item position-relative">
-                        <button type="button" class="btn btn-danger px-3 py-2 position-relative">
+                        <button type="button" id="openHeldModal" class="btn btn-danger px-3 py-2 position-relative">
                             <i class="feather-list"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">0</span>
+                            <span id="heldCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">
+                                0
+                            </span>
                         </button>
                     </li>
 
@@ -86,11 +108,11 @@
                         }
                     </li>
                 </ul>
-            </div>
-        </form>
+            </div>       
     </div>
 </nav>
-
+<form asp-action="Create" method="post" id="posForm">
+    @Html.AntiForgeryToken()
 <div class="d-flex" style="height: calc(100vh - 70px); overflow: hidden;">
     <!-- LEFT: Categories -->
     <div class="bg-white border-end p-3 d-flex flex-column flex-shrink-0"
@@ -160,7 +182,7 @@
 
                             <div class="card-body p-2 text-center">
                                 <h6 class="card-title fw-bold mb-1 text-truncate">@p.ItemName</h6>
-                                <p class="fw-bold text-danger mb-0">$@p.ItemPrice</p>
+                                <p class="fw-bold text-danger mb-0">@p.ItemPrice.00</p>
                             </div>
                         </div>
                     </div>
@@ -178,17 +200,22 @@
                 <!-- Customer -->
                 <div class="col d-flex flex-column">
                     <label asp-for="CustomerId" class="form-label fw-semibold">Customers <span class="text-danger">*</span></label>
-                    <select asp-for="Order.CustomerId" class="form-select select2-ajax-category" style="width: 100%;">
+                    <select asp-for="CustomerId" class="form-select select2-ajax-category" style="width: 100%;">
                         <option value="">Select Customer</option>
                     </select>
                     <span asp-validation-for="CustomerId" class="text-danger small"></span>
                 </div>
+                <!-- Hidden field for OrderType -->
+                <input type="hidden" asp-for="Order.OrderType" id="OrderTypeHidden" value="DINE IN" />
 
-                <!-- Dine In Table Button -->
-                <div class="col d-flex flex-column order-type-input" id="tableSelectDiv">
-                    <label class="form-label small fw-semibold"><i class="bi bi-table"></i> Table</label>
-                    <button type="button" class="btn btn-outline-primary flex-grow-1 fs-6 active py-1"><div>Select Table</div></button>
-                </div>
+            <!-- Dine In Table Button -->
+            <div class="col d-flex flex-column order-type-input" id="tableSelectDiv">
+                <label class="form-label small fw-semibold"><i class="bi bi-table"></i> Table</label>
+                <button type="button" id="openTableModal" class="btn btn-outline-primary flex-grow-1 fs-6 py-1">
+                    <div id="selectedTableText">Select Table</div>
+                </button>
+                <input type="hidden" asp-for="Order.TableId" id="TableIdHidden" value="" />
+            </div>
 
                 <!-- Pickup Dropdown -->
                 <div class="col d-flex flex-column order-type-input d-none" id="pickupSelectDiv">
@@ -198,12 +225,19 @@
                     </select>
                 </div>
 
-                <!-- Delivery Input -->
-                <div class="col d-flex flex-column order-type-input d-none" id="deliveryInputDiv">
-                    <label class="form-label small fw-semibold"><i class="bi bi-truck"></i> Shipping Address</label>
-                    <button type="button" class="btn btn-outline-primary flex-grow-1 fs-6 active py-1"><div>Select Shipping</div></button>
-                </div>
+            <!-- Delivery Input -->
+            <div class="col d-flex flex-column order-type-input d-none" id="deliveryInputDiv">
+                <label class="form-label small fw-semibold"><i class="bi bi-truck"></i> Shipping Address</label>
+                <input type="text"
+                       id="deliveryAddressInput"
+                       class="form-control"
+                       placeholder="Select Customer First"
+                       readonly
+                       style="cursor: pointer; background-color: #fff;"
+                       title="">
+                <input type="hidden" asp-for="Order.DelivaryAddress" id="ShippingAddressHidden" value="" />
             </div>
+         </div>
 
             <!-- Order Items -->
             <div class="flex-grow-1 overflow-auto mb-3 border rounded p-3 bg-light" id="orderList">
@@ -217,34 +251,41 @@
             <!-- Totals -->
             <div class="d-flex justify-content-between mb-1">
                 <span>Subtotal</span>
-                <span id="subtotal">$0.00</span>
+            <!-- Hidden fields for form submission -->
+            <input type="hidden" asp-for="Order.SubTotal" id="SubTotalHidden" value="0" />            
+                <span id="subtotal">0.00</span>
             </div>
+
+        <!-- Tax -->
+        <div class="d-flex justify-content-between mb-1">
+            <span>
+                Tax
+                <button id="openTaxModal"
+                        type="button"
+                        class="border-0 bg-transparent p-0 ms-1 text-muted">
+                    <i class="feather-edit-3"></i>
+                </button>
+            </span>
+            <span id="tax">0.00</span>
+        </div>
 
             <!-- Discount -->
-            <div class="d-flex justify-content-between mb-1">
-                <span>
-                    Discount
-                    <button type="button" class="border-0 bg-transparent p-0 ms-1 text-muted" style="cursor:pointer;">
-                        <i class="feather-edit-3"></i>
-                    </button>
-                </span>
-                <span id="discount">$0.00</span>
-            </div>
-
-            <!-- Tax -->
-            <div class="d-flex justify-content-between mb-1">
-                <span>
-                    Tax
-                    <button type="button" class="border-0 bg-transparent p-0 ms-1 text-muted" style="cursor:pointer;">
-                        <i class="feather-edit-3"></i>
-                    </button>
-                </span>
-                <span id="tax">$0.00</span>
-            </div>
+        <div class="d-flex justify-content-between mb-1">
+            <span>
+                Discount
+                <button type="button"
+                        id="openDiscountModal"
+                        class="border-0 bg-transparent p-0 ms-1 text-muted">
+                    <i class="feather-edit-3"></i>
+                </button>
+            </span>
+            <span id="discount">0.00</span>
+        </div>
 
             <!-- Grand Total -->
             <div class="d-flex mb-3">
-                <button type="button" class="btn btn-primary flex-fill fs-5" id="grandTotalBtn"><div>$0.00</div></button>
+                <button  class="btn btn-primary flex-fill fs-5" style="cursor:default;" id="grandTotalBtn"><div>0.00</div></button>
+                <input type="hidden" asp-for="Order.GrandTotal" id="GrandTotalHidden" value="0" />
             </div>
 
 
@@ -252,206 +293,613 @@
             <div class="mt-auto">
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-danger flex-fill fs-6">Hold</button>
-                    <button type="button" class="btn btn-warning flex-fill fs-6">Reset</button>
-                    <button type="button" class="btn btn-success flex-fill fs-6">Place Order</button>
+                <button type="button"
+                        class="btn btn-warning flex-fill fs-6"
+                        onclick="window.location.reload();">
+                    Reset
+                </button>
+                <button type="submit" class="btn btn-success flex-fill fs-6" >Place Order</button>
                 </div>
             </div>       
     </div>
 </div>
+    <!-- ✅ CLOSE FORM HERE -->
+</form>
+<!-- DISCOUNT MODAL CREATE -->
+<div class="modal fade" id="discountModal" tabindex="-1">
+    <div class="modal-dialog modal-md modal-dialog-top">
+        <div class="modal-content">
 
-@section Scripts {
-    <script>
-        // For customer Select2
-             $(document).ready(function() {
-            // ✅ AJAX Select2 for Customer
-            $('.select2-ajax-category').select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Select Customers',
-                allowClear: true,
-                ajax: {
-                    url: '@Url.Action("GetCustomers", "SaleOrder")',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return {
-                            search: params.term
-                        };
-                    },
-                    processResults: function (data) {
-                        return {
-                            results: data.results
-                        };
-                    },
-                    cache: true
-                },
-                minimumInputLength: 0
-            });
-            // ✅ AJAX Select2 for Pickup Points
-            $('.select2-ajax-Pickup').select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Select Pickup Points(OPT)',
-                allowClear: true,
-                ajax: {
-                    url: '@Url.Action("GetPickupPoints", "SaleOrder")',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return {
-                            search: params.term
-                        };
-                    },
-                    processResults: function (data) {
-                        return {
-                            results: data.results
-                        };
-                    },
-                    cache: true
-                },
-                minimumInputLength: 0
-            });
+            <!-- HEADER (no line) -->
+            <div class="modal-header py-2 pt-3 border-0">
+                <h4 class="modal-title fw-normal">Edit Discount</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body pt-10">
+                <h6>Enter New Value:</h6>
+                <input type="number"
+                       id="discountInput"
+                       class="form-control"
+                       placeholder="0.00"
+                       min="0"
+                       step="0.01" />
+
+                <input type="hidden"
+                       asp-for="Order.DiscountAmount"
+                       id="DiscountHidden"
+                       value="0" />
+            </div>
+
+            <!-- FOOTER (no line) -->
+            <div class="modal-footer py-2 border-0">
+                <button class="btn btn-secondary btn-md" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary btn-md" onclick="applyDiscount()">Save Changes</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- TAX MODAL CREATE -->
+<div class="modal fade" id="taxModal" tabindex="-1">
+    <div class="modal-dialog modal-md modal-dialog-top">
+        <div class="modal-content">
+
+            <!-- HEADER (no line) -->
+            <div class="modal-header py-2 pt-3 border-0">
+                <h4 class="modal-title fw-normal">Edit Tax</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body pt-10">
+                <h6>Enter New Value:</h6>
+                <input type="number"
+                       id="taxInput"
+                       class="form-control"
+                       placeholder="0.00"
+                       min="0"
+                       step="0.01" />
+
+                <input type="hidden"
+                       asp-for="Order.TaxAmount"
+                       id="TaxHidden"
+                       value="0" />
+            </div>
+
+            <!-- FOOTER (no line) -->
+            <div class="modal-footer py-2 border-0">
+                <button class="btn btn-secondary btn-mg" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary btn-md" onclick="applyTax()">Save Changes</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- HELD INVOICE MODAL -->
+<div id="heldInvoicesModal" class="modal fade" tabindex="-1" aria-labelledby="heldInvoicesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-top modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="heldInvoicesModalLabel">Held Invoices</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body-h">
+            <!-- Pending Orders will be dynamically populated here -->
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- TABLE SELECTION MODAL -->
+<div class="modal fade" id="tableSelectionModal" tabindex="-1" aria-labelledby="tableSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tableSelectionModalLabel">Select Table</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3" id="tableListContainer">
+                    <!-- Tables will be dynamically loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FULL ADDRESS MODAL -->
+<div class="modal fade" id="fullAddressModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Shipping Address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="fullAddressText" class="mb-0"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                @* <button type="button" class="btn btn-primary" id="btnEditAddress">Edit Address</button> *@
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {  
+<script>
+
+    /* ===============================
+       SELECT2 (Customers & Pickup)
+    =============================== */
+    $(document).ready(function () {
+
+        $('.select2-ajax-category').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select Customers',
+            allowClear: true,
+            ajax: {
+                url: '@Url.Action("GetCustomers", "SaleOrder")',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ search: params.term }),
+                processResults: data => ({ results: data.results }),
+                cache: true
+            }
         });
-        // ORDER TYPE LOGIC
-        const dineInBtn = document.getElementById('dineInBtn');
-        const pickupBtn = document.getElementById('pickupBtn');
-        const deliveryBtn = document.getElementById('deliveryBtn');
 
-        const tableDiv = document.getElementById('tableSelectDiv');
-        const pickupDiv = document.getElementById('pickupSelectDiv');
-        const deliveryDiv = document.getElementById('deliveryInputDiv');
+        $('.select2-ajax-Pickup').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select Pickup Points(OPT)',
+            allowClear: true,
+            ajax: {
+                url: '@Url.Action("GetPickupPoints", "SaleOrder")',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ search: params.term }),
+                processResults: data => ({ results: data.results }),
+                cache: true
+            }
+        });
 
-        const orderTypeSelect = document.getElementById('orderTypeSelect');
+    });
 
-        function hideAllOrderInputs() {
-            tableDiv.classList.add('d-none');
-            pickupDiv.classList.add('d-none');
-            deliveryDiv.classList.add('d-none');
+    /* ===============================
+       ORDER TYPE LOGIC
+    =============================== */
+    const dineInBtn = document.getElementById('dineInBtn');
+    const pickupBtn = document.getElementById('pickupBtn');
+    const deliveryBtn = document.getElementById('deliveryBtn');
 
-            dineInBtn.classList.remove('active');
-            pickupBtn.classList.remove('active');
-            deliveryBtn.classList.remove('active');
-        }
+    const tableDiv = document.getElementById('tableSelectDiv');
+    const pickupDiv = document.getElementById('pickupSelectDiv');
+    const deliveryDiv = document.getElementById('deliveryInputDiv');
+    const orderTypeSelect = document.getElementById('orderTypeSelect');
 
-        dineInBtn.addEventListener('click', () => { hideAllOrderInputs(); tableDiv.classList.remove('d-none'); dineInBtn.classList.add('active'); orderTypeSelect.value='DINE IN'; });
-        pickupBtn.addEventListener('click', () => { hideAllOrderInputs(); pickupDiv.classList.remove('d-none'); pickupBtn.classList.add('active'); orderTypeSelect.value='PICKUP POINT'; });
-        deliveryBtn.addEventListener('click', () => { hideAllOrderInputs(); deliveryDiv.classList.remove('d-none'); deliveryBtn.classList.add('active'); orderTypeSelect.value='DELIVERY'; });
+    function hideAllOrderInputs() {
+        tableDiv.classList.add('d-none');
+        pickupDiv.classList.add('d-none');
+        deliveryDiv.classList.add('d-none');
+    }
 
-        orderTypeSelect.addEventListener('change', () => {
+            orderTypeSelect.addEventListener('change', () => {
             hideAllOrderInputs();
-            const selected = orderTypeSelect.value;
-            if(selected==='DINE IN'){ tableDiv.classList.remove('d-none'); dineInBtn.classList.add('active'); }
-            else if(selected==='PICKUP POINT'){ pickupDiv.classList.remove('d-none'); pickupBtn.classList.add('active'); }
-            else if(selected==='DELIVERY'){ deliveryDiv.classList.remove('d-none'); deliveryBtn.classList.add('active'); }
+
+            // ✅ Update hidden field
+            document.getElementById('OrderTypeHidden').value = orderTypeSelect.value;
+
+            if (orderTypeSelect.value === 'DINE IN') tableDiv.classList.remove('d-none');
+            if (orderTypeSelect.value === 'PICKUP POINT') pickupDiv.classList.remove('d-none');
+            if (orderTypeSelect.value === 'DELIVERY') deliveryDiv.classList.remove('d-none');
         });
 
-        // MENU ITEMS TO ORDER
-        const orderList = document.getElementById('orderList');
-        const currentOrder = [];
+    /* ===============================
+       ORDER ITEMS LOGIC
+    =============================== */
+    const orderList = document.getElementById('orderList');
+    const currentOrder = [];
 
-        document.querySelectorAll('.menu-item-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const id = card.getAttribute('data-item-id');
-                const name = card.getAttribute('data-item-name');
-                const price = parseFloat(card.getAttribute('data-item-price'));
-                const image = card.getAttribute('data-item-image');
+    document.querySelectorAll('.menu-item-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const id = card.dataset.itemId;
+            const name = card.dataset.itemName;
+            const price = parseFloat(card.dataset.itemPrice);
+            const image = card.dataset.itemImage || '/assets/images/upload.jpg';
 
-                const existing = currentOrder.find(i => i.id===id);
-                if(existing){ existing.qty += 1; }
-                else{ currentOrder.push({id,name,price,image,qty:1}); }
+            const existing = currentOrder.find(i => i.id === id);
+            if (existing) existing.qty++;
+            else currentOrder.push({ id, name, price, image, qty: 1 });
 
-                renderOrder();
-            });
+            renderOrder();
         });
+    });
 
-                function renderOrder(){
+    /* ===============================
+       RENDER ORDER + SUBTOTAL
+    =============================== */
+            function renderOrder() {
             orderList.innerHTML = '';
             let subtotal = 0;
 
-            if(currentOrder.length===0){
-                orderList.innerHTML = `<div class="text-center text-muted">
-                    <i class="bi bi-basket fs-1 mb-2"></i>
-                    <div class="fw-semibold">No items in order</div>
-                    <small>Click on menu items to add them</small>
-                </div>`;
-                document.getElementById('subtotal').textContent='$0.00';
-                document.getElementById('discount').textContent='$0.00';
-                document.getElementById('tax').textContent='$0.00';
-                document.getElementById('grandTotalBtn').innerHTML='<div>$0.00</div>';
+            if (currentOrder.length === 0) {
+                orderList.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="bi bi-basket fs-1 mb-2"></i>
+                        <div class="fw-semibold">No items in order</div>
+                    </div>`;
+                resetTotals();
                 return;
             }
 
-                                           currentOrder.forEach((item, index) => {
-            subtotal += item.price * item.qty;
+            currentOrder.forEach((item, index) => {
+                subtotal += item.price * item.qty;
 
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'position-relative d-flex align-items-center mb-2 p-2 border rounded';
+                const div = document.createElement('div');
+                div.className = 'd-flex align-items-center mb-2 p-2 border rounded position-relative';
 
-            // Set default image if item.image is empty, null, or undefined
-            const itemImage = item.image ? item.image : '/assets/images/upload.jpg'; // default image
+                        div.innerHTML = `
+            <button class="btn-close position-absolute remove-item-btn"
+                    style="top: 5px; right: 5px; font-size: 0.7rem; padding: 0.2rem;"
+                    aria-label="Remove"></button>
+            <img src="${item.image}" style="width:60px;height:60px;object-fit:cover" class="rounded me-2">
+            <div class="flex-grow-1">
+                <div class="fw-semibold">${item.name}</div>
+                <small>${item.price.toFixed(2)} × ${item.qty}</small>
+            </div>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Quantity controls">
+                <button type="button" class="btn btn-outline-primary dec">−</button>
+                <button type="button" class="btn btn-outline-secondary qty-display border-0" disabled style="min-width:40px;">${item.qty}</button>
+                <button type="button" class="btn btn-outline-primary inc">+</button>
+            </div>
+            <div class="fw-bold text-danger ms-2" style="min-width:60px;">${(item.price * item.qty).toFixed(2)}</div>
+        `;
 
-            itemDiv.innerHTML = `
-                <button class="border-0 btn btn-sm btn-light text-danger position-absolute top-0 end-0 remove-item"
-                        style="line-height:1; padding:2px 6px;">
-                    ✕
-                </button>
 
-                <img src="${itemImage}"
-                     class="rounded me-2"
-                     style="width:60px;height:60px;object-fit:cover;">
+                // Remove item completely
+                div.querySelector('.remove-item-btn').onclick = () => {
+                    currentOrder.splice(index, 1);
+                    renderOrder();
+                };
 
-                <div class="flex-grow-1">
-                    <div class="fw-semibold">${item.name}</div>
-                    <small class="text-muted">$${item.price.toFixed(2)} X ${item.qty}</small>
-                </div>
+                div.querySelector('.inc').onclick = () => { item.qty++; renderOrder(); };
+                div.querySelector('.dec').onclick = () => {
+                    item.qty--;
+                    if (item.qty <= 0) currentOrder.splice(index, 1);
+                    renderOrder();
+                };
 
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-sm btn-outline-secondary decrease-qty">−</button>
-                    <span class="fw-semibold">${item.qty}</span>
-                    <button class="btn btn-sm btn-outline-secondary increase-qty">+</button>
-                    <span class="fw-bold text-danger ms-2">
-                        $${(item.price * item.qty).toFixed(2)}
-                    </span>
-                </div>
-            `;
-
-            // Buttons
-            const increaseBtn = itemDiv.querySelector('.increase-qty');
-            const decreaseBtn = itemDiv.querySelector('.decrease-qty');
-            const removeBtn   = itemDiv.querySelector('.remove-item');
-
-            increaseBtn.addEventListener('click', () => {
-                item.qty++;
-                renderOrder();
+                orderList.appendChild(div);
             });
 
-            decreaseBtn.addEventListener('click', () => {
-                item.qty--;
-                if (item.qty <= 0) currentOrder.splice(index, 1);
-                renderOrder();
-            });
-
-            removeBtn.addEventListener('click', () => {
-                currentOrder.splice(index, 1);
-                renderOrder();
-            });
-
-            orderList.appendChild(itemDiv);
-        });
-
-
-
-
-
-            // Example discount: 10% of subtotal
-            const discount = subtotal * 0;
-            // Example tax: 5% of subtotal
-            const tax = subtotal * 0;
-            const grandTotal = subtotal - discount + tax;
-
-            document.getElementById('subtotal').textContent=`$${subtotal.toFixed(2)}`;
-            document.getElementById('discount').textContent=`$${discount.toFixed(2)}`;
-            document.getElementById('tax').textContent=`$${tax.toFixed(2)}`;
-            document.getElementById('grandTotalBtn').innerHTML=`<div>$${grandTotal.toFixed(2)}</div>`;
+            document.getElementById('subtotal').innerText = subtotal.toFixed(2);
+            calculateGrandTotal();
         }
 
-    </script>
+
+    /* ===============================
+       GRAND TOTAL CALCULATION
+    =============================== */
+            function calculateGrandTotal() {
+            let subtotal = parseFloat(document.getElementById('subtotal').innerText) || 0;
+            let discount = parseFloat(document.getElementById('DiscountHidden').value) || 0;
+            let tax = parseFloat(document.getElementById('TaxHidden').value) || 0;
+
+            let total = subtotal - discount + tax;
+            if (total < 0) total = 0;
+
+            // Update display
+            document.getElementById('discount').innerText = discount.toFixed(2);
+            document.getElementById('tax').innerText = tax.toFixed(2);
+            document.getElementById('grandTotalBtn').innerHTML = `<div>${total.toFixed(2)}</div>`;
+
+            // ✅ UPDATE HIDDEN FIELDS
+            document.getElementById('SubTotalHidden').value = subtotal.toFixed(2);
+            document.getElementById('GrandTotalHidden').value = total.toFixed(2);
+        }
+
+    function resetTotals() {
+        document.getElementById('subtotal').innerText = '0.00';
+        document.getElementById('discount').innerText = '0.00';
+        document.getElementById('tax').innerText = '0.00';
+        document.getElementById('DiscountHidden').value = 0;
+        document.getElementById('TaxHidden').value = 0;
+        document.getElementById('grandTotalBtn').innerHTML = '<div>0.00</div>';
+    }
+
+    /* ===============================
+       DISCOUNT MODAL
+    =============================== */
+    document.getElementById('openDiscountModal').onclick = () =>
+        new bootstrap.Modal(document.getElementById('discountModal')).show();
+
+    function applyDiscount() {
+        document.getElementById('DiscountHidden').value =
+            parseFloat(document.getElementById('discountInput').value || 0);
+        bootstrap.Modal.getInstance(document.getElementById('discountModal')).hide();
+        calculateGrandTotal();
+    }
+
+    /* ===============================
+       TAX MODAL
+    =============================== */
+    document.getElementById('openTaxModal').onclick = () =>
+        new bootstrap.Modal(document.getElementById('taxModal')).show();
+
+    function applyTax() {
+        document.getElementById('TaxHidden').value =
+            parseFloat(document.getElementById('taxInput').value || 0);
+        bootstrap.Modal.getInstance(document.getElementById('taxModal')).hide();
+        calculateGrandTotal();
+    }
+        /* ===============================
+           HELD INVOIVE MODAL
+        =============================== */
+            document.getElementById("openHeldModal").addEventListener("click", async function () {
+            // Fetch Pending Orders (Held Invoices)
+            const response = await fetch('/SaleOrder/GetHeldInvoices');
+            const data = await response.json();
+
+            // Update held invoice count
+            document.getElementById("heldCount").textContent = data.invoices.length;
+
+            // Populate the modal with held invoices or display a message if none are found
+            const modalBody = document.querySelector(".modal-body-h");
+            modalBody.innerHTML = ''; // Clear previous data
+
+            if (data.invoices.length === 0) {
+                // No held invoices found, show message
+                modalBody.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="bi bi-x-circle fs-1 mb-2"></i>
+                        <div>No held invoices available at the moment.</div>                        
+                    </div>
+                `;
+            } else {
+                // Display the held invoices
+                data.invoices.forEach(order => {
+                    const orderDiv = document.createElement("div");
+                    orderDiv.innerHTML = `
+                        <div>Order Number: ${order.OrderNumber}</div>
+                        <div>Status: ${order.OrderStatus}</div>
+                        <button onclick="restoreOrder(${order.Id})">Restore</button>
+                    `;
+                    modalBody.appendChild(orderDiv);
+                });
+            }
+
+            // Show the modal using Bootstrap's modal API
+            const myModal = new bootstrap.Modal(document.getElementById('heldInvoicesModal'));
+            myModal.show();
+        });
+
+        // Restore order function
+        async function restoreOrder(orderId) {
+            await fetch(`/SaleOrder/RestoreOrder/${orderId}`, {
+                method: 'POST'
+            });
+
+            // Refresh the modal content
+            location.reload();
+        }              
+     /* ===============================
+           TABLE SELECTION MODAL
+        =============================== */
+        document.getElementById('openTableModal').addEventListener('click', async function() {
+            try {
+                // Fetch tables from the server
+                const response = await fetch('/SaleOrder/GetTables');
+                const data = await response.json();
+
+                const container = document.getElementById('tableListContainer');
+                container.innerHTML = ''; // Clear previous content
+
+                if (data.tables.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-12 text-center text-muted">
+                            <i class="bi bi-x-circle fs-1 mb-2"></i>
+                            <div class="fw-semibold">No Tables Found</div>
+                            <small>Please add tables to the system.</small>
+                        </div>`;
+                } else {
+                    // Display tables as cards
+                    data.tables.forEach(table => {
+                        const isAvailable = table.status === 'Available';
+                        const statusClass = isAvailable ? 'success' : 'danger';
+                        const statusText = table.status;
+
+                        const tableCard = document.createElement('div');
+                        tableCard.className = 'col-md-4 col-sm-6';
+                        tableCard.innerHTML = `
+                            <div class="card table-card ${isAvailable ? '' : 'opacity-75'}"
+                                 data-table-id="${table.id}"
+                                 data-table-name="${table.tableName}"
+                                 style="cursor: ${isAvailable ? 'pointer' : 'not-allowed'};">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-table fs-1 mb-2"></i>
+                                    <h5 class="card-title fw-bold">${table.tableName}</h5>                                    
+                                    <span class="badge bg-${statusClass}">${statusText}</span>
+                                </div>
+                            </div>`;
+
+                        // Add click event only for available tables
+                        if (isAvailable) {
+                            tableCard.querySelector('.table-card').addEventListener('click', function() {
+                                selectTable(table.id, table.tableName);
+                            });
+                        }
+
+                        container.appendChild(tableCard);
+                    });
+                }
+
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('tableSelectionModal'));
+                modal.show();
+
+            } catch (error) {
+                console.error('Error fetching tables:', error);
+                alert('Failed to load tables. Please try again.');
+            }
+        });
+
+        // Function to select a table
+        function selectTable(tableId, tableName) {
+            // Update hidden input
+            document.getElementById('TableIdHidden').value = tableId;
+
+            // Update button text
+            document.getElementById('selectedTableText').innerText = tableName;
+
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('tableSelectionModal'));
+            modal.hide();
+        }
+
+     /* ===============================
+           CUSTOMER ADDRESS LOGIC
+        =============================== */
+        $('.select2-ajax-category').on('select2:select', function (e) {
+            var customerId = e.params.data.id;
+
+            if (customerId) {
+                // Fetch customer address
+                $.ajax({
+                    url: '@Url.Action("GetCustomerAddress", "SaleOrder")',
+                    type: 'GET',
+                    data: { customerId: customerId },
+                    success: function (response) {
+                        if (response.hasAddress) {
+                            // Truncate address to show only first few words
+                            var truncatedAddress = truncateAddress(response.address, 20);
+
+                            // Update input field with truncated address
+                            $('#deliveryAddressInput').val(truncatedAddress);
+                            $('#deliveryAddressInput').attr('title', response.address); // Full address on hover
+
+                            // Store full address in hidden field
+                            $('#ShippingAddressHidden').val(response.address);
+                        } else {
+                            // Clear input and show modal for no address
+                            $('#deliveryAddressInput').val('No Address Found');
+                            $('#deliveryAddressInput').attr('title', 'Click to add address');
+                            showNoAddressModal(customerId, response.customerName);
+                        }
+                    },
+                    error: function () {
+                        alert('Failed to fetch customer address');
+                    }
+                });
+            }
+        });
+
+        // Function to truncate address text
+        function truncateAddress(text, maxLength) {
+            if (!text) return '';
+
+            // Remove extra spaces
+            text = text.trim();
+
+            if (text.length <= maxLength) {
+                return text;
+            }
+
+            // Truncate and add ellipsis
+            return text.substring(0, maxLength) + '...';
+        }
+
+        function showNoAddressModal(customerId, customerName) {
+            $('#addressModalBody').html(`
+                <div class="text-center text-muted">
+                    <i class="bi bi-geo-alt fs-1 mb-3"></i>
+                    <h5 class="fw-semibold mb-2">${customerName}</h5>
+                    <p>This customer has no address on record.</p>
+                    <small class="text-muted">Click "Add Address" to update customer information.</small>
+                </div>
+            `);
+
+            // Store customer ID for edit action
+            $('#btnAddAddress').data('customer-id', customerId);
+
+            // Show modal
+            var modal = new bootstrap.Modal(document.getElementById('addressModal'));
+            modal.show();
+        }
+
+        // Handle Add Address button click
+        $('#btnAddAddress').on('click', function() {
+            var customerId = $(this).data('customer-id');
+
+            // Redirect to edit customer page
+            window.location.href = '@Url.Action("Edit", "Customers")/' + customerId;
+        });
+
+        // Click on input to show full address modal
+$('#deliveryAddressInput').on('click', function() {
+    var fullAddress = $('#ShippingAddressHidden').val();
+    var customerId = $('.select2-ajax-category').val();
+    
+    if (fullAddress && fullAddress.trim() !== '') {
+        // Show full address in modal
+        $('#fullAddressText').text(fullAddress);
+        $('#btnEditAddress').data('customer-id', customerId);
+        
+        var modal = new bootstrap.Modal(document.getElementById('fullAddressModal'));
+        modal.show();
+    } else if (customerId) {
+        // No address - redirect to edit
+        window.location.href = '@Url.Action("Edit", "Customer")/' + customerId;
+    } else {
+        alert('Please select a customer first');
+    }
+});
+
+// Handle edit address button in full address modal
+$('#btnEditAddress').on('click', function() {
+    var customerId = $(this).data('customer-id');
+    window.location.href = '@Url.Action("Edit", "Customers")/' + customerId;
+});
+
+
+
+        // Place Order - Convert items to JSON before submit
+                        document.getElementById('posForm').addEventListener('submit', function(e) {
+            if (currentOrder.length === 0) {
+                e.preventDefault();
+                alert('Please add items to order first!');
+                return false;
+            }
+
+            // Convert currentOrder array to JSON and store in hidden field
+            const orderItemsJson = JSON.stringify(currentOrder.map(item => ({
+                ItemId: item.id,
+                ItemName: item.name,
+                Price: item.price,
+                Quantity: item.qty
+            })));
+
+            // Create hidden input for order items
+            let orderItemsInput = document.getElementById('OrderItemsJson');
+            if (!orderItemsInput) {
+                orderItemsInput = document.createElement('input');
+                orderItemsInput.type = 'hidden';
+                orderItemsInput.id = 'OrderItemsJson';
+                orderItemsInput.name = 'OrderItemsJson';
+                this.appendChild(orderItemsInput);
+            }
+            orderItemsInput.value = orderItemsJson;
+
+            return true;
+        });
+
+</script>
 }
+

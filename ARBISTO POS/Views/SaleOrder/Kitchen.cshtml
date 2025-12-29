@@ -28,3 +28,27 @@
     </div>
 </main>
 
+@foreach (var order in Model)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>@order.OrderNumber</h5>
+
+            <form asp-action="AssignChef" method="post">
+                <input type="hidden" name="orderId" value="@order.OrderId" />
+
+                <select name="chefId" class="form-select mb-2" required>
+                    <option value="">Select Chef</option>
+                    @foreach (var chef in ViewBag.Chefs)
+                    {
+                        <option value="@chef.Id">@chef.Name</option>
+                    }
+                </select>
+
+                <button class="btn btn-primary w-100">
+                    Assign & Start
+                </button>
+            </form>
+        </div>
+    </div>
+}

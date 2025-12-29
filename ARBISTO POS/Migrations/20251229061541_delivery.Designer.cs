@@ -4,6 +4,7 @@ using ARBISTO_POS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ARBISTO_POS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251229061541_delivery")]
+    partial class delivery
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -495,13 +498,14 @@ namespace ARBISTO_POS.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderId"));
 
-                    b.Property<int?>("ChefId")
+                    b.Property<int>("ChefId")
                         .HasColumnType("int");
 
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
                     b.Property<string>("DelivaryAddress")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("DiscountAmount")
@@ -511,6 +515,7 @@ namespace ARBISTO_POS.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Notes")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("OrderDate")
@@ -528,7 +533,7 @@ namespace ARBISTO_POS.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("PaymentId")
+                    b.Property<int>("PaymentId")
                         .HasColumnType("int");
 
                     b.Property<string>("PaymentStatus")
@@ -541,7 +546,7 @@ namespace ARBISTO_POS.Migrations
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("TableId")
+                    b.Property<int>("TableId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("TaxAmount")
@@ -667,7 +672,9 @@ namespace ARBISTO_POS.Migrations
                 {
                     b.HasOne("ARBISTO_POS.Models.Employees", "Chef")
                         .WithMany()
-                        .HasForeignKey("ChefId");
+                        .HasForeignKey("ChefId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("ARBISTO_POS.Models.Customers", "Customer")
                         .WithMany()
@@ -677,7 +684,9 @@ namespace ARBISTO_POS.Migrations
 
                     b.HasOne("ARBISTO_POS.Models.PaymentMethods", "Payment")
                         .WithMany()
-                        .HasForeignKey("PaymentId");
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("ARBISTO_POS.Models.PickPoints", "PickUp")
                         .WithMany()
@@ -685,7 +694,9 @@ namespace ARBISTO_POS.Migrations
 
                     b.HasOne("ARBISTO_POS.Models.ServiceTables", "Table")
                         .WithMany()
-                        .HasForeignKey("TableId");
+                        .HasForeignKey("TableId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Chef");
 
