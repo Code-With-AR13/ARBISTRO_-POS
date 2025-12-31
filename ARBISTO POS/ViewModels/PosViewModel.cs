@@ -15,7 +15,8 @@ namespace ARBISTO_POS.ViewModels
         // Selected customer
         public int? CustomerId { get; set; }
         public List<Customers> Customers { get; set; } = new();
-
+        // Add this property to your existing PosViewModel
+        public List<HeldOrders>? HeldOrders { get; set; }
         public SaleOrderItems OrderItems { get; set; }
         public SaleOrders Order { get; set; } = new SaleOrders();
 

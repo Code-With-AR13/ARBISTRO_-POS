@@ -4,6 +4,7 @@ using ARBISTO_POS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ARBISTO_POS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251230125644_Heldordersa")]
+    partial class Heldordersa
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -281,9 +284,6 @@ namespace ARBISTO_POS.Migrations
 
                     b.Property<int>("ItemId")
                         .HasColumnType("int");
-
-                    b.Property<string>("ItemImage")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ItemName")
                         .HasColumnType("nvarchar(max)");
@@ -570,11 +570,11 @@ namespace ARBISTO_POS.Migrations
                     b.Property<int?>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ItemId")
+                    b.Property<int?>("HeldOrdersOrderId")
                         .HasColumnType("int");
 
-                    b.Property<string>("ItemImage")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("ItemId")
+                        .HasColumnType("int");
 
                     b.Property<string>("ItemName")
                         .IsRequired()
@@ -595,6 +595,8 @@ namespace ARBISTO_POS.Migrations
                     b.HasKey("OrderItemId");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("HeldOrdersOrderId");
 
                     b.HasIndex("ItemId");
 
@@ -750,15 +752,15 @@ namespace ARBISTO_POS.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ARBISTO_POS.Models.HeldOrders", "HeldOrder")
-                        .WithMany("HeldOrderItems")
+                    b.HasOne("ARBISTO_POS.Models.SaleOrders", "Order")
+                        .WithMany()
                         .HasForeignKey("OrderId");
 
                     b.Navigation("Customer");
 
-                    b.Navigation("HeldOrder");
-
                     b.Navigation("Item");
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("ARBISTO_POS.Models.ItemIngredients", b =>
@@ -816,6 +818,10 @@ namespace ARBISTO_POS.Migrations
                         .WithMany()
                         .HasForeignKey("CustomerId");
 
+                    b.HasOne("ARBISTO_POS.Models.HeldOrders", null)
+                        .WithMany("OrderItems")
+                        .HasForeignKey("HeldOrdersOrderId");
+
                     b.HasOne("ARBISTO_POS.Models.Items", "Item")
                         .WithMany()
                         .HasForeignKey("ItemId")
@@ -872,7 +878,7 @@ namespace ARBISTO_POS.Migrations
 
             modelBuilder.Entity("ARBISTO_POS.Models.HeldOrders", b =>
                 {
-                    b.Navigation("HeldOrderItems");
+                    b.Navigation("OrderItems");
                 });
 
             modelBuilder.Entity("ARBISTO_POS.Models.Items", b =>

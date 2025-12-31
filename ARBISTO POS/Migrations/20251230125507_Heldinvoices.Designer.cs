@@ -4,6 +4,7 @@ using ARBISTO_POS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ARBISTO_POS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251230125507_Heldinvoices")]
+    partial class Heldinvoices
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -196,119 +199,6 @@ namespace ARBISTO_POS.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("FoodCategories");
-                });
-
-            modelBuilder.Entity("ARBISTO_POS.Models.HeldOrders", b =>
-                {
-                    b.Property<int>("OrderId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderId"));
-
-                    b.Property<int?>("ChefId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("DelivaryAddress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("DiscountAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("GrandTotal")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("OrderDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("OrderNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OrderStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OrderType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("PaymentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PaymentStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("PickUpId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("SubTotal")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int?>("TableId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("TaxAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("OrderId");
-
-                    b.HasIndex("ChefId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("PaymentId");
-
-                    b.HasIndex("PickUpId");
-
-                    b.HasIndex("TableId");
-
-                    b.ToTable("HeldOrders");
-                });
-
-            modelBuilder.Entity("ARBISTO_POS.Models.HeldOrdersItem", b =>
-                {
-                    b.Property<int>("OrderItemId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemId"));
-
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ItemId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ItemImage")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ItemName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("OrderId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int?>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("Total")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("OrderItemId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("ItemId");
-
-                    b.HasIndex("OrderId");
-
-                    b.ToTable("HeldOrderItems");
                 });
 
             modelBuilder.Entity("ARBISTO_POS.Models.Ingredients", b =>
@@ -573,9 +463,6 @@ namespace ARBISTO_POS.Migrations
                     b.Property<int>("ItemId")
                         .HasColumnType("int");
 
-                    b.Property<string>("ItemImage")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("ItemName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -705,62 +592,6 @@ namespace ARBISTO_POS.Migrations
                     b.ToTable("ServiceTables");
                 });
 
-            modelBuilder.Entity("ARBISTO_POS.Models.HeldOrders", b =>
-                {
-                    b.HasOne("ARBISTO_POS.Models.Employees", "Chef")
-                        .WithMany()
-                        .HasForeignKey("ChefId");
-
-                    b.HasOne("ARBISTO_POS.Models.Customers", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId");
-
-                    b.HasOne("ARBISTO_POS.Models.PaymentMethods", "Payment")
-                        .WithMany()
-                        .HasForeignKey("PaymentId");
-
-                    b.HasOne("ARBISTO_POS.Models.PickPoints", "PickUp")
-                        .WithMany()
-                        .HasForeignKey("PickUpId");
-
-                    b.HasOne("ARBISTO_POS.Models.ServiceTables", "Table")
-                        .WithMany()
-                        .HasForeignKey("TableId");
-
-                    b.Navigation("Chef");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("Payment");
-
-                    b.Navigation("PickUp");
-
-                    b.Navigation("Table");
-                });
-
-            modelBuilder.Entity("ARBISTO_POS.Models.HeldOrdersItem", b =>
-                {
-                    b.HasOne("ARBISTO_POS.Models.Customers", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId");
-
-                    b.HasOne("ARBISTO_POS.Models.Items", "Item")
-                        .WithMany()
-                        .HasForeignKey("ItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ARBISTO_POS.Models.HeldOrders", "HeldOrder")
-                        .WithMany("HeldOrderItems")
-                        .HasForeignKey("OrderId");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("HeldOrder");
-
-                    b.Navigation("Item");
-                });
-
             modelBuilder.Entity("ARBISTO_POS.Models.ItemIngredients", b =>
                 {
                     b.HasOne("ARBISTO_POS.Models.Ingredients", "Ingredient")
@@ -868,11 +699,6 @@ namespace ARBISTO_POS.Migrations
                     b.Navigation("PickUp");
 
                     b.Navigation("Table");
-                });
-
-            modelBuilder.Entity("ARBISTO_POS.Models.HeldOrders", b =>
-                {
-                    b.Navigation("HeldOrderItems");
                 });
 
             modelBuilder.Entity("ARBISTO_POS.Models.Items", b =>

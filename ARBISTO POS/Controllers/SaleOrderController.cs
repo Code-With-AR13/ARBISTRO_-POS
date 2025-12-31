@@ -37,7 +37,7 @@ namespace ARBISTO_POS.Controllers
         {
             var orders = await _context.SaleOrders
                 .Include(o => o.OrderItems)
-                .Where(o => o.OrderStatus == "Pending")
+                .Where(o => o.OrderStatus == "Preparing")
                 .ToListAsync();
 
             ViewBag.Chefs = await _context.Employees
@@ -47,16 +47,88 @@ namespace ARBISTO_POS.Controllers
             return View(orders);
         }
 
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> AssignChef(int orderId, int chefId)
+        {
+            try
+            {
+                Console.WriteLine($"Received: orderId={orderId}, chefId={chefId}"); // Debug log
+
+                var order = await _context.SaleOrders.FindAsync(orderId);
+                if (order != null)
+                {
+                    order.ChefId = chefId;
+                    await _context.SaveChangesAsync();
+                    return Json(new { success = true, message = "Chef assigned successfully" });
+                }
+                return Json(new { success = false, message = "Order not found" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}"); // Debug log
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> UpdateOrderStatus(int orderId, string status)
+        {
+            try
+            {
+                Console.WriteLine($"Received: orderId={orderId}, status={status}"); // Debug log
+
+                var order = await _context.SaleOrders.FindAsync(orderId);
+                if (order != null)
+                {
+                    order.OrderStatus = status;
+                    await _context.SaveChangesAsync();
+                    return Json(new { success = true, message = "Status updated successfully" });
+                }
+                return Json(new { success = false, message = "Order not found" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}"); // Debug log
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+
+
         [HttpGet]
         public IActionResult GetCustomers(string search)
         {
-            var customers = _context.Customers
-                .Where(c => string.IsNullOrEmpty(search) || c.Name.Contains(search))
-                .Select(c => new { id = c.Id, text = c.Name })
-                .ToList();
+            var query = _context.Customers.AsQueryable();
 
-            return Json(new { results = customers });
+            if (string.IsNullOrEmpty(search))
+            {
+                // ✅ When no search, show "Walking Customer" first
+                var customers = query
+                    .OrderByDescending(c => c.Name.ToLower().Contains("walking"))
+                    .ThenBy(c => c.Name)
+                    .Select(c => new { id = c.Id, text = c.Name })
+                    .ToList();
+
+                return Json(new { results = customers });
+            }
+            else
+            {
+                // Normal search
+                var customers = query
+                    .Where(c => c.Name.Contains(search))
+                    .Select(c => new { id = c.Id, text = c.Name })
+                    .ToList();
+
+                return Json(new { results = customers });
+            }
         }
+
+
+
+
+
         [HttpGet]
         public IActionResult GetPickupPoints(string search)
         {
@@ -67,32 +139,7 @@ namespace ARBISTO_POS.Controllers
 
             return Json(new { results = customers });
         }
-
-        // Get Held Invoices (Pending Status)
-        public async Task<IActionResult> GetHeldInvoices()
-        {
-            var heldInvoices = await _context.SaleOrders
-                .Where(o => o.OrderStatus == "Pending")
-                .Include(o => o.OrderItems)
-                .ToListAsync();
-
-            return Json(new { invoices = heldInvoices });
-        }
-
-        // Mark as restored
-        [HttpPost]
-        public async Task<IActionResult> RestoreOrder(int id)
-        {
-            var order = await _context.SaleOrders.FindAsync(id);
-            if (order != null)
-            {
-                order.OrderStatus = "Restored"; // Mark as restored or change status as needed
-                await _context.SaveChangesAsync();
-            }
-
-            return RedirectToAction(nameof(GetHeldInvoices));  // To reload the modal with updated data
-        }
-
+        
         // GET: Get all tables with status
         [HttpGet]
         public IActionResult GetTables()
@@ -169,6 +216,7 @@ namespace ARBISTO_POS.Controllers
                 Tables = await _context.ServiceTables.ToListAsync(),
                 PickupPoints = await _context.PickPoints.ToListAsync(),
                 PaymentMethods = await _context.PaymentMethods.ToListAsync()
+
             };
 
             return View(vm);
@@ -197,7 +245,7 @@ namespace ARBISTO_POS.Controllers
                 OrderNumber = $"ORD-{DateTime.Now.Ticks}",
                 OrderDate = DateTime.UtcNow,
                 OrderType = model.Order.OrderType,
-                OrderStatus = "Pending",
+                OrderStatus = "Preparing",
                 CustomerId = model.CustomerId ?? 0,
                 TableId = model.Order.TableId,
                 PickUpId = model.Order.PickUpId,
@@ -254,6 +302,10 @@ namespace ARBISTO_POS.Controllers
             return RedirectToAction(nameof(Kitchen));
         }
 
+
+
+
+
         // POST: SaleOrderController/CompleteOrder/5
         // Mark order as completed when payment is clear
         [HttpPost]
@@ -269,5 +321,305 @@ namespace ARBISTO_POS.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        // GET: SaleOrderController/Edit/5
+        public async Task<IActionResult> Edit(int id)
+        {
+            var order = await _context.SaleOrders
+                .Include(o => o.Customer)
+                .Include(o => o.OrderItems)
+                .Include(o => o.Table)
+                .Include(o => o.PickUp)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
+
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            var vm = new PosViewModel
+            {
+                Order = order,
+                CustomerId = order.CustomerId,
+                Categories = await _context.FoodCategories.ToListAsync(),
+                Items = await _context.Items.ToListAsync(),
+                Employees = await _context.Employees.ToListAsync(),
+                Tables = await _context.ServiceTables.ToListAsync(),
+                PickupPoints = await _context.PickPoints.ToListAsync(),
+                PaymentMethods = await _context.PaymentMethods.ToListAsync()
+            };
+
+            return View(vm);
+        }
+
+        // POST: SaleOrderController/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(
+            int id,
+            PosViewModel model,
+            string OrderItemsJson)
+        {
+            if (id != model.Order.OrderId)
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                var order = await _context.SaleOrders
+                    .Include(o => o.OrderItems)
+                    .FirstOrDefaultAsync(o => o.OrderId == id);
+
+                if (order == null)
+                {
+                    return NotFound();
+                }
+
+                // Update order properties
+                order.OrderType = model.Order.OrderType;
+                order.CustomerId = model.CustomerId ?? 0;
+                order.TableId = model.Order.TableId;
+                order.PickUpId = model.Order.PickUpId;
+                order.DelivaryAddress = model.Order.DelivaryAddress;
+                order.SubTotal = model.Order.SubTotal;
+                order.TaxAmount = model.Order.TaxAmount;
+                order.DiscountAmount = model.Order.DiscountAmount;
+                order.GrandTotal = model.Order.GrandTotal;
+                order.Notes = model.Order.Notes;
+
+                // Remove existing order items
+                _context.SaleOrderItems.RemoveRange(order.OrderItems);
+
+                // Add updated order items
+                if (!string.IsNullOrEmpty(OrderItemsJson))
+                {
+                    var orderItems = JsonConvert.DeserializeObject<List<SaleOrderItems>>(OrderItemsJson);
+
+                    foreach (var item in orderItems)
+                    {
+                        var orderItem = new SaleOrderItems
+                        {
+                            OrderId = order.OrderId,
+                            ItemId = item.ItemId,
+                            ItemName = item.ItemName,
+                            Price = item.Price,
+                            Quantity = item.Quantity,
+                            Total = item.Price * item.Quantity,
+                            CustomerId = model.CustomerId
+                        };
+
+                        _context.SaleOrderItems.Add(orderItem);
+                    }
+                }
+
+                _context.Update(order);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = "Order updated successfully!";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!await OrderExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
+
+        // Helper method to check if order exists
+        private async Task<bool> OrderExists(int id)
+        {
+            return await _context.SaleOrders.AnyAsync(e => e.OrderId == id);
+        }
+
+
+
+
+
+
+
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> HoldOrder([FromBody] HoldOrderViewModel model)
+        {
+            try
+            {
+                if (model == null || model.Items == null || !model.Items.Any())
+                {
+                    return Json(new { success = false, message = "Invalid order data or no items" });
+                }
+
+                // Generate order number if not provided
+                if (string.IsNullOrEmpty(model.OrderNumber))
+                {
+                    model.OrderNumber = $"HLD-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}";
+                }
+
+                // Create HeldOrders entity
+                var heldOrder = new HeldOrders
+                {
+                    OrderNumber = model.OrderNumber,
+                    OrderDate = DateTime.UtcNow,
+                    OrderType = model.OrderType,
+                    OrderStatus = "Held",
+                    CustomerId = model.CustomerId,
+                    TableId = model.TableId,
+                    PickUpId = model.PickUpId,
+                    DelivaryAddress = model.DelivaryAddress,
+                    PaymentId = model.PaymentId,
+                    PaymentStatus = model.PaymentStatus ?? "Unpaid",
+                    SubTotal = model.SubTotal ?? 0,
+                    TaxAmount = model.TaxAmount ?? 0,
+                    DiscountAmount = model.DiscountAmount ?? 0,
+                    GrandTotal = model.GrandTotal ?? 0,
+                    ChefId = null,
+                    HeldOrderItems = new List<HeldOrdersItem>() // ✅ Initialize collection
+                };
+
+                // Create HeldOrderItems and add to parent
+                foreach (var item in model.Items)
+                {
+                    var heldOrderItem = new HeldOrdersItem
+                    {
+                        CustomerId = model.CustomerId,
+                        ItemId = item.ItemId,
+                        ItemName = item.ItemName,
+                        ItemImage = item.ItemImage,
+                        Price = item.Price ?? 0,
+                        Quantity = item.Quantity ?? 0,
+                        Total = item.Total ?? 0
+                    };
+
+                    heldOrder.HeldOrderItems.Add(heldOrderItem); // ✅ Add to collection
+                }
+
+                // Add order with items in one transaction
+                _context.HeldOrders.Add(heldOrder);
+                await _context.SaveChangesAsync();
+
+                // Return success
+                return Json(new
+                {
+                    success = true,
+                    message = "Order held successfully",
+                    orderId = heldOrder.OrderId,
+                    orderNumber = heldOrder.OrderNumber
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error holding order: {ex.Message}" });
+            }
+        }
+
+
+        // Add this method to get held orders count
+        [HttpGet]
+        public async Task<IActionResult> GetHeldOrdersCount()
+        {
+            var count = await _context.HeldOrders.CountAsync();
+            return Json(new { count });
+        }
+
+        public async Task<IActionResult> GetHeldOrders()
+        {
+            var heldOrders = await _context.HeldOrders
+                .Include(h => h.Customer)
+                .Include(h => h.Table)
+                .Include(h => h.HeldOrderItems)  // ✅ YEH ADD KAREIN
+                .OrderByDescending(h => h.OrderDate)
+                .ToListAsync();
+
+            return PartialView("_HeldOrdersPartial", heldOrders);
+        }
+
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteHeldOrder(int id)
+        {
+            try
+            {
+                var heldOrder = await _context.HeldOrders
+                    .Include(h => h.HeldOrderItems)
+                    .FirstOrDefaultAsync(h => h.OrderId == id);
+
+                if (heldOrder == null)
+                {
+                    return Json(new { success = false, message = "Order not found" });
+                }
+
+                _context.HeldOrders.Remove(heldOrder);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> LoadHeldOrder(int id)
+        {
+            try
+            {
+                var heldOrder = await _context.HeldOrders
+                    .Include(h => h.HeldOrderItems)
+                    .Include(h => h.Customer)
+                    .Include(h => h.Table)
+                    .FirstOrDefaultAsync(h => h.OrderId == id);
+
+                if (heldOrder == null)
+                {
+                    return Json(new { success = false, message = "Order not found" });
+                }
+
+                // Convert items to proper format
+                var items = heldOrder.HeldOrderItems.Select(item => new
+                {
+                    id = item.ItemId,
+                    name = item.ItemName,
+                    price = item.Price,
+                    image = item.ItemImage ?? "/assets/images/upload.jpg",
+                    qty = item.Quantity,                    
+                }).ToList();
+
+                return Json(new
+                {
+                    success = true,
+                    order = new
+                    {
+                        id = heldOrder.OrderId,
+                        orderNumber = heldOrder.OrderNumber,
+                        orderType = heldOrder.OrderType,
+                        customerId = heldOrder.CustomerId,
+                        tableId = heldOrder.TableId,
+                        pickUpId = heldOrder.PickUpId,
+                        deliveryAddress = heldOrder.DelivaryAddress,
+                        subTotal = heldOrder.SubTotal,
+                        taxAmount = heldOrder.TaxAmount,
+                        discountAmount = heldOrder.DiscountAmount,
+                        grandTotal = heldOrder.GrandTotal,
+                        items = items,
+                        customerName = heldOrder.Customer?.Name,
+                        tableName = heldOrder.Table?.TabName
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
     }
 }

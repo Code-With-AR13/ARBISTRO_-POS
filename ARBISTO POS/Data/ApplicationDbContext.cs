@@ -23,6 +23,8 @@ namespace ARBISTO_POS.Data
         public DbSet<Employees> Employees { get; set; }
         public DbSet<SaleOrders> SaleOrders { get; set; }
         public DbSet<SaleOrderItems> SaleOrderItems { get; set; }
+        public DbSet<HeldOrders> HeldOrders { get; set; }
+        public DbSet<HeldOrdersItem> HeldOrderItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

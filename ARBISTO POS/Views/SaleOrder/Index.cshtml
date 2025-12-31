@@ -57,7 +57,7 @@
                                             <th>Customer Name</th>
                                             <th>Order Type</th>
                                             <th>Order Status</th>
-                                            <th>Description</th>
+                                            <th>Payment Status</th>
                                             <th class="text-center" style="width:120px;">Actions</th>
                                         </tr>
                                     </thead>
@@ -103,24 +103,32 @@
                                                         }                                                        
                                                     </td>
                                                     <td>
-                                                        @if (pay.OrderStatus == "In Progress")
+                                                        @if (pay.OrderStatus == "Pending")
                                                         {
-                                                            <span class="badge bg-primary">In Progress</span>
+                                                            <span class="badge bg-primary">Pending</span>
                                                         }  
-                                                        else if (pay.OrderStatus == "Pending")
+                                                        else if (pay.OrderStatus == "Preparing")
                                                         {
-                                                            <span class="badge bg-warning">Pending</span>
+                                                            <span class="badge bg-warning">Preparing</span>
                                                         }
                                                         else if (pay.OrderStatus == "Ready")
                                                         {
-                                                            <span class="badge bg-Info">Ready</span>
+                                                            <span class="badge bg-secondary">Ready</span>
                                                         }
                                                         else if (pay.OrderStatus == "Completed")
                                                         {
                                                             <span class="badge bg-success">Completed</span>
                                                         }                                                                                                               
                                                     </td>
-                                                    <td>
+                                                    <td> @if (pay.PaymentStatus == "Unpaid")
+                                                        {
+                                                            <span class="badge bg-danger">Unpaid</span>
+                                                        }  
+                                                        else if (pay.PaymentStatus == "Paid")
+                                                        {
+                                                            <span class="badge bg-success">Paid</span>
+                                                        }</td>
+                                                    @* <td>
                                                         @if (!string.IsNullOrEmpty(pay.Notes))
                                                         {
                                                             @(pay.Notes.Length > 80
@@ -131,10 +139,10 @@
                                                         {
                                                             <span class="text-muted fst-italic">No description</span>
                                                         }
-                                                    </td>
+                                                    </td> *@
                                                     <td class="text-center">
                                                         <div class="d-inline-flex gap-1">
-                                                            <a asp-controller="PaymentMethods"
+                                                            <a asp-controller="SaleOrder"
                                                                asp-action="Edit"
                                                                asp-route-id="@pay.OrderId"
                                                                class="btn btn-sm btn-light"
