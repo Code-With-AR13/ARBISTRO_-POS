@@ -248,13 +248,12 @@
             });
         }
 
-        function completeOrderAutomatically(orderId) {
+               function completeOrderAutomatically(orderId) {
             const statusMessage = document.getElementById(`statusMessage_${orderId}`);
             statusMessage.classList.remove('d-none', 'alert-success', 'alert-danger');
             statusMessage.classList.add('alert-info');
             statusMessage.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Marking order as Ready...';
 
-            // Get antiforgery token
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
             fetch('/SaleOrder/UpdateOrderStatus', {
@@ -277,24 +276,26 @@
                 if (data.success) {
                     statusMessage.classList.remove('alert-info');
                     statusMessage.classList.add('alert-success');
-                    statusMessage.innerHTML = '<i class="fas fa-check-circle me-2"></i>Order is Ready!';
+                    statusMessage.innerHTML = '<i class="fas fa-check-circle me-2"></i>Order is Ready and has been sent!';
 
-                    // Disable controls
+                    // Disable all controls
                     document.querySelectorAll(`.item-checkbox[data-order-id="${orderId}"]`).forEach(cb => {
                         cb.disabled = true;
                     });
                     document.getElementById(`chefSelect_${orderId}`).disabled = true;
 
-                    // Remove card
+                    // Smooth fade out animation
+                    const orderCard = document.getElementById(`orderCard_${orderId}`);
+                    if (orderCard) {
+                        orderCard.style.transition = 'all 0.8s ease-out';
+                        orderCard.style.opacity = '0';
+                        orderCard.style.transform = 'scale(0.9) translateY(-20px)';
+                    }
+
+                    // Page refresh after 1.5 seconds
                     setTimeout(() => {
-                        const orderCard = document.getElementById(`orderCard_${orderId}`);
-                        if (orderCard) {
-                            orderCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-                            orderCard.style.opacity = '0';
-                            orderCard.style.transform = 'translateX(-100%)';
-                            setTimeout(() => orderCard.remove(), 500);
-                        }
-                    }, 2000);
+                        window.location.reload();
+                    }, 1000);
                 } else {
                     statusMessage.classList.remove('alert-info');
                     statusMessage.classList.add('alert-danger');
@@ -308,6 +309,7 @@
                 statusMessage.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Network error occurred.';
             });
         }
+
 
     </script>
 }

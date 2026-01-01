@@ -14,6 +14,7 @@ namespace ARBISTO_POS.ViewModels
         public List<PaymentMethods> PaymentMethods { get; set; } = new();
         // Selected customer
         public int? CustomerId { get; set; }
+
         public List<Customers> Customers { get; set; } = new();
         // Add this property to your existing PosViewModel
         public List<HeldOrders>? HeldOrders { get; set; }

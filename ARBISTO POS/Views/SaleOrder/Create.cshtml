@@ -50,7 +50,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center gap-3 pe-3">
                     <li class="nav-item d-flex align-items-center gap-2 border-primary">
-                        <select asp-for="Order.OrderType" class="form-select border border-primary form-select-sm" style="width:150px;" id="orderTypeSelect">
+                        <select asp-for="Order.OrderType" class="form-select form-select-sm" style="width:150px;" id="orderTypeSelect">
                             <option id="dineInBtn" value="DINE IN" selected>DINE IN</option>
                             <option id="pickupBtn" value="PICKUP POINT">PICKUP POINT</option>
                             <option id="deliveryBtn" value="DELIVERY">DELIVERY</option>
@@ -127,38 +127,35 @@
         </div>
     </div>
 
-        <!---------------------------------------------------------- CENTER: MENU ITEMS ------------------------------------------------------->
-    <div class="flex-grow-1 p-4 bg-light overflow-auto d-flex flex-column">
+ <!---------------------------------------------------------- CENTER: MENU ITEMS --------------------------------------------------------->
+   <div class="flex-grow-1 p-4 bg-light overflow-auto d-flex flex-column">
 
-        <!-- Search -->
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <input type="text" class="form-control me-2" placeholder="Search items..." id="itemSearch">
-        </div>
-
-        @if (Model.Items == null || !Model.Items.Any())
-        {
-            <!-- CENTER MESSAGE -->
-            <div class="flex-grow-1 d-flex align-items-center justify-content-center text-center text-muted">
-                <div>
-                    <i class="bi bi-basket fs-1 mb-2 d-block"></i>
-                    <div class="fw-semibold">No items Found For this Category</div>
-                    <small>Select Another Category</small>
-                </div>
+            <!-- Search -->
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <input type="text" class="form-control me-2" placeholder="Search items..." id="itemSearch">
             </div>
-        }
-        else
-        {
+
+            <!-- No Items Message -->
+<div id="noItemsMessage" class="flex-grow-1 d-flex align-items-center justify-content-center text-center text-muted d-none">
+    <div>
+        <i class="bi bi-basket fs-1 mb-2 d-block"></i>
+        <div class="fw-semibold">No items Found</div>
+        <small>No items available in this category</small>
+    </div>
+</div>
+
+
             <!-- ITEMS GRID -->
-            <div class="d-flex flex-wrap justify-content-start gap-2">
+            <div class="d-flex flex-wrap justify-content-start gap-2" id="itemsGrid">
                 @foreach (var p in Model.Items)
                 {
-                    <div class="d-flex justify-content-center">
+                    <div class="d-flex justify-content-center menu-item-wrapper" data-category="@p.FoodCategoryId">
                         <div class="card h-90 shadow-sm card-hover menu-item-card"
                              style="width: 140px; overflow: hidden;"
                              data-item-id="@p.ItemId"
                              data-item-name="@p.ItemName"
                              data-item-price="@p.ItemPrice"
-                              data-item-image="@p.CateImage">
+                             data-item-image="@p.CateImage">
 
                             @if (!string.IsNullOrEmpty(p.CateImage))
                             {
@@ -184,9 +181,9 @@
                     </div>
                 }
             </div>
-        }
 
-    </div>
+        </div>
+
 
 
         <!------------------------------------------------------- RIGHT: ORDER PANEL ---------------------------------------------------------->
@@ -263,6 +260,10 @@
                 </button>
             </span>
             <span id="tax">0.00</span>
+                <input type="hidden"
+                       asp-for="Order.TaxAmount"
+                       id="TaxHidden"
+                       value="0" />
         </div>
 
             <!-- Discount -->
@@ -276,6 +277,10 @@
                 </button>
             </span>
             <span id="discount">0.00</span>
+             <input type="hidden"
+                       asp-for="Order.DiscountAmount"
+                       id="DiscountHidden"
+                       value="0" />
         </div>
 
             <!-- Grand Total -->
@@ -320,17 +325,14 @@
                        placeholder="0.00"
                        min="0"
                        step="0.01" />
-
-                <input type="hidden"
-                       asp-for="Order.DiscountAmount"
-                       id="DiscountHidden"
-                       value="0" />
+               
             </div>
 
             <!-- FOOTER (no line) -->
             <div class="modal-footer py-2 border-0">
                 <button class="btn btn-secondary btn-md" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary btn-md" onclick="applyDiscount()">Save Changes</button>
+                <!-- ✅ Changed: Added id, removed onclick -->
+                <button id="saveDiscountBtn" class="btn btn-primary btn-md" type="button">Save Changes</button>
             </div>
 
         </div>
@@ -356,18 +358,14 @@
                        class="form-control"
                        placeholder="0.00"
                        min="0"
-                       step="0.01" />
-
-                <input type="hidden"
-                       asp-for="Order.TaxAmount"
-                       id="TaxHidden"
-                       value="0" />
+                       step="0.01" />               
             </div>
 
             <!-- FOOTER (no line) -->
             <div class="modal-footer py-2 border-0">
                 <button class="btn btn-secondary btn-mg" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary btn-md" onclick="applyTax()">Save Changes</button>
+               <!-- ✅ Changed: Added id, removed onclick -->
+                <button id="saveTaxBtn" class="btn btn-primary btn-md" type="button">Save Changes</button>
             </div>
 
         </div>
@@ -431,8 +429,37 @@
     </div>
 </div>
 
+@section Scripts { 
+<!-------------------------------------------------------- TOASTER JS ------------------------------------------------------------------------->
+<script>
+        // Toastr Configuration - Right Top Corner
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",  // Right top corner
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        };
 
-@section Scripts {  
+        // Success Toaster Check karein
+        @if (TempData["SuccessMessage"] != null)
+        {
+                <text>
+                toastr.success('@TempData["SuccessMessage"]');
+                </text>
+        }
+</script>
+<!------------------------------------------------------- PLACE ORDER JS ---------------------------------------------------------------------->
 <script>
 
     /* ===============================
@@ -596,7 +623,7 @@
         calculateGrandTotal();
     }
 
-    /* ===============================
+ /* ===============================
        GRAND TOTAL CALCULATION
     =============================== */
     function calculateGrandTotal() {
@@ -626,31 +653,80 @@
         document.getElementById('grandTotalBtn').innerHTML = '<div>0.00</div>';
     }
 
-    /* ===============================
-       DISCOUNT MODAL
-    =============================== */
-    document.getElementById('openDiscountModal').onclick = () =>
-        new bootstrap.Modal(document.getElementById('discountModal')).show();
+           // ============================================
+           // TAX MODAL - FIXED
+           // ============================================
+                   // TAX MODAL - COMPLETE FIX
+        document.getElementById('openTaxModal').onclick = () => {
+            // ✅ Load current tax value into input when modal opens
+            const currentTax = parseFloat(document.getElementById('TaxHidden').value) || 0;
+            document.getElementById('taxInput').value = currentTax;
 
-    function applyDiscount() {
-        document.getElementById('DiscountHidden').value =
-            parseFloat(document.getElementById('discountInput').value || 0);
-        bootstrap.Modal.getInstance(document.getElementById('discountModal')).hide();
-        calculateGrandTotal();
-    }
+            new bootstrap.Modal(document.getElementById('taxModal')).show();
+        };
 
-    /* ===============================
-       TAX MODAL
-    =============================== */
-    document.getElementById('openTaxModal').onclick = () =>
-        new bootstrap.Modal(document.getElementById('taxModal')).show();
+        // Save Tax button
+        document.getElementById('saveTaxBtn').addEventListener('click', function() {
+            const taxValue = parseFloat(document.getElementById('taxInput').value) || 0;
 
-    function applyTax() {
-        document.getElementById('TaxHidden').value =
-            parseFloat(document.getElementById('taxInput').value || 0);
-        bootstrap.Modal.getInstance(document.getElementById('taxModal')).hide();
-        calculateGrandTotal();
-    }     
+            console.log('Tax Value entered:', taxValue); // ✅ Debug
+
+            // Update hidden field
+            document.getElementById('TaxHidden').value = taxValue;
+
+            console.log('TaxHidden value:', document.getElementById('TaxHidden').value); // ✅ Debug
+
+            // Remove focus
+            this.blur();
+
+            // Close modal
+            const taxModal = bootstrap.Modal.getInstance(document.getElementById('taxModal'));
+            if (taxModal) {
+                taxModal.hide();
+            }
+
+            // Calculate after modal closes
+            setTimeout(() => {
+                calculateGrandTotal();
+            }, 300);
+        });
+   // ============================================
+   // DISCOUNT MODAL - FIXED
+   // ============================================
+           // DISCOUNT MODAL - COMPLETE FIX
+        document.getElementById('openDiscountModal').onclick = () => {
+            // ✅ Load current discount value into input when modal opens
+            const currentDiscount = parseFloat(document.getElementById('DiscountHidden').value) || 0;
+            document.getElementById('discountInput').value = currentDiscount;
+
+            new bootstrap.Modal(document.getElementById('discountModal')).show();
+        };
+
+        // Save Discount button
+        document.getElementById('saveDiscountBtn').addEventListener('click', function() {
+            const discountValue = parseFloat(document.getElementById('discountInput').value) || 0;
+
+            console.log('Discount Value entered:', discountValue); // ✅ Debug
+
+            // Update hidden field
+            document.getElementById('DiscountHidden').value = discountValue;
+
+            console.log('DiscountHidden value:', document.getElementById('DiscountHidden').value); // ✅ Debug
+
+            // Remove focus
+            this.blur();
+
+            // Close modal
+            const discountModal = bootstrap.Modal.getInstance(document.getElementById('discountModal'));
+            if (discountModal) {
+                discountModal.hide();
+            }
+
+            // Calculate after modal closes
+            setTimeout(() => {
+                calculateGrandTotal();
+            }, 300);
+        });
      
     /* ===============================
        TABLE SELECTION MODAL
@@ -739,7 +815,8 @@
                     }
                 },
                 error: function () {
-                    alert('Failed to fetch customer address');
+                    // alert('Failed to fetch customer address');
+                        toastr.error('Failed to fetch customer address!', 'Validation Error'); // ✅ Toaster
                 }
             });
         }
@@ -766,15 +843,17 @@
         } else if (customerId) {
             window.location.href = '@Url.Action("Edit", "Customer")/' + customerId;
         } else {
-            alert('Please select a customer first');
+            // alert('Please select a customer first');
+                toastr.error('Please select a customer first!', 'Validation Error'); // ✅ Toaster
         }
     });
 
     // Place Order - Convert items to JSON before submit
-    document.getElementById('posForm').addEventListener('submit', function(e) {
+    document.getElementById('posForm').addEventListener('submit', function(e) {               
         if (currentOrder.length === 0) {
             e.preventDefault();
-            alert('Please add items to order first!');
+            // alert('Please add items to order first!');
+                toastr.error('Please add items to order first!', 'Validation Error'); // ✅ Toaster
             return false;
         }
 
@@ -782,14 +861,36 @@
         const customerId = $('.select2-ajax-category').val();
         if (!customerId || customerId === '' || customerId === '0') {
             e.preventDefault();
-            alert('Please select a customer before placing the order!');
+            // alert('Please select a customer before placing the order!');
+            toastr.warning('Please select a customer before placing the order!', 'Customer Required'); // ✅ Toaster
             return false;
         }
+
+            // ✅ 3. Validate Order Type specific requirements
+        const orderType = document.getElementById('OrderTypeHidden').value;
+
+        if (orderType === 'DINE IN') {
+            const tableId = document.getElementById('TableIdHidden').value;
+            if (!tableId || tableId === '') {
+                e.preventDefault();
+                toastr.warning('Please select a table first!', 'Table Required');
+                return false;
+            }
+        } else if (orderType === 'DELIVERY') {
+            const deliveryAddress = document.getElementById('ShippingAddressHidden').value;
+            if (!deliveryAddress || deliveryAddress === '') {
+                e.preventDefault();
+                toastr.warning('Please add delivery address first!', 'Address Required');
+                return false;
+            }
+        }
+
 
         const orderItemsJson = JSON.stringify(currentOrder.map(item => ({
             ItemId: item.id,
             ItemName: item.name,
             Price: item.price,
+            ItemImage: item.image,  // ✅ Default image
             Quantity: item.qty
         })));
 
@@ -814,7 +915,7 @@
         =============================== */
         document.getElementById('holdOrderBtn').addEventListener('click', async function() {
             if (currentOrder.length === 0) {
-                alert('Please add items to order first!');
+                   toastr.error('Please add items to order first!', 'Validation Error'); // ✅ Toaster
                 return;
             }
 
@@ -863,7 +964,7 @@
 
                 if (result.success) {
                     // Show success message
-                    alert(`Order held successfully! Order #: ${result.orderNumber}`);
+                    toastr.success(`Order held successfully!`, 'Success'); // ✅ Toaster
 
                     // Reset current order
                     currentOrder.length = 0;
@@ -875,11 +976,14 @@
                     // Reset form fields
                     resetForm();
                 } else {
-                    alert('Failed to hold order: ' + result.message);
+                    // alert('Failed to hold order: ' + result.message);
+                          toastr.error('Failed to hold order:', 'Error'+ result.message); // ✅ Toaster
                 }
             } catch (error) {
                 console.error('Error holding order:', error);
-                alert('An error occurred while holding the order.');
+                // alert('An error occurred while holding the order.');
+                   toastr.error('An error occurred while holding the order.', 'Error'); // ✅ Toaster
+
             } finally {
                 // Reset button
                 holdBtn.innerHTML = originalText;
@@ -1024,13 +1128,18 @@
                     // ✅ DELETE FROM DATABASE
                     await deleteHeldOrderAfterLoad(orderId);
 
-                    alert('Order loaded successfully!');
+                    // alert('Order loaded successfully!');
+                          toastr.success(`Order Restored successfully!`, 'Success'); // ✅ Toaster
                 } else {
-                    alert('Failed to load order: ' + result.message);
+                    // alert('Failed to load order: ' + result.message);
+                       toastr.error('Failed to load order:', 'Error'+ result.message); // ✅ Toaster
+
                 }
             } catch (error) {
                 console.error('Error loading order:', error);
-                alert('An error occurred: ' + error.message);
+                // alert('An error occurred: ' + error.message);
+                toastr.error('An error occurred:', 'Error'+ result.message); // ✅ Toaster
+
             }
         }
 
@@ -1155,5 +1264,101 @@
         });
 
     </script>
+<!-------------------------------------------------------- SEARCH WITH REORDER - -------------------------------------------------------------->
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchBox = document.getElementById('itemSearch');
+            const itemsGrid = document.getElementById('itemsGrid');
+            const noItemsMsg = document.getElementById('noItemsMessage');
+
+            if (!searchBox) {
+                console.error('❌ Search box not found!');
+                return;
+            }
+
+            searchBox.addEventListener('keyup', function() {
+                const searchValue = this.value.toLowerCase().trim();
+
+                console.clear();
+                console.log('='.repeat(50));
+                console.log('🔍 SEARCH:', searchValue || '(empty)');
+                console.log('='.repeat(50));
+
+                // Get all items
+                const allItems = Array.from(document.querySelectorAll('.menu-item-wrapper'));
+
+                if (searchValue === '') {
+                    // Empty search - show all items in original order
+                    allItems.forEach((item, idx) => {
+                        item.setAttribute('style', 'display: flex !important; visibility: visible !important; order: ' + idx);
+                    });
+
+                    if (noItemsMsg) noItemsMsg.classList.add('d-none');
+                    if (itemsGrid) itemsGrid.style.display = 'flex';
+
+                    console.log('✅ Showing all items');
+                    return;
+                }
+
+                // Separate matched and unmatched items
+                const matchedItems = [];
+                const unmatchedItems = [];
+
+                allItems.forEach((item) => {
+                    const card = item.querySelector('.menu-item-card');
+                    const itemName = card.dataset.itemName.toLowerCase();
+
+                    if (itemName.includes(searchValue)) {
+                        matchedItems.push(item);
+                        console.log(`✅ MATCHED: ${card.dataset.itemName}`);
+                    } else {
+                        unmatchedItems.push(item);
+                    }
+                });
+
+                console.log('='.repeat(50));
+                console.log(`📊 Matched: ${matchedItems.length} | Hidden: ${unmatchedItems.length}`);
+                console.log('='.repeat(50));
+
+                // Show matched items FIRST (order: 0, 1, 2...)
+                matchedItems.forEach((item, idx) => {
+                    item.setAttribute('style', `display: flex !important; visibility: visible !important; order: ${idx};`);
+                });
+
+                // Hide unmatched items completely
+                unmatchedItems.forEach((item) => {
+                    item.setAttribute('style', 'display: none !important; visibility: hidden !important; order: 9999;');
+                });
+
+                // Handle "no items found" message
+                if (matchedItems.length === 0) {
+                    if (noItemsMsg) noItemsMsg.classList.remove('d-none');
+                    if (itemsGrid) itemsGrid.style.display = 'none';
+                    console.log('❌ No items found!');
+                } else {
+                    if (noItemsMsg) noItemsMsg.classList.add('d-none');
+                    if (itemsGrid) itemsGrid.style.display = 'flex';
+                }
+            });
+
+            // Clear search on category click
+            document.querySelectorAll('a[asp-action="Create"]').forEach(link => {
+                link.addEventListener('click', function() {
+                    console.log('🔄 Category changed - resetting search');
+
+                    searchBox.value = '';
+
+                    // Show all items
+                    document.querySelectorAll('.menu-item-wrapper').forEach((item, idx) => {
+                        item.setAttribute('style', `display: flex !important; visibility: visible !important; order: ${idx};`);
+                    });
+
+                    if (noItemsMsg) noItemsMsg.classList.add('d-none');
+                    if (itemsGrid) itemsGrid.style.display = 'flex';
+                });
+            });
+        });
+    </script>
+
 }
 

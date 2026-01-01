@@ -35,6 +35,6 @@ namespace ARBISTO_POS.Models
         // ================= Qty & Total =================
         public int Quantity { get; set; }
         public decimal Total { get; set; }
-        public string? ItemImage { get; set; }
+        public string ItemImage { get; set; }
     }
 }

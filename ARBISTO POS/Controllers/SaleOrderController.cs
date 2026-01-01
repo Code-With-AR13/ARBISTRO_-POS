@@ -230,7 +230,8 @@ namespace ARBISTO_POS.Controllers
         public async Task<IActionResult> Create(
             PosViewModel model,
             string OrderItemsJson)
-        {
+        {            
+
             if (string.IsNullOrEmpty(OrderItemsJson))
             {
                 ModelState.AddModelError("", "No items in order.");
@@ -251,8 +252,8 @@ namespace ARBISTO_POS.Controllers
                 PickUpId = model.Order.PickUpId,
                 DelivaryAddress = model.Order.DelivaryAddress,                
                 SubTotal = model.Order.SubTotal,
-                TaxAmount = model.Order.TaxAmount,
-                DiscountAmount = model.Order.DiscountAmount,
+                TaxAmount = model.Order.TaxAmount,        // ✅ Ab ye properly bind hoga
+                DiscountAmount = model.Order.DiscountAmount, // ✅ Ab ye properly bind hoga
                 GrandTotal = model.Order.GrandTotal,
                 PaymentStatus = "Unpaid",
                 Notes = model.Order.Notes
@@ -269,6 +270,7 @@ namespace ARBISTO_POS.Controllers
                     OrderId = order.OrderId,
                     ItemId = item.ItemId,
                     ItemName = item.ItemName,
+                    ItemImage = item.ItemImage,
                     Price = item.Price,
                     Quantity = item.Quantity,
                     Total = item.Price * item.Quantity,
@@ -279,6 +281,10 @@ namespace ARBISTO_POS.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            // ✅ Success message TempData mein store karein
+            TempData["SuccessMessage"] = $"Order successfully placed and go to Kitchen!" ;
+
 
             return RedirectToAction(nameof(Create));
         }
@@ -321,6 +327,10 @@ namespace ARBISTO_POS.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+
+
+
 
         // GET: SaleOrderController/Edit/5
         public async Task<IActionResult> Edit(int id)
@@ -383,8 +393,8 @@ namespace ARBISTO_POS.Controllers
                 order.PickUpId = model.Order.PickUpId;
                 order.DelivaryAddress = model.Order.DelivaryAddress;
                 order.SubTotal = model.Order.SubTotal;
-                order.TaxAmount = model.Order.TaxAmount;
-                order.DiscountAmount = model.Order.DiscountAmount;
+                order.TaxAmount = model.Order.TaxAmount;          // ✅ Ab properly bind hoga
+                order.DiscountAmount = model.Order.DiscountAmount; // ✅ Ab properly bind hoga
                 order.GrandTotal = model.Order.GrandTotal;
                 order.Notes = model.Order.Notes;
 
@@ -403,6 +413,7 @@ namespace ARBISTO_POS.Controllers
                             OrderId = order.OrderId,
                             ItemId = item.ItemId,
                             ItemName = item.ItemName,
+                            ItemImage = item.ItemImage,
                             Price = item.Price,
                             Quantity = item.Quantity,
                             Total = item.Price * item.Quantity,
@@ -416,7 +427,8 @@ namespace ARBISTO_POS.Controllers
                 _context.Update(order);
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] = "Order updated successfully!";
+                // ✅ Success message TempData mein store karein
+                TempData["SuccessMessage"] = $"Order successfully Updated!";
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateConcurrencyException)
@@ -620,6 +632,57 @@ namespace ARBISTO_POS.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+
+
+
+        [HttpPost]
+        public async Task<IActionResult> ProcessPayment([FromBody] PaymentRequest request)
+        {
+            try
+            {
+                var order = await _context.SaleOrders.FindAsync(request.OrderId);
+
+                if (order == null)
+                {
+                    return Json(new { success = false, message = "Order not found" });
+                }
+
+                // Update order payment status
+                order.PaymentId = request.PaymentMethodId;
+                order.PaymentStatus = "Paid";
+                order.OrderStatus = "Completed";
+
+                // Save payment transaction (if you have a Payments table)
+                // var payment = new Payment
+                // {
+                //     OrderId = request.OrderId,
+                //     PaymentMethodId = request.PaymentMethodId,
+                //     TotalAmount = request.TotalAmount,
+                //     ReceivedAmount = request.ReceivedAmount,
+                //     ChangeAmount = request.ChangeAmount,
+                //     PaymentDate = DateTime.UtcNow
+                // };
+                // _context.Payments.Add(payment);
+
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Payment processed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // Payment Request Model (add this class)
+        public class PaymentRequest
+        {
+            public int OrderId { get; set; }
+            public int PaymentMethodId { get; set; }
+            public decimal TotalAmount { get; set; }
+            public decimal ReceivedAmount { get; set; }           
+        }
+
 
     }
 }

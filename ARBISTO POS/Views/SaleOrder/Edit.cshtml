@@ -135,32 +135,28 @@
         </div>
     </div>
 
-    <!---------------------------------------------------------- CENTER: MENU ITEMS ----------------------------------------------------------->
-    <div class="flex-grow-1 p-4 bg-light overflow-auto d-flex flex-column">
+  <!---------------------------------------------------------- CENTER: MENU ITEMS --------------------------------------------------------->
+   <div class="flex-grow-1 p-4 bg-light overflow-auto d-flex flex-column">
 
-        <!-- Search -->
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <input type="text" class="form-control me-2" placeholder="Search items..." id="itemSearch">
-        </div>
+            <!-- Search -->
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <input type="text" class="form-control me-2" placeholder="Search items..." id="itemSearch">
+            </div>
 
-        @if (Model.Items == null || !Model.Items.Any())
-        {
-            <!-- CENTER MESSAGE -->
-            <div class="flex-grow-1 d-flex align-items-center justify-content-center text-center text-muted">
+            <!-- No Items Message (initially hidden) -->
+            <div id="noItemsMessage" class="flex-grow-1 d-flex align-items-center justify-content-center text-center text-muted d-none">
                 <div>
                     <i class="bi bi-basket fs-1 mb-2 d-block"></i>
-                    <div class="fw-semibold">No items Found For this Category</div>
-                    <small>Select Another Category</small>
+                    <div class="fw-semibold">No items Found</div>
+                    <small>Try searching with a different term</small>
                 </div>
             </div>
-        }
-        else
-        {
+
             <!-- ITEMS GRID -->
-            <div class="d-flex flex-wrap justify-content-start gap-2">
+            <div class="d-flex flex-wrap justify-content-start gap-2" id="itemsGrid">
                 @foreach (var p in Model.Items)
                 {
-                    <div class="d-flex justify-content-center menu-item" data-category="@p.FoodCategoryId">
+                    <div class="d-flex justify-content-center menu-item-wrapper" data-category="@p.FoodCategoryId">
                         <div class="card h-90 shadow-sm card-hover menu-item-card"
                              style="width: 140px; overflow: hidden;"
                              data-item-id="@p.ItemId"
@@ -192,9 +188,8 @@
                     </div>
                 }
             </div>
-        }
 
-    </div>
+        </div>
 
     <!------------------------------------------------------- RIGHT: ORDER PANEL -------------------------------------------------------------->
     <div class="bg-white border-start p-4 d-flex flex-column flex-shrink-0"
@@ -276,6 +271,10 @@
                 </button>
             </span>
             <span id="tax">@Model.Order.TaxAmount.ToString("F2")</span>
+             <input type="hidden"
+        asp-for="Order.TaxAmount"
+        id="TaxHidden"
+        value="@Model.Order.TaxAmount" />
         </div>
 
             <!-- Discount -->
@@ -289,6 +288,10 @@
                 </button>
             </span>
             <span id="discount">@Model.Order.DiscountAmount.ToString("F2")</span>
+             <input type="hidden"
+                       asp-for="Order.DiscountAmount"
+                       id="DiscountHidden"
+                       value="@Model.Order.DiscountAmount" />
         </div>
 
             <!-- Grand Total -->
@@ -329,11 +332,7 @@
                        value="@Model.Order.DiscountAmount"
                        placeholder="0.00"
                        min="0"
-                       step="0.01" />
-                <input type="hidden"
-                       asp-for="Order.DiscountAmount"
-                       id="DiscountHidden"
-                       value="@Model.Order.DiscountAmount" />
+                       step="0.01" />               
             </div>
             <div class="modal-footer py-2 border-0">
                 <button class="btn btn-secondary btn-md" data-bs-dismiss="modal">Cancel</button>
@@ -359,11 +358,7 @@
                        value="@Model.Order.TaxAmount"
                        placeholder="0.00"
                        min="0"
-                       step="0.01" />
-                <input type="hidden"
-                       asp-for="Order.TaxAmount"
-                       id="TaxHidden"
-                       value="@Model.Order.TaxAmount" />
+                       step="0.01" />               
             </div>
             <div class="modal-footer py-2 border-0">
                 <button class="btn btn-secondary btn-mg" data-bs-dismiss="modal">Cancel</button>
@@ -430,33 +425,111 @@
 </div>
 
 <!----------------------------------------------------------- PAYMENT MODAL ---------------------------------------------------------------->
-<div class="modal fade" id="paymentModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+<!-- PAYMENT MODAL - ENHANCED -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Payment Methods</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="paymentModalLabel">
+                    <i class="bi bi-credit-card me-2"></i>Payment Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row g-3">
-                    @foreach (var payment in Model.PaymentMethods)
-                    {
-                        <div class="col-md-4">
-                            <div class="card payment-card text-center" style="cursor:pointer;" data-payment-id="@payment.Id" data-payment-name="@payment.PayName">
-                                <div class="card-body">
-                                    <i class="bi bi-credit-card fs-1 mb-2"></i>
-                                    <h5 class="card-title">@payment.PayName</h5>
-                                </div>
-                            </div>
-                        </div>
-                    }
+                
+                <!-- Total Amount Display -->
+                <div class="alert alert-info mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Total Amount</h6>
+                        <h4 class="mb-0 text-primary" id="paymentTotalAmount">0.00</h4>
+                    </div>
                 </div>
+
+                <!-- Payment Method Selection -->
+                <div class="mb-3">
+                    <label for="paymentMethodSelect" class="form-label fw-semibold">
+                        <i class="bi bi-cash-stack me-2"></i>Select Payment Method <span class="text-danger">*</span>
+                    </label>
+                    <select id="paymentMethodSelect" class="form-select form-select-lg" required>
+                        <option value="">-- Select Payment Method --</option>
+                        @foreach (var payment in Model.PaymentMethods)
+                        {
+                            <option value="@payment.Id" data-payment-name="@payment.PayName">
+                                @payment.PayName
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Received Amount -->
+                <div class="mb-3">
+                    <label for="receivedAmountInput" class="form-label fw-semibold">
+                        <i class="bi bi-wallet2 me-2"></i>Received Amount
+                    </label>
+                    <input type="number" 
+                           id="receivedAmountInput" 
+                           class="form-control form-control-lg" 
+                           placeholder="0.00" 
+                           min="0" 
+                           step="0.01" readonly />
+                </div>
+                <!-- 🔥 Order Status Hidden Field (Payment Check ke liye) -->
+                 <input type="hidden" asp-for="Order.OrderStatus" id="OrderStatusHidden" value="@Model.Order.OrderStatus" />
+
+                @* <!-- Change Amount Display -->
+                <div class="alert alert-success mb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-arrow-return-left me-2"></i>Change</h6>
+                        <h4 class="mb-0 text-success" id="changeAmount">0.00</h4>
+                    </div>
+                </div> *@
+
+            </div>  
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <!-- 🔥 PAYMENT BUTTON (Updated with Status Check) -->
+                <button type="button" id="ConfirmpaymentBtn" class="btn btn-primary px-3 py-2 fs-6 ">
+         Pay Now
+    </button>
             </div>
         </div>
     </div>
 </div>
 
+
 @section Scripts {  
+<!------------------------------------------------------------- TOASTER JS ---------------------------------------------------------------------->
+<script>
+        // Toastr Configuration - Right Top Corner
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",  // Right top corner
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        };
+
+        // Success Toaster Check karein
+        @if (TempData["SuccessMessage"] != null)
+        {
+                <text>
+                toastr.success('@TempData["SuccessMessage"]');
+                </text>
+        }
+</script>
+<!-------------------------------------------------------- PLACE  ORDER JS (SAME AS CREATE) ----------------------------------------------------->
 <script>
     /* ===============================
        INITIALIZE ORDER FROM DATABASE
@@ -751,7 +824,8 @@
                     }
                 },
                 error: function () {
-                    alert('Failed to fetch customer address');
+                    // alert('Failed to fetch customer address');
+                        toastr.error('Failed to fetch customer address!', 'Validation Error'); // ✅ Toaster
                 }
             });
         }
@@ -780,13 +854,15 @@
     document.getElementById('posForm').addEventListener('submit', function(e) {
         if (currentOrder.length === 0) {
             e.preventDefault();
-            alert('Please add items to order first!');
+            // alert('Please select a customer first');
+                toastr.error('Please add items first!', 'Validation Error'); // ✅ Toaster
             return false;
         }
 
         const orderItemsJson = JSON.stringify(currentOrder.map(item => ({
             ItemId: item.id,
             ItemName: item.name,
+            ItemImage: item.image, 
             Price: item.price,
             Quantity: item.qty
         })));
@@ -838,24 +914,117 @@
             }
         });
     });
+   
+/* ===============================
+   PAYMENT MODAL HANDLING
+=============================== */
 
-    /* ===============================
-       PAYMENT MODAL
-    =============================== */
-    document.querySelectorAll('.payment-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const paymentId = this.dataset.paymentId;
-            const paymentName = this.dataset.paymentName;
-            
-            alert(`Payment method selected: ${paymentName}`);
-            bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-            
-            // Aap yahan payment processing logic add kar sakte hain
+// Modal show event - Order Status Check + Data Population
+document.getElementById('paymentModal').addEventListener('show.bs.modal', function (event) {
+    // Get order status
+    const orderStatus = document.getElementById('OrderStatusHidden').value;
+    
+    console.log('Checking Order Status:', orderStatus); // Debug
+    
+    // Check order status
+    if (orderStatus === 'Completed') {
+        event.preventDefault(); // Modal opening cancel karo
+        toastr.info('This Order Payment Has Already Completed', 'Payment Status');
+        return false;
+    } 
+    else if (orderStatus === 'Preparing') {
+        event.preventDefault(); // Modal opening cancel karo
+        toastr.warning('This order payment cannot be processed now because this is in the kitchen', 'Kitchen Alert');
+        return false;
+    }
+    
+    // Status valid hai - Modal data populate karo
+    calculateGrandTotal();
+    const grandTotal = parseFloat(document.getElementById('GrandTotalHidden').value) || 0;
+    
+    console.log('Grand Total:', grandTotal); // Debug
+    
+    document.getElementById('paymentTotalAmount').innerText = grandTotal.toFixed(2);
+    document.getElementById('paymentMethodSelect').value = '';
+    document.getElementById('receivedAmountInput').value = grandTotal.toFixed(2);
+});
+
+// Pay Now Button (Modal ke andar) - Payment Processing
+document.getElementById('ConfirmpaymentBtn').addEventListener('click', async function() {
+    const paymentMethodId = document.getElementById('paymentMethodSelect').value;
+    const receivedAmount = parseFloat(document.getElementById('receivedAmountInput').value) || 0;
+    const grandTotal = parseFloat(document.getElementById('GrandTotalHidden').value) || 0;
+    const orderId = parseInt(document.querySelector('input[name="Order.OrderId"]').value);
+    
+    // Validation
+    if (!paymentMethodId) {
+        toastr.error('Please select a payment method!', 'Validation Error');
+        return false;
+    }
+    
+    if (receivedAmount < grandTotal) {
+        toastr.error('Received amount cannot be less than total amount!', 'Validation Error');
+        return false;
+    }
+    
+    // Button disable karo processing ke dauran
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+    btn.disabled = true;
+    
+    // Payment data prepare karo
+    const paymentData = {
+        OrderId: orderId,
+        PaymentMethodId: parseInt(paymentMethodId),
+        TotalAmount: grandTotal,
+        ReceivedAmount: receivedAmount
+    };
+    
+    console.log('Sending Payment Data:', paymentData); // Debug
+    
+    try {
+        // Backend API call
+        const response = await fetch('@Url.Action("ProcessPayment", "SaleOrder")', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            },
+            body: JSON.stringify(paymentData)
         });
-    });
+        
+        const result = await response.json();
+        
+        console.log('Backend Response:', result); // Debug
+        
+        if (result.success) {
+            toastr.success(result.message || 'Payment processed successfully!', 'Success');
+            
+            // Close modal
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+            modalInstance.hide();
+            
+            // Redirect to orders list
+            setTimeout(() => {
+                window.location.href = '@Url.Action("Index", "SaleOrder")';
+            }, 1500);
+        } else {
+            toastr.error(result.message || 'Payment processing failed!', 'Error');
+        }
+    } catch (error) {
+        console.error('Payment Error:', error);
+        toastr.error('An error occurred while processing payment!', 'Error');
+    } finally {
+        // Button restore karo
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+
+
 
 </script>
-
 <!-------------------------------------------------------- HELD ORDER JS (SAME AS CREATE) ------------------------------------------------------->
 <script>
     /* HOLD ORDER FUNCTIONALITY - Same as Create */
@@ -948,5 +1117,150 @@
     document.addEventListener('DOMContentLoaded', function() {
         updateHeldOrdersCount();
     });
+</script>
+<!-------------------------------------------------------- CATEGORY FILTER + SEARCH - FIXED FOR EDIT PAGE -------------------------------------------------------------->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchBox = document.getElementById('itemSearch');
+    const itemsGrid = document.getElementById('itemsGrid');
+    const noItemsMsg = document.getElementById('noItemsMessage');
+    
+    /* ===============================
+       CATEGORY FILTER (WITHOUT PAGE RELOAD)
+    =============================== */
+    document.querySelectorAll('.category-filter').forEach(categoryLink => {
+        categoryLink.addEventListener('click', function(e) {
+            e.preventDefault(); // ✅ Prevent page reload
+            
+            const selectedCategoryId = this.dataset.categoryId;
+            
+            console.log('🔄 Category clicked:', selectedCategoryId);
+            
+            // Update active class
+            document.querySelectorAll('.category-filter').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Clear search
+            searchBox.value = '';
+            
+            // Show/hide items based on category
+            const allItems = document.querySelectorAll('.menu-item-wrapper');
+            let visibleCount = 0;
+            
+            allItems.forEach((item, idx) => {
+                const itemCategoryId = item.dataset.category;
+                
+                if (itemCategoryId === selectedCategoryId) {
+                    // Show item from this category
+                    item.setAttribute('style', `display: flex !important; visibility: visible !important; order: ${idx};`);
+                    visibleCount++;
+                } else {
+                    // Hide item from other categories
+                    item.setAttribute('style', 'display: none !important; visibility: hidden !important;');
+                }
+            });
+            
+            console.log(`✅ Showing ${visibleCount} items from category ${selectedCategoryId}`);
+            
+            // Handle no items message
+            if (visibleCount === 0) {
+                if (noItemsMsg) noItemsMsg.classList.remove('d-none');
+                if (itemsGrid) itemsGrid.style.display = 'none';
+            } else {
+                if (noItemsMsg) noItemsMsg.classList.add('d-none');
+                if (itemsGrid) itemsGrid.style.display = 'flex';
+            }
+        });
+    });
+    
+    /* ===============================
+       SEARCH FILTER (WORKS WITH CATEGORIES)
+    =============================== */
+    searchBox.addEventListener('keyup', function() {
+        const searchValue = this.value.toLowerCase().trim();
+        
+        console.clear();
+        console.log('='.repeat(50));
+        console.log('🔍 SEARCH:', searchValue || '(empty)');
+        console.log('='.repeat(50));
+        
+        // Get currently visible items (based on category filter)
+        const allItems = Array.from(document.querySelectorAll('.menu-item-wrapper'));
+        
+        // Get active category
+        const activeCategory = document.querySelector('.category-filter.active');
+        const activeCategoryId = activeCategory ? activeCategory.dataset.categoryId : null;
+        
+        if (searchValue === '') {
+            // Empty search - show all items from active category
+            allItems.forEach((item, idx) => {
+                const itemCategoryId = item.dataset.category;
+                
+                if (!activeCategoryId || itemCategoryId === activeCategoryId) {
+                    item.setAttribute('style', `display: flex !important; visibility: visible !important; order: ${idx};`);
+                } else {
+                    item.setAttribute('style', 'display: none !important; visibility: hidden !important;');
+                }
+            });
+            
+            if (noItemsMsg) noItemsMsg.classList.add('d-none');
+            if (itemsGrid) itemsGrid.style.display = 'flex';
+            
+            console.log('✅ Showing all items from active category');
+            return;
+        }
+        
+        // Search within active category
+        const matchedItems = [];
+        const unmatchedItems = [];
+        
+        allItems.forEach((item) => {
+            const card = item.querySelector('.menu-item-card');
+            const itemName = card.dataset.itemName.toLowerCase();
+            const itemCategoryId = item.dataset.category;
+            
+            // Check if item is in active category AND matches search
+            const isInActiveCategory = !activeCategoryId || itemCategoryId === activeCategoryId;
+            const matchesSearch = itemName.includes(searchValue);
+            
+            if (isInActiveCategory && matchesSearch) {
+                matchedItems.push(item);
+                console.log(`✅ MATCHED: ${card.dataset.itemName}`);
+            } else {
+                unmatchedItems.push(item);
+            }
+        });
+        
+        console.log('='.repeat(50));
+        console.log(`📊 Matched: ${matchedItems.length} | Hidden: ${unmatchedItems.length}`);
+        console.log('='.repeat(50));
+        
+        // Show matched items FIRST
+        matchedItems.forEach((item, idx) => {
+            item.setAttribute('style', `display: flex !important; visibility: visible !important; order: ${idx};`);
+        });
+        
+        // Hide unmatched items
+        unmatchedItems.forEach((item) => {
+            item.setAttribute('style', 'display: none !important; visibility: hidden !important; order: 9999;');
+        });
+        
+        // Handle "no items found" message
+        if (matchedItems.length === 0) {
+            if (noItemsMsg) noItemsMsg.classList.remove('d-none');
+            if (itemsGrid) itemsGrid.style.display = 'none';
+            console.log('❌ No items found!');
+        } else {
+            if (noItemsMsg) noItemsMsg.classList.add('d-none');
+            if (itemsGrid) itemsGrid.style.display = 'flex';
+        }
+    });
+    
+    // Trigger first category on page load
+    const firstCategory = document.querySelector('.category-filter.active');
+    if (firstCategory) {
+        firstCategory.click();
+    }
+});
 </script>
 }
