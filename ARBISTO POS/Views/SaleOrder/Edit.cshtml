@@ -57,7 +57,12 @@
                         <option id="deliveryBtn" value="DELIVERY">DELIVERY</option>
                     </select>
                 </li>
-
+                <!--All Items Button -->
+                    <li class="nav-item position-relative">
+                        <button type="button"  class="btn btn-info px-3 py-2 position-relative fs-6"> 
+                            All Items
+                        </button>
+                    </li>
                 <!-- 🔥 PAYMENT BUTTON (In Progress ki jagah) -->
                 <li class="nav-item">
                     <button type="button" class="btn btn-success px-3 py-2 fs-6 blink" data-bs-toggle="modal" data-bs-target="#paymentModal">
@@ -246,12 +251,49 @@
          </div>
 
             <!-- Order Items -->
-            <div class="flex-grow-1 overflow-auto mb-3 border rounded p-3 bg-light" id="orderList">
-                <div class="text-center text-muted">
-                    <i class="bi bi-basket fs-1 mb-2"></i>
-                    <div class="fw-semibold">Loading items...</div>
-                </div>
-            </div>
+<div class="flex-grow-1 overflow-auto mb-3" id="orderList"
+     style="border-radius:10px; overflow:hidden; background-color:#fdfdfd;">
+    
+    <table class="table table-sm mb-0 w-100"
+           style="border-collapse:separate; border-spacing:0;">
+        <thead class="bg-primary text-white"
+               style="border-radius:10px 10px 0 0;">
+            <tr>
+                <th style="border-top-left-radius:10px;
+                           padding:10px 12px; font-size:13px;">
+                    Product
+                </th>
+                <th class="text-center"
+                    style="width:70px; padding:10px 12px; font-size:13px;">
+                    QTY
+                </th>
+                <th class="text-end"
+                    style="width:80px; padding:10px 12px; font-size:13px;">
+                    Price
+                </th>
+                <th class="text-end"
+                    style="width:90px; padding:10px 12px; font-size:13px;">
+                    Total
+                </th>
+                <th class="text-center"
+                    style="width:70px; padding:10px 12px; font-size:13px;
+                           border-top-right-radius:10px;">
+                    Action
+                </th>
+            </tr>
+        </thead>
+        <tbody id="orderBody">
+            <!-- JS yahan rows dalega -->
+        </tbody>
+    </table>
+
+    <div id="emptyOrderMsg" class="text-center text-muted mt-3">
+        <i class="bi bi-basket fs-1 mb-2"></i>
+        <div class="fw-semibold">No items in order</div>
+        <small>Click on menu items to add them</small>
+    </div>
+</div>
+
 
             <!-- Totals -->
             <div class="d-flex justify-content-between mb-1">
@@ -508,7 +550,7 @@
             "debug": false,
             "newestOnTop": true,
             "progressBar": true,
-            "positionClass": "toast-top-right",  // Right top corner
+            "positionClass": "toast-top-center",  // Right top corner
             "preventDuplicates": false,
             "onclick": null,
             "showDuration": "300",
@@ -625,62 +667,81 @@
     /* ===============================
        RENDER ORDER + SUBTOTAL
     =============================== */
-    function renderOrder() {
-        orderList.innerHTML = '';
-        let subtotal = 0;
+  function renderOrder() {
+    const tbody = document.getElementById('orderBody');
+    const emptyMsg = document.getElementById('emptyOrderMsg');
 
-        if (currentOrder.length === 0) {
-            orderList.innerHTML = `
-                <div class="text-center text-muted">
-                    <i class="bi bi-basket fs-1 mb-2"></i>
-                    <div class="fw-semibold">No items in order</div>
-                </div>`;
-            resetTotals();
-            return;
-        }
+    tbody.innerHTML = '';
+    let subtotal = 0;
 
-        currentOrder.forEach((item, index) => {
-            subtotal += item.price * item.qty;
+    if (currentOrder.length === 0) {
+        emptyMsg.style.display = 'block';
+        resetTotals();
+        return;
+    } else {
+        emptyMsg.style.display = 'none';
+    }
 
-            const div = document.createElement('div');
-            div.className = 'd-flex align-items-center mb-2 p-2 border rounded position-relative';
+    currentOrder.forEach((item, index) => {
+        subtotal += item.price * item.qty;
 
-            div.innerHTML = `
-            <button class="btn-close position-absolute remove-item-btn"
-                    style="top: 5px; right: 5px; font-size: 0.7rem; padding: 0.2rem;"
-                    aria-label="Remove"></button>
-            <img src="${item.image}" style="width:60px;height:60px;object-fit:cover" class="rounded me-2">
-            <div class="flex-grow-1">
-                <div class="fw-semibold">${item.name}</div>
-                <small>${item.price.toFixed(2)} × ${item.qty}</small>
-            </div>
-            <div class="btn-group btn-group-sm" role="group" aria-label="Quantity controls">
-                <button type="button" class="btn btn-outline-primary dec">−</button>
-                <button type="button" class="btn btn-outline-secondary qty-display border-0" disabled style="min-width:40px;">${item.qty}</button>
-                <button type="button" class="btn btn-outline-primary inc">+</button>
-            </div>
-            <div class="fw-bold text-danger ms-2" style="min-width:60px;">${(item.price * item.qty).toFixed(2)}</div>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+<td class="align-middle">
+    <div class="d-flex align-items-center">
+        <img src="${item.image}"
+             style="width:70px;height:70px;object-fit:cover;border-radius:6px;margin-right:8px;">
+        <span class="fw-semibold">${item.name}</span>
+    </div>
+</td>
+<td class="text-center align-middle">
+    <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-outline-primary dec">−</button>
+        <button type="button"
+                class="btn border-0 qty-display"
+                disabled
+                style="min-width:40px;
+                       font-size:18px;
+                       font-weight:300;                      
+                       color:Black;">
+            ${item.qty}
+        </button>
+        <button type="button" class="btn btn-outline-primary inc">+</button>
+    </div>
+</td>
+<td class="text-end align-middle">${item.price.toFixed(2)}</td>
+<td class="text-end fw-bold text-danger align-middle">
+    ${(item.price * item.qty).toFixed(2)}
+</td>
+<td class="text-center align-middle">
+    <button class="remove-item-btn"
+            style="border:none;
+                   background:transparent;
+                   padding:0;">
+        <i class="bi bi-trash fs-5" style="color:#dc3545;"></i>
+    </button>
+</td>
         `;
 
-            div.querySelector('.remove-item-btn').onclick = () => {
-                currentOrder.splice(index, 1);
-                renderOrder();
-            };
+        tr.querySelector('.remove-item-btn').onclick = () => {
+            currentOrder.splice(index, 1);
+            renderOrder();
+        };
+        tr.querySelector('.inc').onclick = () => { item.qty++; renderOrder(); };
+        tr.querySelector('.dec').onclick = () => {
+            item.qty--;
+            if (item.qty <= 0) currentOrder.splice(index, 1);
+            renderOrder();
+        };
 
-            div.querySelector('.inc').onclick = () => { item.qty++; renderOrder(); };
-            div.querySelector('.dec').onclick = () => {
-                item.qty--;
-                if (item.qty <= 0) currentOrder.splice(index, 1);
-                renderOrder();
-            };
+        tbody.appendChild(tr);
+    });
 
-            orderList.appendChild(div);
-        });
+    document.getElementById('subtotal').innerText = subtotal.toFixed(2);
+    document.getElementById('SubTotalHidden').value = subtotal.toFixed(2);
+    calculateGrandTotal();
+}
 
-        document.getElementById('subtotal').innerText = subtotal.toFixed(2);
-        document.getElementById('SubTotalHidden').value = subtotal.toFixed(2);
-        calculateGrandTotal();
-    }
 
     /* ===============================
        GRAND TOTAL CALCULATION
@@ -1030,7 +1091,8 @@ document.getElementById('ConfirmpaymentBtn').addEventListener('click', async fun
     /* HOLD ORDER FUNCTIONALITY - Same as Create */
     document.getElementById('holdOrderBtn').addEventListener('click', async function() {
         if (currentOrder.length === 0) {
-            alert('Please add items to order first!');
+            // alert('Please select a customer first');
+                toastr.error('Please add items first!', 'Validation Error'); // ✅ Toaster
             return;
         }
 

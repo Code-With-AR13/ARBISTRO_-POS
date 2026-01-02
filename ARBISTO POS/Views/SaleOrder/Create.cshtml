@@ -35,7 +35,7 @@
 
     .blink {
         animation: blink-animation 3s infinite; /* 1s duration, infinite loop */
-    }
+    }    
 </style>
 <!------------------------------------------------------------------------ NAVBAR ------------------------------------------------------------->
 <nav class="navbar navbar-expand-lg navbar-dark bg-white shadow-sm">
@@ -56,6 +56,14 @@
                             <option id="deliveryBtn" value="DELIVERY">DELIVERY</option>
                         </select>
                     </li>
+                <!-- All Items Button -->
+                <li class="nav-item position-relative">
+                    <button type="button"
+                            id="allItemsBtn"
+                            class="btn btn-info px-3 py-2 position-relative fs-6">
+                        All Items
+                    </button>
+                </li>
 
                     <li class="nav-item">
                         <a asp-controller="SaleOrder" asp-action="Kitchen" class="btn btn-warning px-3 py-2 fs-6 blink">In Progress</a>
@@ -115,35 +123,37 @@
          style="width: 200px; min-width:190px; max-width:190px; overflow-y:auto;">
         <h6 class="fw-bold mb-3">Categories</h6>
         <div class="flex-grow-1">
-            @foreach (var cat in Model.Categories)
-            {
-                <a asp-action="Create"
-                   asp-route-categoryId="@cat.Id"
-                   class="list-group-item  list-group-item-action mb-2 d-flex flex-column align-items-center text-center @(cat == Model.Categories.First() ? "active" : "")">
-                    @if (!string.IsNullOrEmpty(cat.CateImage))
-                    {
-                        <img src="@cat.CateImage" 
-                             alt="@cat.CateName" 
-                             class="img-fluid rounded mb-1" 
-                             style="width:90%; height:140px; object-fit:cover;"
-                             onerror="this.onerror=null; this.src='/assets/images/upload.jpg'">
-                    }
-                    else
-                    {
-                        <img src="/assets/images/upload.jpg" 
-                             alt="@cat.CateName" 
-                             class="img-fluid rounded mb-1" 
-                             style="width:90%; height:140px; object-fit:cover;">
-                    }
+                <!-- Replace the existing category foreach loop -->
+                @foreach (var cat in Model.Categories)
+                {
+                    <a href="javascript:void(0);"
+                       class="list-group-item list-group-item-action mb-2 d-flex flex-column align-items-center text-center category-link"
+                       data-category-id="@cat.Id"
+                       data-category-name="@cat.CateName">
+                        @if (!string.IsNullOrEmpty(cat.CateImage))
+                        {
+                            <img src="@cat.CateImage"
+                                 alt="@cat.CateName"
+                                 class="img-fluid rounded mb-1"
+                                 style="width:90%; height:140px; object-fit:cover;"
+                                 onerror="this.onerror=null; this.src='/assets/images/upload.jpg'">
+                        }
+                        else
+                        {
+                            <img src="/assets/images/upload.jpg"
+                                 alt="@cat.CateName"
+                                 class="img-fluid rounded mb-1"
+                                 style="width:90%; height:140px; object-fit:cover;">
+                        }
+                        <span class="text-dark">@cat.CateName</span>
+                    </a>
+                }
 
-                    <span class="text-dark">@cat.CateName</span>
-                </a>
-            }
         </div>
     </div>
 
  <!---------------------------------------------------------- CENTER: MENU ITEMS --------------------------------------------------------->
-   <div class="flex-grow-1 p-4 bg-light overflow-auto d-flex flex-column">
+   <div class="flex-grow-1 p-4 bg-white overflow-auto d-flex flex-column">
 
             <!-- Search -->
             <div class="d-flex align-items-center justify-content-between mb-4">
@@ -166,34 +176,50 @@
                 {
                     <div class="d-flex justify-content-center menu-item-wrapper" data-category="@p.FoodCategoryId">
                         <div class="card h-90 shadow-sm card-hover menu-item-card"
-                             style="width: 140px; overflow: hidden;"
+                             style="width: 140px; overflow: hidden; position: relative;"
                              data-item-id="@p.ItemId"
                              data-item-name="@p.ItemName"
                              data-item-price="@p.ItemPrice"
                              data-item-image="@p.CateImage">
 
+                            <!-- TOP LEFT PRICE TAG (IMAGE KE UPAR) -->
+                            <span style="
+                position:absolute;
+                top:6px;
+                left:6px;
+                background:#dc3545;
+                color:white;
+                font-size:12px;
+                font-weight:bold;
+                padding:3px 7px;
+                border-radius:4px;
+                z-index:10;
+            ">
+                                Rs @p.ItemPrice
+                            </span>
+
                             @if (!string.IsNullOrEmpty(p.CateImage))
                             {
                                 <img src="@p.CateImage"
                                      alt="@p.ItemName"
-                                     class="card-img-top w-100 img-hover-zoom"
-                                     style="height:100px; object-fit:cover;"
-                                     onerror="this.src='/assets/images/upload.jpg'">
+                                     class="card-img-top w-100"
+                                     style="height:120px; object-fit:cover;">
                             }
                             else
                             {
                                 <img src="~/assets/images/upload.jpg"
                                      alt="No Image"
-                                     class="card-img-top w-100 img-hover-zoom"
+                                     class="card-img-top w-100"
                                      style="height:100px; object-fit:cover;">
                             }
 
                             <div class="card-body p-2 text-center">
                                 <h6 class="card-title fw-bold mb-1 text-truncate">@p.ItemName</h6>
-                                <p class="fw-bold text-danger mb-0">@p.ItemPrice.00</p>
+                                @* <p class="fw-bold text-danger mb-0">@p.ItemPrice.00</p> *@
                             </div>
                         </div>
                     </div>
+
                 }
             </div>
 
@@ -239,7 +265,7 @@
                 <input type="text"
                        id="deliveryAddressInput"
                        class="form-control"
-                       placeholder="Select Customer First"
+                       placeholder="Select Customer First(OPT)"
                        readonly
                        style="cursor: pointer; background-color: #fff;"
                        title="">
@@ -248,13 +274,50 @@
          </div>
 
             <!-- Order Items -->
-            <div class="flex-grow-1 overflow-auto mb-3 border rounded p-3 bg-light" id="orderList">
-                <div class="text-center text-muted">
+            <div class="flex-grow-1 overflow-auto mb-3 "
+                 id="orderList"
+                 style="border-radius:10px 10px 0 0; overflow:hidden; background-color:#fdfdfd;">
+                <table class="table table-sm mb-0 w-100"
+                       style="border-collapse:separate; border-spacing:0;">
+                    <thead class="bg-primary text-white"
+                           style="border-radius:10px 10px 0 0;">
+                        <tr>
+                            <th style="border-top-left-radius:10px;
+                       padding:10px 12px; font-size:13px;">
+                                Product
+                            </th>
+                            <th class="text-center"
+                                style="width:70px; padding:10px 12px; font-size:13px;">
+                                QTY
+                            </th>
+                            <th class="text-end"
+                                style="width:80px; padding:10px 12px; font-size:13px;">
+                                Price
+                            </th>
+                            <th class="text-end"
+                                style="width:90px; padding:10px 12px; font-size:13px;">
+                                Total
+                            </th>
+                            <th class="text-center"
+                                style="width:70px; padding:10px 12px; font-size:13px;
+                       border-top-right-radius:10px;">
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="orderBody">
+                        <!-- JS yahan rows dalega -->
+                    </tbody>
+                </table>
+
+
+                <div id="emptyOrderMsg" class="text-center text-muted mt-3">
                     <i class="bi bi-basket fs-1 mb-2"></i>
                     <div class="fw-semibold">No items in order</div>
                     <small>Click on menu items to add them</small>
                 </div>
             </div>
+
 
             <!-- Totals -->
             <div class="d-flex justify-content-between mb-1">
@@ -447,13 +510,121 @@
 @section Scripts { 
 <!-------------------------------------------------------- TOASTER JS ------------------------------------------------------------------------->
 <script>
+            // Category Switching Without Page Refresh
+        $(document).ready(function() {
+
+            $('.category-link').on('click', function(e) {
+                e.preventDefault();
+
+                const categoryId = $(this).data('category-id');
+                const categoryName = $(this).data('category-name');
+
+                // Update active state
+                $('.category-link').removeClass('active');
+                $(this).addClass('active');
+
+                // Show loading state
+                $('#itemsGrid').html('<div class="text-center w-100 p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+
+                // Load items via AJAX
+                $.ajax({
+                    url: '@Url.Action("GetItemsByCategory", "SaleOrder")',
+                    type: 'GET',
+                    data: { categoryId: categoryId },
+                    success: function(response) {
+                        if (response.success && response.items.length > 0) {
+                            renderItems(response.items);
+                            $('#noItemsMessage').addClass('d-none');
+                            $('#itemsGrid').show();
+                        } else {
+                            $('#itemsGrid').html('');
+                            $('#noItemsMessage').removeClass('d-none');
+                        }
+                    },
+                    error: function() {
+                        toastr.error('Failed to load items', 'Error');
+                        $('#itemsGrid').html('');
+                    }
+                });
+            });
+
+            // Function to render items dynamically
+            function renderItems(items) {
+                let html = '';
+
+                items.forEach(function(item) {
+                    const imageUrl = item.cateImage || '/assets/images/upload.jpg';
+
+                    html += `
+                        <div class="d-flex justify-content-center menu-item-wrapper " data-category="${item.foodCategoryId}">
+                            <div class="card h-90 shadow-sm card-hover menu-item-card"
+                                 style="width: 140px; overflow: hidden;"
+                                 data-item-id="${item.itemId}"
+                                 data-item-name="${item.itemName}"
+                                 data-item-price="${item.itemPrice}"
+                                 data-item-image="${imageUrl}">
+                                 <!-- TOP LEFT PRICE TAG (IMAGE KE UPAR) -->
+                            <span style="
+                position:absolute;
+                top:6px;
+                left:6px;
+                background:#dc3545;
+                color:white;
+                font-size:12px;
+                font-weight:bold;
+                padding:3px 7px;
+                border-radius:4px;
+                z-index:10;
+            ">
+                                Rs ${item.itemPrice}
+                            </span>
+                                <img src="${imageUrl}"
+                                     alt="${item.itemName}"
+                                     class="card-img-top w-100 img-hover-zoom"
+                                     style="height:120px; object-fit:cover;"
+                                     onerror="this.src='/assets/images/upload.jpg'">
+
+                                <div class="card-body p-2 text-center">
+                                    <h6 class="card-title fw-bold mb-1 text-truncate">${item.itemName}</h6>                                   
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                $('#itemsGrid').html(html);
+
+                // Re-attach click events to new items
+                attachItemClickEvents();
+            }
+
+            // Function to attach click events to menu items
+            function attachItemClickEvents() {
+                $('.menu-item-card').off('click').on('click', function() {
+                    const id = $(this).data('item-id');
+                    const name = $(this).data('item-name');
+                    const price = parseFloat($(this).data('item-price'));
+                    const image = $(this).data('item-image') || '/assets/images/upload.jpg';
+
+                    const existing = currentOrder.find(i => i.id === id);
+                    if (existing) {
+                        existing.qty++;
+                    } else {
+                        currentOrder.push({ id, name, price, image, qty: 1 });
+                    }
+
+                    renderOrder();
+                });
+            }
+        });
+
         // Toastr Configuration - Right Top Corner
         toastr.options = {
             "closeButton": true,
             "debug": false,
             "newestOnTop": true,
             "progressBar": true,
-            "positionClass": "toast-top-right",  // Right top corner
+            "positionClass": "toast-top-center",  // Right top corner
             "preventDuplicates": false,
             "onclick": null,
             "showDuration": "300",
@@ -581,62 +752,87 @@
     /* ===============================
        RENDER ORDER + SUBTOTAL
     =============================== */
-    function renderOrder() {
-        orderList.innerHTML = '';
-        let subtotal = 0;
+            function renderOrder() {
+            const tbody = document.getElementById('orderBody');
+            const emptyMsg = document.getElementById('emptyOrderMsg');
 
-        if (currentOrder.length === 0) {
-            orderList.innerHTML = `
-                <div class="text-center text-muted">
-                    <i class="bi bi-basket fs-1 mb-2"></i>
-                    <div class="fw-semibold">No items in order</div>
-                </div>`;
-            resetTotals();
-            return;
-        }
+            tbody.innerHTML = '';
+            let subtotal = 0;
 
-        currentOrder.forEach((item, index) => {
-            subtotal += item.price * item.qty;
+            if (currentOrder.length === 0) {
+                emptyMsg.style.display = 'block';
+                resetTotals();
+                return;
+            } else {
+                emptyMsg.style.display = 'none';
+            }
 
-            const div = document.createElement('div');
-            div.className = 'd-flex align-items-center mb-2 p-2 border rounded position-relative';
+            currentOrder.forEach((item, index) => {
+                subtotal += item.price * item.qty;
 
-            div.innerHTML = `
-            <button class="btn-close position-absolute remove-item-btn"
-                    style="top: 5px; right: 5px; font-size: 0.7rem; padding: 0.2rem;"
-                    aria-label="Remove"></button>
-            <img src="${item.image}" style="width:60px;height:60px;object-fit:cover" class="rounded me-2">
-            <div class="flex-grow-1">
-                <div class="fw-semibold">${item.name}</div>
-                <small>${item.price.toFixed(2)} × ${item.qty}</small>
+                const tr = document.createElement('tr');
+                               tr.innerHTML = `
+        <td class="align-middle">
+            <div class="d-flex align-items-center">
+                <img src="${item.image}"
+                     style="width:70px;height:70px;object-fit:cover;border-radius:6px;margin-right:8px;">
+                <span class="fw-semibold">${item.name}</span>
             </div>
-            <div class="btn-group btn-group-sm" role="group" aria-label="Quantity controls">
-                <button type="button" class="btn btn-outline-primary dec">−</button>
-                <button type="button" class="btn btn-outline-secondary qty-display border-0" disabled style="min-width:40px;">${item.qty}</button>
-                <button type="button" class="btn btn-outline-primary inc">+</button>
-            </div>
-            <div class="fw-bold text-danger ms-2" style="min-width:60px;">${(item.price * item.qty).toFixed(2)}</div>
+        </td>
+        <td class="text-center align-middle">
+                    <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary dec">−</button>
+
+            <button type="button"
+                    class="btn border-0 qty-display"
+                    disabled
+                    style="min-width:40px;
+                           font-size:18px;
+                           font-weight:300;                           
+                           color:black;">
+                ${item.qty}
+            </button>
+
+            <button type="button" class="btn btn-outline-primary inc">+</button>
+        </div>
+
+        </td>
+        <td class="text-end align-middle">${item.price.toFixed(2)}</td>
+        <td class="text-end fw-bold text-danger align-middle">
+            ${(item.price * item.qty).toFixed(2)}
+        </td>
+                      <td class="text-center align-middle">
+            <button class="remove-item-btn"
+                    style="border:none;
+                           background:transparent;
+                           padding:0;">
+                <i class="bi bi-trash fs-5" style="color:#dc3545;"></i>
+            </button>
+        </td>
+
+
+
         `;
 
-            // Remove item completely
-            div.querySelector('.remove-item-btn').onclick = () => {
-                currentOrder.splice(index, 1);
-                renderOrder();
-            };
 
-            div.querySelector('.inc').onclick = () => { item.qty++; renderOrder(); };
-            div.querySelector('.dec').onclick = () => {
-                item.qty--;
-                if (item.qty <= 0) currentOrder.splice(index, 1);
-                renderOrder();
-            };
 
-            orderList.appendChild(div);
-        });
+                tr.querySelector('.remove-item-btn').onclick = () => {
+                    currentOrder.splice(index, 1);
+                    renderOrder();
+                };
+                tr.querySelector('.inc').onclick = () => { item.qty++; renderOrder(); };
+                tr.querySelector('.dec').onclick = () => {
+                    item.qty--;
+                    if (item.qty <= 0) currentOrder.splice(index, 1);
+                    renderOrder();
+                };
 
-        document.getElementById('subtotal').innerText = subtotal.toFixed(2);
-        calculateGrandTotal();
-    }
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('subtotal').innerText = subtotal.toFixed(2);
+            calculateGrandTotal();
+        }
 
  /* ===============================
        GRAND TOTAL CALCULATION
@@ -1303,10 +1499,12 @@
                 const allItems = Array.from(document.querySelectorAll('.menu-item-wrapper'));
 
                 if (searchValue === '') {
-                    // Empty search - show all items in original order
-                    allItems.forEach((item, idx) => {
-                        item.setAttribute('style', 'display: flex !important; visibility: visible !important; order: ' + idx);
-                    });
+                            // search empty case:
+        allItems.forEach((item, idx) => {
+            item.style.display = 'flex';
+            item.style.visibility = 'visible';
+            item.style.order = idx;
+        });
 
                     if (noItemsMsg) noItemsMsg.classList.add('d-none');
                     if (itemsGrid) itemsGrid.style.display = 'flex';
@@ -1335,15 +1533,20 @@
                 console.log(`📊 Matched: ${matchedItems.length} | Hidden: ${unmatchedItems.length}`);
                 console.log('='.repeat(50));
 
-                // Show matched items FIRST (order: 0, 1, 2...)
-                matchedItems.forEach((item, idx) => {
-                    item.setAttribute('style', `display: flex !important; visibility: visible !important; order: ${idx};`);
-                });
+               // matched:
+matchedItems.forEach((item, idx) => {
+    item.style.display = 'flex';
+    item.style.visibility = 'visible';
+    item.style.order = idx;
+        });
 
-                // Hide unmatched items completely
-                unmatchedItems.forEach((item) => {
-                    item.setAttribute('style', 'display: none !important; visibility: hidden !important; order: 9999;');
-                });
+
+        // unmatched:
+        unmatchedItems.forEach(item => {
+            item.style.display = 'none';
+            item.style.visibility = 'hidden';
+            item.style.order = 9999;
+        });
 
                 // Handle "no items found" message
                 if (matchedItems.length === 0) {
@@ -1372,6 +1575,44 @@
                     if (itemsGrid) itemsGrid.style.display = 'flex';
                 });
             });
+        });
+    </script>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM ready - allItemsBtn binding');
+
+            const allItemsBtn = document.getElementById('allItemsBtn');
+            const itemsGrid   = document.getElementById('itemsGrid');
+            const noItemsMsg  = document.getElementById('noItemsMessage');
+            const searchBox   = document.getElementById('itemSearch');
+
+            if (!allItemsBtn) {
+                console.error('allItemsBtn not found!');
+                return;
+            }
+
+                   allItemsBtn.addEventListener('click', function () {
+            console.log('All Items clicked');
+
+            document.querySelectorAll('.category-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            if (searchBox) searchBox.value = '';
+
+            const allItems = Array.from(document.querySelectorAll('.menu-item-wrapper'));
+            allItems.forEach((item, idx) => {
+                item.style.display = 'flex';
+                item.style.visibility = 'visible';
+                item.style.order = idx;
+            });
+
+            if (noItemsMsg) noItemsMsg.classList.add('d-none');
+            if (itemsGrid) itemsGrid.style.display = 'flex';
+        });
+
         });
     </script>
 

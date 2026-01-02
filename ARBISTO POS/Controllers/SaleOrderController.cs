@@ -684,5 +684,33 @@ namespace ARBISTO_POS.Controllers
         }
 
 
+
+
+        [HttpGet]
+        public JsonResult GetItemsByCategory(int categoryId)
+        {
+            try
+            {
+                var items = _context.Items
+                    .Where(i => i.FoodCategoryId == categoryId)
+                    .Select(i => new
+                    {
+                        itemId = i.ItemId,
+                        itemName = i.ItemName,
+                        itemPrice = i.ItemPrice,
+                        cateImage = i.CateImage,
+                        foodCategoryId = i.FoodCategoryId
+                    })
+                    .ToList();
+
+                return Json(new { success = true, items = items });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+
     }
 }
