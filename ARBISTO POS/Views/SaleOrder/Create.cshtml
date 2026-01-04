@@ -268,8 +268,8 @@
                        placeholder="Select Customer First(OPT)"
                        readonly
                        style="cursor: pointer; background-color: #fff;"
-                       title="">
-                <input type="hidden" asp-for="Order.DelivaryAddress" id="ShippingAddressHidden" value="" />
+                       title="Walking Customer has no Address">
+                <input type="hidden" asp-for="Order.DelivaryAddress" id="ShippingAddressHidden" value="Walking Customer has no Address" />
             </div>
          </div>
 
@@ -547,6 +547,45 @@
                     }
                 });
             });
+             // ===== ALL ITEMS BUTTON =====
+        const allItemsBtn = document.getElementById('allItemsBtn');
+        if (allItemsBtn) {
+            allItemsBtn.addEventListener('click', function () {
+                console.log('All Items clicked');
+
+                $('#itemsGrid').html(
+                    '<div class="text-center w-100 p-5">'+
+                        '<div class="spinner-border text-primary" role="status">'+
+                            '<span class="visually-hidden">Loading...</span>'+
+                        '</div>'+
+                    '</div>'
+                );
+
+                $.ajax({
+                    url: '@Url.Action("GetAllItems", "SaleOrder")',
+                    type: 'GET',
+                    success: function (response) {
+                        console.log('GetAllItems response:', response);
+
+                        // tumhare response ka shape: { items: [...] }
+                        if (response.items && response.items.length > 0) {
+                            renderItems(response.items);   // ab yahan se function mil jayega
+                            $('#noItemsMessage').addClass('d-none');
+                            $('#itemsGrid').show();
+                        } else {
+                            $('#itemsGrid').html('');
+                            $('#noItemsMessage').removeClass('d-none');
+                        }
+                    },
+                    error: function (xhr, status, err) {
+                        console.error('GetAllItems error:', status, err, xhr.responseText);
+                        toastr.error('Failed to load items', 'Error');
+                        $('#itemsGrid').html('');
+                    }
+                });
+            });
+        }
+
 
             // Function to render items dynamically
             function renderItems(items) {
@@ -644,6 +683,7 @@
                 toastr.success('@TempData["SuccessMessage"]');
                 </text>
         }
+
 </script>
 <!------------------------------------------------------- PLACE ORDER JS ---------------------------------------------------------------------->
 <script>
@@ -1577,44 +1617,5 @@ matchedItems.forEach((item, idx) => {
             });
         });
     </script>
-
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log('DOM ready - allItemsBtn binding');
-
-            const allItemsBtn = document.getElementById('allItemsBtn');
-            const itemsGrid   = document.getElementById('itemsGrid');
-            const noItemsMsg  = document.getElementById('noItemsMessage');
-            const searchBox   = document.getElementById('itemSearch');
-
-            if (!allItemsBtn) {
-                console.error('allItemsBtn not found!');
-                return;
-            }
-
-                   allItemsBtn.addEventListener('click', function () {
-            console.log('All Items clicked');
-
-            document.querySelectorAll('.category-link').forEach(link => {
-                link.classList.remove('active');
-            });
-
-            if (searchBox) searchBox.value = '';
-
-            const allItems = Array.from(document.querySelectorAll('.menu-item-wrapper'));
-            allItems.forEach((item, idx) => {
-                item.style.display = 'flex';
-                item.style.visibility = 'visible';
-                item.style.order = idx;
-            });
-
-            if (noItemsMsg) noItemsMsg.classList.add('d-none');
-            if (itemsGrid) itemsGrid.style.display = 'flex';
-        });
-
-        });
-    </script>
-
 }
 

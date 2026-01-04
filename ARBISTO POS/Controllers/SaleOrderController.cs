@@ -710,6 +710,87 @@ namespace ARBISTO_POS.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+        public JsonResult GetAllItems()
+        {
+            var items = _context.Items
+                .Select(x => new {
+                    itemId = x.ItemId,
+                    itemName = x.ItemName,
+                    itemPrice = x.ItemPrice,
+                    cateImage = x.CateImage,
+                    foodCategoryId = x.FoodCategoryId
+                })
+                .ToList();
+
+            // agar success property ki zarurat nahi to simple return
+            return Json(new { items });
+        }
+
+        // ============================
+        // INVOICE VIEW (DETAIL)
+        // ============================
+        public async Task<IActionResult> Invoice(int id)
+        {
+            var order = await _context.SaleOrders
+                .Include(o => o.Customer)
+                .Include(o => o.Table)
+                .Include(o => o.PickUp)
+                .Include(o => o.Payment)
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
+
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            var vm = new PosViewModel
+            {
+                Order = order,
+                CustomerId = order.CustomerId,
+                Categories = await _context.FoodCategories.ToListAsync(),
+                Items = await _context.Items.ToListAsync(),
+                Employees = await _context.Employees.ToListAsync(),
+                Tables = await _context.ServiceTables.ToListAsync(),
+                PickupPoints = await _context.PickPoints.ToListAsync(),
+                PaymentMethods = await _context.PaymentMethods.ToListAsync()
+            };
+
+            return View(vm);          // View name: Invoice.cshtml
+        }
+
+        // ============================
+        // INVOICE PRINT VIEW
+        // ============================
+        public async Task<IActionResult> InvoicePrint(int id)
+        {
+            var order = await _context.SaleOrders
+                .Include(o => o.Customer)
+                .Include(o => o.Table)
+                .Include(o => o.PickUp)
+                .Include(o => o.Payment)
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
+
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            var vm = new PosViewModel
+            {
+                Order = order,
+                CustomerId = order.CustomerId,
+                Categories = await _context.FoodCategories.ToListAsync(),
+                Items = await _context.Items.ToListAsync(),
+                Employees = await _context.Employees.ToListAsync(),
+                Tables = await _context.ServiceTables.ToListAsync(),
+                PickupPoints = await _context.PickPoints.ToListAsync(),
+                PaymentMethods = await _context.PaymentMethods.ToListAsync()
+            };
+
+            return View(vm);          // View name: InvoicePrint.cshtml
+        }
 
 
     }

@@ -150,7 +150,16 @@
                                                                 <i class="feather-edit-3"></i>
                                                             </a>                                                            
                                                         </div>
-                                                    </td>
+                                                        <div class="d-inline-flex gap-1">
+                                                            <a asp-controller="SaleOrder"
+                                                               asp-action="Invoice"
+                                                               asp-route-id="@pay.OrderId"
+                                                               class="btn btn-sm btn-light"
+                                                               title="Invoice">
+                                                                <i class="feather-printer"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>                                                    
                                                 </tr>
                                             }
                                         }

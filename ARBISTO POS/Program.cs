@@ -1,3 +1,4 @@
+using ARBISTO_POS.Controllers;
 using ARBISTO_POS.Data;
 using ARBISTO_POS.Models;
 using ARBISTO_POS.Services;
@@ -30,6 +31,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.Name = "ARAuth";
     });
+// Program.cs / Startup.cs me
+builder.Services.Configure<BackupSettings>(
+    builder.Configuration.GetSection("BackupSettings"));
 
 // builder.Services.AddHttpClient<WhatsAppService>();
 

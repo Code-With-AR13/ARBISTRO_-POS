@@ -57,12 +57,16 @@
                         <option id="deliveryBtn" value="DELIVERY">DELIVERY</option>
                     </select>
                 </li>
-                <!--All Items Button -->
-                    <li class="nav-item position-relative">
-                        <button type="button"  class="btn btn-info px-3 py-2 position-relative fs-6"> 
-                            All Items
-                        </button>
-                    </li>
+               <!-- All Items Button -->
+<li class="nav-item position-relative">
+    <button type="button"
+            id="allItemsBtn"
+            class="btn btn-info px-3 py-2 position-relative fs-6">
+        All Items
+    </button>
+</li>
+
+
                 <!-- 🔥 PAYMENT BUTTON (In Progress ki jagah) -->
                 <li class="nav-item">
                     <button type="button" class="btn btn-success px-3 py-2 fs-6 blink" data-bs-toggle="modal" data-bs-target="#paymentModal">
@@ -79,7 +83,7 @@
                     </div>
                 </li>
 
-                <!-- Button to Open Modal -->
+                @* <!-- Button to Open Modal -->
                 <li class="nav-item position-relative">
                     <button type="button" id="openHeldModal" class="btn btn-danger px-3 py-2 position-relative"
                             data-bs-toggle="modal" data-bs-target="#heldInvoicesModal">
@@ -88,7 +92,7 @@
                             0
                         </span>
                     </button>
-                </li>
+                </li> *@
 
                 <li class="nav-item dropdown">
                     <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" class="d-flex align-items-center">
@@ -410,7 +414,7 @@
     </div>
 </div>
 
-<!---------------------------------------------------------- HELD INVOICE MODAL ----------------------------------------------------->
+@* <!---------------------------------------------------------- HELD INVOICE MODAL ----------------------------------------------------->
 <div id="heldInvoicesModal" class="modal fade" tabindex="-1" aria-labelledby="heldInvoicesModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
@@ -426,7 +430,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> *@
 
 <!---------------------------------------------------------- TABLE SELECTION MODAL -------------------------------------------------------------->
 <div class="modal fade" id="tableSelectionModal" tabindex="-1" aria-labelledby="tableSelectionModalLabel" aria-hidden="true">
@@ -960,6 +964,120 @@
             });
         });
     });
+/* ===============================
+   ALL ITEMS BUTTON FUNCTIONALITY
+=============================== */
+const allItemsBtn = document.getElementById('allItemsBtn');
+if (allItemsBtn) {
+    allItemsBtn.addEventListener('click', function () {
+        console.log('All Items clicked');
+
+        // Show loading spinner
+        $('#itemsGrid').html(
+            '<div class="text-center w-100 p-5">'+
+                '<div class="spinner-border text-primary" role="status">'+
+                    '<span class="visually-hidden">Loading...</span>'+
+                '</div>'+
+            '</div>'
+        );
+
+        // AJAX call to get all items
+        $.ajax({
+            url: '@Url.Action("GetAllItems", "SaleOrder")',
+            type: 'GET',
+            success: function (response) {
+                console.log('GetAllItems response:', response);
+
+                if (response.items && response.items.length > 0) {
+                    renderAllItems(response.items);
+                    $('#noItemsMessage').addClass('d-none');
+                    $('#itemsGrid').show();
+                    
+                    // Remove active class from categories
+                    $('.category-filter').removeClass('active');
+                } else {
+                    $('#itemsGrid').html('');
+                    $('#noItemsMessage').removeClass('d-none');
+                }
+            },
+            error: function (xhr, status, err) {
+                console.error('GetAllItems error:', status, err, xhr.responseText);
+                toastr.error('Failed to load items', 'Error');
+                $('#itemsGrid').html('');
+            }
+        });
+    });
+}
+
+// Function to render all items
+function renderAllItems(items) {
+    let html = '';
+
+    items.forEach(function(item) {
+        const imageUrl = item.cateImage || '/assets/images/upload.jpg';
+
+        html += `
+            <div class="d-flex justify-content-center menu-item-wrapper" data-category="${item.foodCategoryId}">
+                <div class="card h-90 shadow-sm card-hover menu-item-card"
+                     style="width: 140px; overflow: hidden; position: relative;"
+                     data-item-id="${item.itemId}"
+                     data-item-name="${item.itemName}"
+                     data-item-price="${item.itemPrice}"
+                     data-item-image="${imageUrl}">
+                     
+                    <span style="
+                        position:absolute;
+                        top:6px;
+                        left:6px;
+                        background:#dc3545;
+                        color:white;
+                        font-size:12px;
+                        font-weight:bold;
+                        padding:3px 7px;
+                        border-radius:4px;
+                        z-index:10;">
+                        Rs ${item.itemPrice}
+                    </span>
+                    
+                    <img src="${imageUrl}"
+                         alt="${item.itemName}"
+                         class="card-img-top w-100"
+                         style="height:120px; object-fit:cover;"
+                         onerror="this.src='/assets/images/upload.jpg'">
+
+                    <div class="card-body p-2 text-center">
+                        <h6 class="card-title fw-bold mb-1 text-truncate">${item.itemName}</h6>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    $('#itemsGrid').html(html);
+    
+    // Re-attach click events
+    attachItemClickEvents();
+}
+
+// Attach click events to menu items
+function attachItemClickEvents() {
+    $('.menu-item-card').off('click').on('click', function() {
+        const id = $(this).data('item-id');
+        const name = $(this).data('item-name');
+        const price = parseFloat($(this).data('item-price'));
+        const image = $(this).data('item-image') || '/assets/images/upload.jpg';
+
+        const existing = currentOrder.find(i => i.id === id);
+        if (existing) {
+            existing.qty++;
+        } else {
+            currentOrder.push({ id, name, price, image, qty: 1 });
+        }
+
+        renderOrder();
+    });
+}
+
 
     /* ===============================
        SEARCH FILTER

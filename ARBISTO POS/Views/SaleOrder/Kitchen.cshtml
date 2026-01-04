@@ -125,6 +125,26 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Kitchen page loaded');
 
+                 // ✅ AUTO-SELECT FIRST CHEF FOR EACH ORDER
+        document.querySelectorAll('.chef-select').forEach(select => {
+            const orderId = select.dataset.orderId;
+            const firstChefOption = select.querySelector('option[value]:not([value=""])');
+
+            if (firstChefOption) {
+                const chefId = firstChefOption.value;
+                select.value = chefId; // Set dropdown to first chef
+
+                // Automatically assign chef to order
+                assignChefToOrder(orderId, chefId, function(success) {
+                    const chefStatus = document.getElementById(`chefStatus_${orderId}`);
+                    if (success) {
+                        chefStatus.innerHTML = '<span class="text-success">Chef assigned</span>';
+                    } else {
+                        chefStatus.innerHTML = '<span class="text-danger">Failed to assign chef</span>';
+                    }
+                });
+            }
+        });
             // Initialize progress for each order
             document.querySelectorAll('.order-card').forEach(card => {
                 const orderId = card.dataset.orderId;
