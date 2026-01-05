@@ -1,30 +1,31 @@
-﻿@model IEnumerable<ARBISTO_POS.Models.Customers>
+﻿@model IEnumerable<ARBISTO_POS.Models.AppUser>
 @{
-    ViewData["Title"] = "Customers";
+    ViewData["Title"] = "Users";
 }
 
 <main class="nxl-container-fluid">
     <div class="nxl-content">
-        <!-- header ... same as yours ... -->
+        <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Customers</h5>
+                    <h5 class="m-b-10">@ViewData["Title"]</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
-                    <li class="breadcrumb-item active">Customers</li>
+                    <li class="breadcrumb-item active">@ViewData["Title"]</li>
                 </ul>
             </div>
             <div class="page-header-right ms-auto">
                 <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                    <a asp-controller="Customers" asp-action="Create" class="btn btn-primary">
+                    <a asp-controller="Users" asp-action="Create" class="btn btn-primary">
                         <i class="feather-plus me-2"></i>
-                        <span>New Customers</span>
+                        <span>New User</span>
                     </a>
                 </div>
             </div>
         </div>
+        <div id="ajax-alert-placeholder"></div>
 
         @if (TempData["SuccessMessage"] != null)
         {
@@ -41,7 +42,7 @@
                     <div class="card stretch stretch-full">
                         <div class="card-header">
                             <h5 class="card-title mb-0">
-                                <i class="feather-list me-2"></i>All Customers
+                                <i class="feather-list me-2"></i>All Users
                             </h5>
                         </div>
                         <div class="card-body p-0">
@@ -49,28 +50,26 @@
                                 <table class="table table-hover align-middle dataTable">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Customers</th>
-                                            <th>Email</th>
-                                            <th>Phone No</th>
-                                            <th>Address</th>
-                                            @* <th>Available Qty</th>
-                                            <th>Qty Alert</th> *@
+                                            <th>User Name</th>
+                                            <th>User Email</th>
+                                            <th>User Role</th>                                            
+                                            <th>Status</th>                                            
                                             <th class="text-center" style="width: 120px;">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @if (Model != null && Model.Any())
                                         {
-                                            @foreach (var item in Model)
+                                            @foreach (var user in Model)
                                             {
-                                                <tr id="row-@item.Id">
+                                                <tr>                                                    
                                                     <td>
                                                         <div class="d-flex align-items-center">
                                                             <div class="me-3">
-                                                                @if (!string.IsNullOrEmpty(item.CusImage))
+                                                                @if (!string.IsNullOrEmpty(user.UserImage))
                                                                 {
-                                                                    <img src="@item.CusImage"
-                                                                         alt="@item.Name"
+                                                                    <img src="@user.UserImage"
+                                                                         alt="@user.FullName"
                                                                          class="rounded-circle border"
                                                                          style="width: 80px; height: 80px; object-fit: cover;"
                                                                          onerror="this.src='/assets/images/upload.jpg'">
@@ -84,41 +83,57 @@
                                                                 }
                                                             </div>
                                                             <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">@item.Name</span>
+                                                                <span class="fw-semibold">@user.FullName</span>
+                                                                <small class="text-muted">Created At: @user.CreatedAtUtc</small>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td>@item.Email</td>
-                                                    <td>@item.PhoneNo</td>
-                                                    <td>@item.Address</td>                                                  
+                                                    <td>@user.Email</td>                                                   
+                                                    <td>@user.Role</td>                                                   
+                                                    <td>
+                                                        @if (user.IsActive)
+                                                        {
+                                                            <span class="text-success fw-bold ">
+                                                                Active
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-danger fw-bold ">
+                                                                Inactive
+                                                            </span>
+                                                        }
+                                                    </td>                                                   
                                                     <td class="text-center">
                                                         <div class="d-inline-flex gap-1">
-                                                            <a asp-action="Edit"
-                                                               asp-route-id="@item.Id"
+                                                            <a asp-controller="Users"
+                                                               asp-action="Edit"
+                                                               asp-route-id="@user.Id"
                                                                class="btn btn-sm btn-light"
                                                                title="Edit">
                                                                 <i class="feather-edit-3"></i>
                                                             </a>
 
-                                                            <!-- unique id per form -->
-                                                            <form id="delete-form-@item.Id"
+                                                            <form method="post"
+                                                                  asp-controller="Users"
                                                                   asp-action="Delete"
-                                                                  asp-route-id="@item.Id"
-                                                                  method="post"
-                                                                  class="d-inline">
+                                                                  asp-route-id="@user.Id"
+                                                                  class="d-inline"
+                                                                  id="delete-form-@user.Id">
                                                                 @Html.AntiForgeryToken()
                                                                 <button type="button"
                                                                         class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@item.Id"
+                                                                        data-id="@user.Id"
                                                                         title="Delete">
-                                                                    <i class="feather feather-trash-2"></i>
+                                                                    <i class="feather-trash-2"></i>
                                                                 </button>
                                                             </form>
+
                                                         </div>
                                                     </td>
                                                 </tr>
                                             }
-                                        }                                       
+                                        }
                                     </tbody>
                                 </table>
                             </div>
@@ -140,24 +155,24 @@
                 $('.alert-success, .alert-danger').fadeOut('slow');
             }, 5000);
 
-            $('.js-delete').on('click', function (e) {
+            $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
-                const id = $(this).data('id');
-                const form = $('#delete-form-' + id);
-                const token = form.find('input[name="__RequestVerificationToken"]').val();
+                var id = $(this).data('id');
+                var form = $('#delete-form-' + id);
+                var token = form.find('input[name="__RequestVerificationToken"]').val();
 
                 Swal.fire({
                     title: 'Are you sure?',
-                    text: 'This customer will be permanently deleted.',
+                    text: 'This User will be permanently deleted!',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, delete it'
+                    confirmButtonText: 'Yes, delete it!'
                 }).then((result) => {
-                    if (result.isConfirmed) {
 
+                    if (result.isConfirmed) {
                         $.ajax({
                             url: form.attr('action'),
                             type: 'POST',
@@ -168,29 +183,28 @@
                             success: function (res) {
                                 if (res.success) {
 
-                                    // remove row from DataTable
-                                    table
-                                        .row($('#row-' + id))
-                                        .remove()
-                                        .draw(false);
+                                    // ✅ Remove row from DataTable
+                                    var row = form.closest('tr');
+                                    table.row(row).remove().draw();
 
+                                    // ✅ Success message (same page)
                                     Swal.fire(
                                         'Deleted!',
-                                        res.message,
+                                        'User deleted successfully.',
                                         'success'
                                     );
                                 } else {
-                                    Swal.fire('Error', res.message, 'error');
+                                    Swal.fire('Error!', res.message, 'error');
                                 }
                             },
                             error: function () {
-                                Swal.fire('Error', 'Something went wrong', 'error');
+                                Swal.fire('Error!', 'Something went wrong!', 'error');
                             }
                         });
                     }
                 });
             });
+
         });
     </script>
 }
-

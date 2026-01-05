@@ -68,7 +68,7 @@
                                     </div>
 
                                     <div>
-                                        <a href="javascript:void(0);" class="fs-11 text-primary">
+                                        <a asp-action="ForgotPassword" class="fs-11 text-primary">
                                             Forgot password?
                                         </a>
                                     </div>
@@ -110,5 +110,28 @@
 <!--! [End] Main Content !-->
 <!--! ================================================================ !-->
 @section Scripts {
-    <partial name="_ToastrMessages" />
+    <script>
+        $(function () {
+
+            @if (TempData["ToastrSuccess"] != null)
+            {
+                    <text>
+                        toastr.options.closeButton = true;
+                        toastr.options.positionClass = "toast-top-right";
+                        toastr.success("@TempData["ToastrSuccess"]");
+                    </text>
+            }
+
+            @if (TempData["ToastrError"] != null)
+            {
+                    <text>
+                        toastr.options.closeButton = true;
+                        toastr.options.positionClass = "toast-top-right";
+                        toastr.error("@TempData["ToastrError"]");
+                    </text>
+            }
+
+        });
+    </script>
 }
+

@@ -1,26 +1,29 @@
-﻿@model IEnumerable<ARBISTO_POS.Models.Customers>
+﻿@model IEnumerable<ARBISTO_POS.Models.Expenses>
+
 @{
-    ViewData["Title"] = "Customers";
+    ViewData["Title"] = "Expenses";
 }
 
 <main class="nxl-container-fluid">
     <div class="nxl-content">
-        <!-- header ... same as yours ... -->
+        <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Customers</h5>
+                    <h5 class="m-b-10">Expenses</h5>
                 </div>
                 <ul class="breadcrumb">
-                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
-                    <li class="breadcrumb-item active">Customers</li>
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Home" asp-action="Index">Home</a>
+                    </li>
+                    <li class="breadcrumb-item active">Expenses</li>
                 </ul>
             </div>
             <div class="page-header-right ms-auto">
                 <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                    <a asp-controller="Customers" asp-action="Create" class="btn btn-primary">
+                    <a asp-controller="Expense" asp-action="Create" class="btn btn-primary">
                         <i class="feather-plus me-2"></i>
-                        <span>New Customers</span>
+                        <span>New Expense</span>
                     </a>
                 </div>
             </div>
@@ -28,10 +31,10 @@
 
         @if (TempData["SuccessMessage"] != null)
         {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <div class="alert alert-success alert-dismissible fade show">
                 <i class="feather-check-circle me-2"></i>
                 <strong>Success!</strong> @TempData["SuccessMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
 
@@ -41,84 +44,80 @@
                     <div class="card stretch stretch-full">
                         <div class="card-header">
                             <h5 class="card-title mb-0">
-                                <i class="feather-list me-2"></i>All Customers
+                                <i class="feather-list me-2"></i>All Expenses
                             </h5>
                         </div>
+
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle dataTable">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Customers</th>
-                                            <th>Email</th>
-                                            <th>Phone No</th>
-                                            <th>Address</th>
-                                            @* <th>Available Qty</th>
-                                            <th>Qty Alert</th> *@
-                                            <th class="text-center" style="width: 120px;">Actions</th>
+                                            <th>Expense</th>
+                                            <th>Expense Amount</th>
+                                            <th>Expense Type</th>
+                                            <th>Description</th>
+                                            <th class="text-center" style="width:120px;">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @if (Model != null && Model.Any())
                                         {
-                                            @foreach (var item in Model)
+                                            foreach (var point in Model)
                                             {
-                                                <tr id="row-@item.Id">
+                                                <tr id="row-@point.Id">
                                                     <td>
                                                         <div class="d-flex align-items-center">
-                                                            <div class="me-3">
-                                                                @if (!string.IsNullOrEmpty(item.CusImage))
-                                                                {
-                                                                    <img src="@item.CusImage"
-                                                                         alt="@item.Name"
-                                                                         class="rounded-circle border"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;"
-                                                                         onerror="this.src='/assets/images/upload.jpg'">
-                                                                }
-                                                                else
-                                                                {
-                                                                    <img src="~/assets/images/upload.jpg"
-                                                                         alt="No Image"
-                                                                         class="rounded-circle border"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;">
-                                                                }
-                                                            </div>
                                                             <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">@item.Name</span>
+                                                                <span class="fw-semibold">@point.ExpenseName</span>
+                                                                <small class="text-muted">Created At: @point.CreatedDate</small>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td>@item.Email</td>
-                                                    <td>@item.PhoneNo</td>
-                                                    <td>@item.Address</td>                                                  
+                                                    <td>@point.ExpenseAmount</td>
+                                                    <td>@point.ExpenseType?.ExpenseName</td>
+                                                    <td>
+                                                        @if (!string.IsNullOrEmpty(point.ExpDescription))
+                                                        {
+                                                            @(point.ExpDescription.Length > 80
+                                                                                                            ? point.ExpDescription.Substring(0, 80) + "..."
+                                                                                                            : point.ExpDescription)
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted fst-italic">No description</span>
+                                                        }
+                                                    </td>
+
                                                     <td class="text-center">
                                                         <div class="d-inline-flex gap-1">
-                                                            <a asp-action="Edit"
-                                                               asp-route-id="@item.Id"
+                                                            <a asp-controller="Expense"
+                                                               asp-action="Edit"
+                                                               asp-route-id="@point.Id"
                                                                class="btn btn-sm btn-light"
                                                                title="Edit">
                                                                 <i class="feather-edit-3"></i>
                                                             </a>
 
-                                                            <!-- unique id per form -->
-                                                            <form id="delete-form-@item.Id"
+                                                            <form id="delete-form-@point.Id"
+                                                                  asp-controller="Expense"
                                                                   asp-action="Delete"
-                                                                  asp-route-id="@item.Id"
+                                                                  asp-route-id="@point.Id"
                                                                   method="post"
                                                                   class="d-inline">
                                                                 @Html.AntiForgeryToken()
                                                                 <button type="button"
                                                                         class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@item.Id"
+                                                                        data-id="@point.Id"
                                                                         title="Delete">
-                                                                    <i class="feather feather-trash-2"></i>
+                                                                    <i class="feather-trash-2"></i>
                                                                 </button>
                                                             </form>
                                                         </div>
                                                     </td>
                                                 </tr>
                                             }
-                                        }                                       
+                                        }
                                     </tbody>
                                 </table>
                             </div>
@@ -136,11 +135,7 @@
 
             var table = $('.dataTable').DataTable();
 
-            setTimeout(function () {
-                $('.alert-success, .alert-danger').fadeOut('slow');
-            }, 5000);
-
-            $('.js-delete').on('click', function (e) {
+            $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
                 const id = $(this).data('id');
@@ -149,36 +144,23 @@
 
                 Swal.fire({
                     title: 'Are you sure?',
-                    text: 'This customer will be permanently deleted.',
+                    text: 'This Expense will be permanently deleted!',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, delete it'
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {
-
                         $.ajax({
                             url: form.attr('action'),
                             type: 'POST',
-                            data: {
-                                id: id,
-                                __RequestVerificationToken: token
-                            },
+                            data: { id: id, __RequestVerificationToken: token },
                             success: function (res) {
                                 if (res.success) {
-
-                                    // remove row from DataTable
-                                    table
-                                        .row($('#row-' + id))
-                                        .remove()
-                                        .draw(false);
-
-                                    Swal.fire(
-                                        'Deleted!',
-                                        res.message,
-                                        'success'
-                                    );
+                                    table.row($('#row-' + id)).remove().draw(false);
+                                    Swal.fire('Deleted!', res.message, 'success');
                                 } else {
                                     Swal.fire('Error', res.message, 'error');
                                 }
@@ -190,7 +172,9 @@
                     }
                 });
             });
+
+            // auto hide success message
+            setTimeout(() => $('.alert-success').fadeOut('slow'), 5000);
         });
     </script>
 }
-

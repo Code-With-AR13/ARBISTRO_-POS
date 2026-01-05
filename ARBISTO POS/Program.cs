@@ -31,6 +31,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.Name = "ARAuth";
     });
+
+// Email service configuration
+var emailConfig = builder.Configuration
+    .GetSection("EmailConfiguration")
+    .Get<EmailConfiguration>();
+builder.Services.AddSingleton(emailConfig);
+builder.Services.AddScoped<IEmailSender, EmailSender>();
+
+
 // Program.cs / Startup.cs me
 builder.Services.Configure<BackupSettings>(
     builder.Configuration.GetSection("BackupSettings"));

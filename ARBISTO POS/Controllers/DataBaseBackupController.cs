@@ -39,35 +39,20 @@ namespace ARBISTO_POS.Controllers
                                         .ToListAsync();
             return View(backups);
         }
-        // GET: Generate -> create DB backup + insert/replace row + download
+        // GET: Generate -> create DB backup + insert row + download
         public async Task<IActionResult> Generate()
         {
             try
             {
-                // 0) Purane backups delete karo (optional: sirf 1 row rakhni)
-                var oldBackups = _context.DataBaseBackups.ToList();
-                foreach (var b in oldBackups)
-                {
-                    var oldPath = Path.Combine(_backupSettings.BackupFolder, b.File_Name);
-                    if (System.IO.File.Exists(oldPath))
-                        System.IO.File.Delete(oldPath);
-                }
-                _context.DataBaseBackups.RemoveRange(oldBackups);
-                await _context.SaveChangesAsync();
+                // 1) File name + path
+                var timeStamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                var fileName = $"{_backupSettings.DatabaseName}_{timeStamp}.bak";
+                var fullPath = Path.Combine(_backupSettings.BackupFolder, fileName);
 
-                // 1) Ensure folder
-                var backupFolder = _backupSettings.BackupFolder;
-                if (string.IsNullOrWhiteSpace(backupFolder))
-                    backupFolder = Path.Combine(AppContext.BaseDirectory, "DBBackups");
+                if (!Directory.Exists(_backupSettings.BackupFolder))
+                    Directory.CreateDirectory(_backupSettings.BackupFolder);
 
-                if (!Directory.Exists(backupFolder))
-                    Directory.CreateDirectory(backupFolder);
-
-                // 2) Fixed file name (hamesha same, overwrite)
-                var fileName = $"{_backupSettings.DatabaseName}_Latest.bak";
-                var fullPath = Path.Combine(backupFolder, fileName);
-
-                // 3) SQL BACKUP command - WITH INIT se same file overwrite hogi [web:108][web:110][web:111]
+                // 2) SQL BACKUP command
                 var backupSql =
                     $"BACKUP DATABASE [{_backupSettings.DatabaseName}] " +
                     $"TO DISK = @path WITH FORMAT, INIT;";
@@ -85,25 +70,26 @@ namespace ARBISTO_POS.Controllers
                     cmd.ExecuteNonQuery();
                 }
 
-                // 4) File size
+                // 3) File size
                 var fileInfo = new FileInfo(fullPath);
                 var sizeString = $"{Math.Round(fileInfo.Length / 1024m / 1024m, 2)} MB";
 
-                // 5) New single row insert
+                // 4) Row add in table
                 var entity = new DataBaseBackup
                 {
                     File_Name = fileName,
                     File_Size = sizeString,
-                    Discription = "Latest backup",
+                    Discription = "Manual backup (downloaded)",
                     Backup_Date = DateTime.Now
                 };
 
                 _context.DataBaseBackups.Add(entity);
                 await _context.SaveChangesAsync();
 
+                // Optional message (Index pe agar wapas aaye to)
                 TempData["SuccessMessage"] = "Database backup generated successfully.";
 
-                // 6) Direct download
+                // 5) Ab direct download par redirect
                 return RedirectToAction(nameof(Download), new { id = entity.BackupNumber });
             }
             catch (Exception ex)
@@ -112,9 +98,6 @@ namespace ARBISTO_POS.Controllers
                 return RedirectToAction(nameof(Index));
             }
         }
-
-
-
 
         // GET: Download backup file (Save As dialog)
         public IActionResult Download(int id)
@@ -131,6 +114,7 @@ namespace ARBISTO_POS.Controllers
             var bytes = System.IO.File.ReadAllBytes(fullPath);
             return File(bytes, "application/octet-stream", entity.File_Name);
         }
+
 
 
         // POST: Delete (AJAX)

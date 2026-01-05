@@ -4,6 +4,7 @@ using ARBISTO_POS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ARBISTO_POS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260105102833_Expenses")]
+    partial class Expenses
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,9 +53,6 @@ namespace ARBISTO_POS.Migrations
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
 
-                    b.Property<string>("PasswordResetToken")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<byte[]>("PasswordSalt")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
@@ -61,14 +61,8 @@ namespace ARBISTO_POS.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<DateTime?>("TokenExpiry")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("UserImage")
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

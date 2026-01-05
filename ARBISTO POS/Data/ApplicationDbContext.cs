@@ -26,6 +26,10 @@ namespace ARBISTO_POS.Data
         public DbSet<HeldOrders> HeldOrders { get; set; }
         public DbSet<HeldOrdersItem> HeldOrderItems { get; set; }
         public DbSet<DataBaseBackup> DataBaseBackups { get; set; }
+        public DbSet<ExpenseType> ExpenseTypes { get; set; }
+        public DbSet<Expenses> Expenses { get; set; }
+
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

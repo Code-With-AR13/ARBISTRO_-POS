@@ -1,0 +1,172 @@
+﻿@model ARBISTO_POS.Models.Expenses
+
+@{
+    ViewData["Title"] = "Create Expense";
+}
+
+<!-- [ page-header ] start -->
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-controller="Home" asp-action="Index">Home</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-controller="Expense" asp-action="Index">Expenses</a>
+            </li>
+            <li class="breadcrumb-item active">Create</li>
+        </ul>
+    </div>
+    <div class="page-header-right ms-auto">
+        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+            <a asp-controller="Expense" asp-action="Index" class="btn btn-primary">
+                <i class="feather-arrow-left me-2"></i>
+                <span>Back To Expense List</span>
+            </a>
+        </div>
+    </div>
+</div>
+<!-- [ page-header ] end -->
+<!-- [ Main Content ] start -->
+<div class="main-content">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card border-top-0">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="feather-plus-circle me-2"></i>Create New Expense
+                    </h5>
+                </div>
+
+                <div class="card-body">
+
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show">
+                            <i class="feather-check-circle me-2"></i>@TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <form method="post">
+                        <div class="row">
+
+                            <!-- LEFT COLUMN (Empty for layout consistency) -->
+                            <div class="col-lg-4 mb-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <span class="text-muted">No image required for Expense</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- RIGHT COLUMN -->
+                            <div class="col-lg-8">
+
+                                <!-- EXPENSE NAME -->
+                                <div class="mb-3">
+                                    <label asp-for="ExpenseName" class="form-label fw-semibold">
+                                        Expense Name <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="feather-tag"></i>
+                                        </span>
+                                        <input asp-for="ExpenseName"
+                                               class="form-control"
+                                               placeholder="e.g.Vegetable, Light" />
+                                    </div>
+                                    <span asp-validation-for="ExpenseName" class="text-danger small"></span>
+                                </div>
+
+                                <!-- Expense Amount -->
+                                <div class="mb-3">
+                                    <label asp-for="ExpenseAmount" class="form-label fw-semibold">
+                                        Expense Amount
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="feather-user"></i>
+                                        </span>
+                                        <input asp-for="ExpenseAmount" class="form-control" placeholder="e.g.12000 , 12k" />
+                                    </div>
+                                </div>
+
+                                <!-- EXPENSE TYPE -->
+                                <div class="mb-3">
+                                    <label asp-for="ExpenseTypeId" class="form-label fw-semibold">
+                                        Expense Type
+                                    </label>
+                                    <div class="input-group">                                        
+                                        <select asp-for="ExpenseTypeId"
+                                                asp-items="ViewBag.ExpenseTypes"
+                                                class="form-select js-expensetype-select">
+                                            <option value="">-- Select Expense Type --</option>
+                                        </select>
+                                    </div>
+                                    <span asp-validation-for="ExpenseTypeId" class="text-danger"></span>
+                                </div>
+
+                                <!-- DESCRIPTION -->
+                                <div class="mb-3">
+                                    <label asp-for="ExpDescription" class="form-label fw-semibold">
+                                        Description
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="feather-file-text"></i>
+                                        </span>
+                                        <textarea asp-for="ExpDescription"
+                                                  class="form-control"
+                                                  placeholder="Optional description..."></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- ACTIONS -->
+                                <div class="d-flex gap-2 justify-content-end mt-4">
+                                    <a asp-action="Index" class="btn btn-light">
+                                        <i class="feather-x me-1"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="feather-save me-1"></i>Save Expense
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- [ Main Content ] end -->
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            $('.js-expensetype-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Expense Type',
+                allowClear: true,
+                width: '100%',
+                ajax: {
+                    url: '@Url.Action("GetExpenseTypes", "Expense")',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return { search: params.term };
+                    },
+                    processResults: function (data) {
+                        return { results: data.results };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0
+            });
+        });
+    </script>
+}
+

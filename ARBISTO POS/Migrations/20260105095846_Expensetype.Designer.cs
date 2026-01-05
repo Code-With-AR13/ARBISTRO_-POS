@@ -4,6 +4,7 @@ using ARBISTO_POS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ARBISTO_POS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260105095846_Expensetype")]
+    partial class Expensetype
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,9 +53,6 @@ namespace ARBISTO_POS.Migrations
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
 
-                    b.Property<string>("PasswordResetToken")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<byte[]>("PasswordSalt")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
@@ -61,14 +61,8 @@ namespace ARBISTO_POS.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<DateTime?>("TokenExpiry")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("UserImage")
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -228,38 +222,6 @@ namespace ARBISTO_POS.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ExpenseTypes");
-                });
-
-            modelBuilder.Entity("ARBISTO_POS.Models.Expenses", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ExpDescription")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ExpenseAmount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ExpenseName")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("ExpenseTypeId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExpenseTypeId");
-
-                    b.ToTable("Expenses");
                 });
 
             modelBuilder.Entity("ARBISTO_POS.Models.FoodCategories", b =>
@@ -796,17 +758,6 @@ namespace ARBISTO_POS.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ServiceTables");
-                });
-
-            modelBuilder.Entity("ARBISTO_POS.Models.Expenses", b =>
-                {
-                    b.HasOne("ARBISTO_POS.Models.ExpenseType", "ExpenseType")
-                        .WithMany()
-                        .HasForeignKey("ExpenseTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ExpenseType");
                 });
 
             modelBuilder.Entity("ARBISTO_POS.Models.HeldOrders", b =>

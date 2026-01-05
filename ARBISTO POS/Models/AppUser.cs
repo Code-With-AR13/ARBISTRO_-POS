@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ARBISTO_POS.Models
 {
@@ -19,6 +20,12 @@ namespace ARBISTO_POS.Models
         public string? Role { get; set; } = "User";
 
         public bool IsActive { get; set; } = true;
+        [Display(Name = "Category Image")]
+        public string? UserImage { get; set; }
+
+        [NotMapped]
+        [Display(Name = "Upload Image")]
+        public IFormFile? ImageFile { get; set; }
 
         // These are server-generated – do not validate or bind from the request
         [BindNever, ValidateNever]
@@ -26,6 +33,10 @@ namespace ARBISTO_POS.Models
 
         [BindNever, ValidateNever]
         public byte[] PasswordSalt { get; set; } = Array.Empty<byte>();
+        // AppUser.cs model mein add karein
+        public string? PasswordResetToken { get; set; }
+        public DateTime? TokenExpiry { get; set; }
+
 
         [Display(Name = "Created (UTC)")]
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
