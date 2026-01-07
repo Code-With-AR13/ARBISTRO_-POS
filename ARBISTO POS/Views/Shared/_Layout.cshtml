@@ -207,28 +207,21 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item">
-                                <a class="nxl-link" href="leads.html">
+                                <a class="nxl-link" asp-controller="OverallReports" asp-action="Index">
                                     <span class="nxl-micon">
                                         <i class="feather-shopping-cart "></i>
                                     </span>Overall Report
                                 </a>
-                            </li>
+                            </li>                           
                             <li class="nxl-item">
-                                <a class="nxl-link" href="leads-view.html">
-                                    <span class="nxl-micon">
-                                        <i class="feather-shopping-cart "></i>
-                                    </span>Tax Report
-                                </a>
-                            </li>
-                            <li class="nxl-item">
-                                <a class="nxl-link" href="leads-create.html">
+                                <a class="nxl-link" asp-controller="ExpenseReports" asp-action="Index">
                                     <span class="nxl-micon">
                                         <i class="feather-shopping-cart "></i>
                                     </span>Expense Report
                                 </a>
                             </li>
                             <li class="nxl-item">
-                                <a class="nxl-link" href="leads-create.html">
+                                <a class="nxl-link" asp-controller="StockAlert" asp-action="Index">
                                     <span class="nxl-micon">
                                         <i class="feather-shopping-cart "></i>
                                     </span>Stock Alert
@@ -236,7 +229,7 @@
                             </li>
                         </ul>
                     </li>
-                    <li class="nxl-item nxl-hasmenu">
+                    @* <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-briefcase"></i></span>
                             <span class="nxl-mtext">Shipment</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
@@ -250,7 +243,7 @@
                                 </a>
                             </li>
                         </ul>
-                    </li>
+                    </li> *@
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-layout"></i></span>

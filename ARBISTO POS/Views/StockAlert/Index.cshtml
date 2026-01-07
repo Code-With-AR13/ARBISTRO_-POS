@@ -1,0 +1,81 @@
+﻿@model IEnumerable<ARBISTO_POS.Models.Ingredients>
+@{
+    ViewData["Title"] = "Stock Alerts";
+}
+
+<main class="nxl-container-fluid">
+    <div class="nxl-content">
+        <!-- header ... same as yours ... -->
+        <div class="page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">@ViewData["Title"]</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item active">@ViewData["Title"]</li>
+                </ul>
+            </div>           
+        </div>
+
+        <div class="main-content">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card stretch stretch-full">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="feather-list me-2"></i>Stock Alerts
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle dataTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Ingredient</th>
+                                            <th>Cost</th>
+                                            <th>Price</th>
+                                            <th>Available Qty</th>
+                                            <th>Qty Alert</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model != null && Model.Any())
+                                        {
+                                            @foreach (var item in Model)
+                                            {
+                                                <tr id="row-@item.Id">
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="d-flex flex-column">
+                                                                <span class="fw-semibold">@item.Name</span>
+                                                                <small class="text-muted">Created At: @item.CreatedDate</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>@item.Cost</td>
+                                                    <td>@item.Price</td>
+                                                    <td>@item.AvailableQuantity</td>
+                                                    <td>@item.QuantityAlert</td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            var table = $('.dataTable').DataTable();
+            $('[title]').tooltip();
+        });
+    </script>
+}

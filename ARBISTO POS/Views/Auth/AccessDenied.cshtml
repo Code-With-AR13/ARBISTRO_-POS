@@ -1,10 +1,43 @@
-﻿
-@{
-    ViewData["Title"] = "AccessDenied";
+﻿@{
+    ViewData["Title"] = "Access Denied";    
 }
 
-<div class="alert alert-warning">
-    <i class="ti ti-shield-lock me-1"></i> You do not have permission to view this page.
-</div>
+    <div class="container">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-md-8 col-lg-6">
+                <div class="card border-0 rounded-4">
+                    <div class="card-body text-center p-5">
+                        
+                        @* <!-- Icon -->
+                        <div class="mb-4">
+                            <div class="bg-danger bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                                 style="width: 120px; height: 120px;">
+                            <i class="feather-shield-off text-danger" style="font-size: 60px;"></i>
+                            </div>
 
+                        </div> *@
 
+                        <!-- Error Code -->
+                        <h1 class="display-1 fw-bold text-danger mb-2">403</h1>
+                        
+                        <!-- Title -->
+                        <h2 class="h3 fw-semibold text-dark mb-3">Access Denied</h2>
+                        
+                        <!-- Message -->
+                        <p class="text-muted mb-4 lead">
+                            Sorry, you don't have permission to access this page. 
+                            Please contact your administrator if you believe this is an error.
+                        </p>
+                       
+                        @* <!-- Help Text -->
+                        <div class="border-top pt-4 mt-4">
+                            <p class="text-muted small mb-0">
+                                Need help? Contact your Aministrator.</a>
+                            </p>
+                        </div> *@
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>

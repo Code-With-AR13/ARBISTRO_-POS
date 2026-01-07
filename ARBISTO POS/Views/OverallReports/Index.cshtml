@@ -1,0 +1,223 @@
+﻿@using ARBISTO_POS.ViewModels
+@model OverAllReportVm
+@{
+    ViewData["Title"] = "Overall Report";
+}
+
+<main class="nxl-container-fluid">
+    <div class="nxl-content">
+
+        <!-- Header -->
+        <div class="page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">Overall Report</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Home" asp-action="Index">Home</a>
+                    </li>
+                    <li class="breadcrumb-item active">Overall Report</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="main-content">
+
+            <!-- 6 Summary Cards (hamesha show) -->
+            <div class="row mb-4">
+                <!-- 1. Total Sale Amount -->
+                <div class="col-md-4 col-lg-2 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="feather-dollar-sign text-primary mb-2" style="font-size:28px;"></i>
+                            <h6 class="text-muted mb-1" style="font-size:11px;">TOTAL SALE</h6>
+                            <h5 class="fw-bold mb-0">Rs @Model.TotalSaleAmount.ToString("N0")</h5>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Total Cost Amount -->
+                <div class="col-md-4 col-lg-2 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="feather-shopping-bag text-danger mb-2" style="font-size:28px;"></i>
+                            <h6 class="text-muted mb-1" style="font-size:11px;">TOTAL COST</h6>
+                            <h5 class="fw-bold mb-0">Rs @Model.TotalCostAmount.ToString("N0")</h5>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Total Discount Amount -->
+                <div class="col-md-4 col-lg-2 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="feather-percent text-warning mb-2" style="font-size:28px;"></i>
+                            <h6 class="text-muted mb-1" style="font-size:11px;">TOTAL DISCOUNT</h6>
+                            <h5 class="fw-bold mb-0">Rs @Model.TotalDiscountAmount.ToString("N0")</h5>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Total Profit Amount -->
+                <div class="col-md-4 col-lg-2 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="feather-trending-up text-success mb-2" style="font-size:28px;"></i>
+                            <h6 class="text-muted mb-1" style="font-size:11px;">TOTAL PROFIT</h6>
+                            <h5 class="fw-bold mb-0">Rs @Model.TotalProfitAmount.ToString("N0")</h5>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Total Tax Amount -->
+                <div class="col-md-4 col-lg-2 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="feather-file-text text-info mb-2" style="font-size:28px;"></i>
+                            <h6 class="text-muted mb-1" style="font-size:11px;">TOTAL TAX</h6>
+                            <h5 class="fw-bold mb-0">Rs @Model.TotalTaxAmount.ToString("N0")</h5>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Total Payable Amount -->
+                <div class="col-md-4 col-lg-2 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="feather-credit-card text-dark mb-2" style="font-size:28px;"></i>
+                            <h6 class="text-muted mb-1" style="font-size:11px;">TOTAL PAYABLE</h6>
+                            <h5 class="fw-bold mb-0">Rs @Model.TotalPayableAmount.ToString("N0")</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter card -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card" style="border-radius:10px;border:1px solid #2f7e9d40;">
+                        <div class="card-body">
+
+                            <form method="get" class="row g-3 align-items-end mb-4">
+
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold" style="font-size:13px;">
+                                        Order Type
+                                    </label>
+                                    <select name="orderType" class="form-control">
+                                        <option value="">All</option>
+                                        @foreach (var t in Model.OrderTypes)
+                                        {
+                                            <option value="@t" selected="@(t == Model.OrderType ? "selected" : null)">
+                                                @t
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold" style="font-size:13px;">
+                                        Chef
+                                    </label>
+                                    <select name="chefId" class="form-control">
+                                        <option value="">All</option>
+                                        @foreach (var c in Model.Chefs)
+                                        {
+                                            <option value="@c.Id" selected="@(c.Id == Model.ChefId ? "selected" : null)">
+                                                @c.FullName
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold" style="font-size:13px;">
+                                        Date Range
+                                    </label>
+                                    <div class="d-flex gap-2">
+                                        <input type="date" name="fromDate"
+                                               value="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
+                                               class="form-control" />
+                                        <input type="date" name="toDate"
+                                               value="@(Model.ToDate?.ToString("yyyy-MM-dd"))"
+                                               class="form-control" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn w-100 btn-primary fs-6">
+                                        Generate
+                                    </button>
+                                </div>
+
+                            </form>
+
+                            <!-- Table result -->
+                            @if (!Model.Items.Any())
+                            {
+                                <div style="border:1px dashed #cfd8dc;border-radius:8px;min-height:300px;"
+                                     class="d-flex align-items-center justify-content-center">
+                                    <div class="text-center text-muted">
+                                        <i class="feather-info mb-3" style="font-size:32px;"></i>
+                                        <p class="mb-0">Please select filters and click Generate to view data.</p>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover dataTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Order #</th>
+                                                <th>Date</th>
+                                                <th>Type</th>
+                                                <th>Customer</th>
+                                                <th>Chef</th>
+                                                @* <th>Status</th> *@
+                                                <th class="text-end">SubTotal</th>
+                                                <th class="text-end">Tax</th>
+                                                <th class="text-end">Discount</th>
+                                                <th class="text-end">Grand Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in Model.Items)
+                                            {
+                                                <tr>
+                                                    <td>@item.OrderNumber</td>
+                                                    <td>@item.OrderDate.ToString("dd MMM yyyy")</td>
+                                                    <td>@item.OrderType</td>
+                                                    <td>@item.CustomerName</td>
+                                                    <td>@item.ChefName</td>
+                                                    @* <td>
+                                                        <span class="badge bg-secondary">@item.OrderStatus</span>
+                                                    </td> *@
+                                                    <td class="text-end">@item.SubTotal.ToString("N0")</td>
+                                                    <td class="text-end">@item.TaxAmount.ToString("N0")</td>
+                                                    <td class="text-end">@item.DiscountAmount.ToString("N0")</td>
+                                                    <td class="text-end fw-bold">@item.GrandTotal.ToString("N0")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+@section Scripts {
+    <script>
+        $(function () {
+            $('.dataTable').DataTable();
+        });
+    </script>
+}
