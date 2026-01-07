@@ -1,10 +1,12 @@
-﻿using ARBISTO_POS.Data;
+﻿using ARBISTO_POS.Attributes;
+using ARBISTO_POS.Data;
 using ARBISTO_POS.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace ARBISTO_POS.Controllers
 {
+    [Permission("Manage Pickup Points")]
     public class PickPointsController : Controller
     {
         private readonly ApplicationDbContext _context;

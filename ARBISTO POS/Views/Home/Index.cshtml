@@ -1026,3 +1026,44 @@ ViewData["Title"] = "Dashboard";
     </div>
 </div>
 <!-- [ Main Content ] end --> 
+@section Scripts {
+    <script>
+        $(function () {
+            // Toastr Configuration - Right Top Corner
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",  // Right top corner
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        };
+
+        // Success Toaster Check karein
+        @if (TempData["ToastrSuccess"] != null)
+        {
+                        <text>
+                            toastr.success("@TempData["ToastrSuccess"]");
+                        </text>
+        }
+
+            // @if (TempData["ToastrError"] != null)
+            // {
+            //             <text>
+            //                 toastr.error("@TempData["ToastrError"]");
+            //             </text>
+            // }
+
+        });
+    </script>
+}
+

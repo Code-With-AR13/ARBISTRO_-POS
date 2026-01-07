@@ -27,14 +27,27 @@ namespace ARBISTO_POS.Data
         public DbSet<HeldOrdersItem> HeldOrderItems { get; set; }
         public DbSet<DataBaseBackup> DataBaseBackups { get; set; }
         public DbSet<ExpenseType> ExpenseTypes { get; set; }
-        public DbSet<Expenses> Expenses { get; set; }
-
-
-
+        public DbSet<Expenses> Expenses { get; set; }        
+        public DbSet<UserRole> UserRoles { get; set; }
+        public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<UserRolePermission> UserRolePermissions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<UserRolePermission>()
+                .HasKey(rp => new { rp.RoleId, rp.PermissionId });
+
+            modelBuilder.Entity<UserRolePermission>()
+                .HasOne(rp => rp.Role)
+                .WithMany(r => r.UserRolePermissions)
+                .HasForeignKey(rp => rp.RoleId);
+
+            modelBuilder.Entity<UserRolePermission>()
+                .HasOne(rp => rp.UserPermission)
+                .WithMany(p => p.UserRolePermissions)
+                .HasForeignKey(rp => rp.PermissionId);
 
             modelBuilder.Entity<ItemIngredients>()
                 .HasOne(ii => ii.Item)
@@ -46,6 +59,23 @@ namespace ARBISTO_POS.Data
                 .WithMany()
                 .HasForeignKey(ii => ii.IngredientId);
         }
+
+
+
+        //protected override void OnModelCreating(ModelBuilder modelBuilder)
+        //{
+        //    base.OnModelCreating(modelBuilder);
+
+        //    modelBuilder.Entity<ItemIngredients>()
+        //        .HasOne(ii => ii.Item)
+        //        .WithMany(i => i.ItemIngredients)
+        //        .HasForeignKey(ii => ii.ItemId);
+
+        //    modelBuilder.Entity<ItemIngredients>()
+        //        .HasOne(ii => ii.Ingredient)
+        //        .WithMany()
+        //        .HasForeignKey(ii => ii.IngredientId);
+        //}
 
     }
 }

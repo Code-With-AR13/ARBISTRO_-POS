@@ -1,4 +1,5 @@
-﻿using ARBISTO_POS.Data;
+﻿using ARBISTO_POS.Attributes;
+using ARBISTO_POS.Data;
 using ARBISTO_POS.Models;
 using ARBISTO_POS.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -11,6 +12,7 @@ using System.Text;
 
 namespace ARBISTO_POS.Controllers
 {
+    [Permission("Manage Users")]
     public class UsersController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -69,18 +71,7 @@ namespace ARBISTO_POS.Controllers
             TempData["SuccessMessage"] = "User created successfully.";
             return RedirectToAction(nameof(Index));
         }
-        //// Helper: create hash + salt
-        //private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
-        //{
-        //    using (var hmac = new HMACSHA512())
-        //    {
-        //        // random salt
-        //        passwordSalt = hmac.Key;
-        //        // hash
-        //        passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-        //    }
-        //}
-
+       
         // GET: AppUsers/Edit/5
         public async Task<IActionResult> Edit(int id)
         {

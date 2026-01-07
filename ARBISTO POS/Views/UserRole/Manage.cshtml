@@ -1,0 +1,172 @@
+﻿@model ARBISTO_POS.ViewModels.UserRoleViewModel
+@{
+    ViewData["Title"] = "Role Details";
+    var permissions = ViewBag.Permissions as List<ARBISTO_POS.Models.UserPermission>;
+    var grouped = permissions
+        .GroupBy(p => p.Category)
+        .OrderBy(g => g.Key);
+}
+
+<!-- [ page-header ] start -->
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-controller="Home" asp-action="Index">Home</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-controller="UserRole" asp-action="Index">Roles</a>
+            </li>
+            <li class="breadcrumb-item active">
+                @(Model.Id == 0 ? "Create" : "Edit")
+            </li>
+        </ul>
+    </div>
+    <div class="page-header-right ms-auto">
+        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+            <a asp-controller="UserRole" asp-action="Index" class="btn btn-primary">
+                <i class="feather-arrow-left me-2"></i>
+                <span>Back To Roles</span>
+            </a>
+        </div>
+    </div>
+</div>
+<!-- [ page-header ] end -->
+
+<div class="main-content">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card border-top-0">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="feather-shield me-2"></i>
+                        @(Model.Id == 0 ? "Create New Role" : "Edit Role")
+                    </h5>
+                </div>
+
+                <div class="card-body">                    
+                    @* Validation summary *@
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <form asp-action="Manage" method="post">
+                        @Html.AntiForgeryToken()
+                        @Html.HiddenFor(m => m.Id)
+
+                        <div class="row">
+                            <!-- Left Column - Basic role info -->
+                            <div class="col-lg-4 mb-4">
+                                <div class="card  h-100" style="background-color:#fdfdfd;">
+                                    <div class="card-body">
+                                        <h6 class="fw-semibold mb-3">Role Details</h6>
+                                        <p class="text-muted small">
+                                            This information will be displayed publicly.
+                                        </p>
+
+                                        <div class="mb-3">
+    <label asp-for="Name" class="form-label fw-semibold">
+        Name <span class="text-danger">*</span>
+    </label>
+    <div class="input-group">        
+
+                        <select asp-for="Name" class="form-select">
+                            <option value="">-- Select Role Name --</option>
+                                                                    <option value="Admin">Admin</option>
+                                                                    <option value="Manager">Manager</option>
+                                                                    <option value="Order Taker">Order Taker</option>
+                                                                    <option value="Biller">Biller</option>
+                                                                    <option value="Chef">Chef</option>
+                        </select>
+                                            </div>
+                                            <span asp-validation-for="Name" class="text-danger small"></span>
+                                        </div>
+
+
+                                        <div class="mb-3">
+                                            <label asp-for="IsActive" class="form-label fw-semibold">Status</label>
+                                            <div class="form-check form-switch">
+                                                <input asp-for="IsActive"
+                                                       class="form-check-input"
+                                                       id="IsActiveSwitch" />
+                                                <label class="form-check-label" for="IsActiveSwitch">
+                                                    Active
+                                                </label>
+                                            </div>
+                                            <span asp-validation-for="IsActive" class="text-danger small"></span>
+                                        </div>
+
+                                        <hr />
+                                        <p class="text-muted small mb-1">
+                                            Select the application permissions for this role.
+                                        </p>
+                                        <p class="text-muted small">
+                                            Users with this role will only see features they are allowed to access.
+                                        </p>
+
+                                        <div class="d-flex gap-2 justify-content-end mt-4">
+                                            <a asp-action="Index" class="btn btn-light">
+                                                <i class="feather-x me-1"></i>Cancel
+                                            </a>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="feather-save me-1"></i>Save Role
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column - Permissions grid -->
+                            <div class="col-lg-8">
+                                <div class="mb-3 d-flex align-items-center">
+                                    <h6 class="fw-semibold mb-0">Permissions</h6>                                    
+                                </div>
+                                <span class="text-muted small ms-0">
+                                    Toggle the access modules for this role.
+                                </span>
+
+                                <div class="row">
+                                    @foreach (var group in grouped)
+                                    {
+                                        <div class="col-12 col-md-6 col-lg-4 mb-4">
+                                            <div class="card h-100">
+                                                <div class="card-header py-2">
+                                                    <strong>@group.Key</strong>
+                                                </div>
+                                                <div class="card-body py-2">
+                                                    @foreach (var perm in group)
+                                                    {
+                                                        var isChecked = Model.SelectedPermissions.Contains(perm.Id);
+                                                        <div class="form-check form-switch mb-1">
+                                                            <input class="form-check-input"
+                                                                   type="checkbox"
+                                                                   name="SelectedPermissions"
+                                                                   value="@perm.Id"
+                                                                   @(isChecked ? "checked" : "") />
+                                                            <label class="form-check-label">
+                                                                @perm.Name
+                                                            </label>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function () {
+            // Auto-hide success message
+            setTimeout(() => $('.alert-success').fadeOut('slow'), 5000);
+        });
+    </script>
+}

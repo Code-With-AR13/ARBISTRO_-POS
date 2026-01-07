@@ -1,15 +1,17 @@
-﻿using ARBISTO_POS.Data;
+﻿using ARBISTO_POS.Attributes;
+using ARBISTO_POS.Data;
 using ARBISTO_POS.Models;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.IO;
-using System.Threading.Tasks;
 using System;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ARBISTO_POS.Controllers
 {
+    [Permission("Manage Category")]
     public class FoodCategoriesController : Controller
     {
         private readonly ApplicationDbContext _context;

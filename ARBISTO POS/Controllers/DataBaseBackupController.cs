@@ -1,11 +1,12 @@
-﻿using System.Data;
+﻿using ARBISTO_POS.Attributes;
 using ARBISTO_POS.Data;
 using ARBISTO_POS.Models;
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Data;
 
 namespace ARBISTO_POS.Controllers
 {
@@ -14,7 +15,7 @@ namespace ARBISTO_POS.Controllers
         public string DatabaseName { get; set; }
         public string BackupFolder { get; set; }
     }
-
+    [Permission("Database Backup")]
     public class DataBaseBackupController : Controller
     {
         private readonly ApplicationDbContext _context;

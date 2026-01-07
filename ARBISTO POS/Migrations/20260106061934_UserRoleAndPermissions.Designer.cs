@@ -4,6 +4,7 @@ using ARBISTO_POS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ARBISTO_POS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260106061934_UserRoleAndPermissions")]
+    partial class UserRoleAndPermissions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -64,6 +67,9 @@ namespace ARBISTO_POS.Migrations
                     b.Property<int?>("RoleId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("RolesId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("TokenExpiry")
                         .HasColumnType("datetime2");
 
@@ -75,7 +81,7 @@ namespace ARBISTO_POS.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("RolesId");
 
                     b.ToTable("AppUsers");
                 });
@@ -869,7 +875,7 @@ namespace ARBISTO_POS.Migrations
                 {
                     b.HasOne("ARBISTO_POS.Models.UserRole", "Roles")
                         .WithMany("Users")
-                        .HasForeignKey("RoleId");
+                        .HasForeignKey("RolesId");
 
                     b.Navigation("Roles");
                 });
@@ -1052,21 +1058,21 @@ namespace ARBISTO_POS.Migrations
 
             modelBuilder.Entity("ARBISTO_POS.Models.UserRolePermission", b =>
                 {
-                    b.HasOne("ARBISTO_POS.Models.UserPermission", "UserPermission")
-                        .WithMany("UserRolePermissions")
+                    b.HasOne("ARBISTO_POS.Models.UserPermission", "Permission")
+                        .WithMany("RolePermissions")
                         .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("ARBISTO_POS.Models.UserRole", "Role")
-                        .WithMany("UserRolePermissions")
+                        .WithMany("RolePermissions")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Role");
+                    b.Navigation("Permission");
 
-                    b.Navigation("UserPermission");
+                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("ARBISTO_POS.Models.HeldOrders", b =>
@@ -1091,12 +1097,12 @@ namespace ARBISTO_POS.Migrations
 
             modelBuilder.Entity("ARBISTO_POS.Models.UserPermission", b =>
                 {
-                    b.Navigation("UserRolePermissions");
+                    b.Navigation("RolePermissions");
                 });
 
             modelBuilder.Entity("ARBISTO_POS.Models.UserRole", b =>
                 {
-                    b.Navigation("UserRolePermissions");
+                    b.Navigation("RolePermissions");
 
                     b.Navigation("Users");
                 });

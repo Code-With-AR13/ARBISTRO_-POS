@@ -36,7 +36,9 @@ namespace ARBISTO_POS.Models
         // AppUser.cs model mein add karein
         public string? PasswordResetToken { get; set; }
         public DateTime? TokenExpiry { get; set; }
-
+        public int? RoleId { get; set; }
+        [ForeignKey(nameof(RoleId))]
+        public UserRole? Roles { get; set; }
 
         [Display(Name = "Created (UTC)")]
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;

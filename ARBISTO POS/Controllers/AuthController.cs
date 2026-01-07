@@ -1,4 +1,5 @@
 ﻿using ARBISTO_POS.Data;
+using ARBISTO_POS.Models;
 using ARBISTO_POS.Services;
 using ARBISTO_POS.ViewModels;
 using Microsoft.AspNetCore.Authentication;
@@ -8,14 +9,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using System.Web;
 using System.Text;
-using Microsoft.AspNetCore.WebUtilities;
+using System.Web;
 
 namespace ARBISTO_POS.Controllers
 {
+    [Authorize]
     public class AuthController : Controller
     {
         private readonly ApplicationDbContext _db;
@@ -53,8 +55,11 @@ namespace ARBISTO_POS.Controllers
         {
             returnUrl ??= Url.Action("Index", "Home");
 
-            var user = await _db.AppUsers.AsNoTracking()
+            // Pehle user load karo (bina role navigation ke)
+            var user = await _db.AppUsers
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email == email);
+
             if (user == null || !user.IsActive || !PasswordHasher.Verify(password, user.PasswordHash, user.PasswordSalt))
             {
                 TempData["ToastrError"] = "Invalid email or password.";
@@ -62,30 +67,33 @@ namespace ARBISTO_POS.Controllers
                 return View();
             }
 
-            //if (user == null)
-            //{
-            //    TempData["ToastrError"] = "User not found.";
-            //    return View();
-            //}
-            //if (!user.IsActive)
-            //{
-            //    TempData["ToastrError"] = "User is inactive.";
-            //    return View();
-            //}
-            //if (!PasswordHasher.Verify(password, user.PasswordHash, user.PasswordSalt))
-            //{
-            //    TempData["ToastrError"] = "Password incorrect.";
-            //    return View();
-            //}
-
+            // Ab user.Role (string) se matching UserRole aur uski permissions load karo
+            UserRole? userRole = null;
+            if (!string.IsNullOrEmpty(user.Role))
+            {
+                userRole = await _db.UserRoles
+                    .Include(r => r.UserRolePermissions)
+                    .ThenInclude(rp => rp.UserPermission)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Name == user.Role);
+            }
 
             var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new Claim(ClaimTypes.Name, user.FullName),
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim(ClaimTypes.Role, user.Role ?? "User")
+    };
+
+            // Add permissions as claims from userRole (jo string Role se match hua)
+            if (userRole?.UserRolePermissions != null)
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.FullName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role ?? "User")
-            };
+                foreach (var rp in userRole.UserRolePermissions)
+                {
+                    claims.Add(new Claim("Permission", rp.UserPermission.Name));
+                }
+            }
 
             var authProps = new AuthenticationProperties
             {
@@ -101,6 +109,7 @@ namespace ARBISTO_POS.Controllers
             TempData["ToastrSuccess"] = $"Welcome, {user.FullName.Split(' ')[0]}!";
             return LocalRedirect(returnUrl!);
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]

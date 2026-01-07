@@ -1,4 +1,5 @@
-﻿using ARBISTO_POS.Data;
+﻿using ARBISTO_POS.Attributes;
+using ARBISTO_POS.Data;
 using ARBISTO_POS.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace ARBISTO_POS.Controllers
 {
+    [Permission("Manage Modifiers")]
     public class ModifierController : Controller
     {
         private readonly ApplicationDbContext _context;

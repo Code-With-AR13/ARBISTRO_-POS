@@ -1,0 +1,240 @@
+﻿@model IEnumerable<ARBISTO_POS.Models.UserRole>
+
+@{
+    ViewData["Title"] = "User Roles";
+}
+
+<main class="nxl-container-fluid">
+    <div class="nxl-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">User Roles</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Home" asp-action="Index">Home</a>
+                    </li>
+                    <li class="breadcrumb-item active">User Roles</li>
+                </ul>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <a asp-controller="UserRole" asp-action="Manage" class="btn btn-primary">
+                        <i class="feather-plus me-2"></i>
+                        <span>New User Role</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+       @* Success message (optional, same style) *@
+                    @if (TempData["ToastrSuccess"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="feather-check-circle me-2"></i>@TempData["ToastrSuccess"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+        <div class="main-content">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card stretch stretch-full">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="feather-list me-2"></i>All User Roles
+                            </h5>
+                        </div>
+
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle dataTable">
+                                    <thead class="table-light">                                        
+                                        <tr>
+                                            <th>User Role</th>
+                                            <th>Active</th>
+                                            <th>Permissions</th>
+                                            <th class="text-center" style="width:120px;">Actions</th>
+                                        </tr>                                        
+                                    </thead>
+                                    <tbody>
+                                        @if (Model != null && Model.Any())
+                                        {
+                                            foreach (var pay in Model)
+                                            {
+                                                <tr id="row-@pay.Id">
+                                                    <td>
+                                                        <div class="d-flex flex-column">
+                                                            <span class="fw-semibold">@pay.Name</span>
+                                                            <small class="text-muted">Created At: @pay.CreatedAt</small>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        @if (pay.IsActive)
+                                                        {
+                                                            <span class="badge bg-success">Active</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary">Inactive</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @{
+                                                            var permNames = pay.UserRolePermissions?
+                                                            .Select(rp => rp.UserPermission.Name)
+                                                            .Take(5)
+                                                            ?? Enumerable.Empty<string>();
+
+                                                            var permText = string.Join(", ", permNames);
+                                                        }
+
+                                                        @if (!string.IsNullOrEmpty(permText))
+                                                        {
+                                                            <span>@permText</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted fst-italic">No permissions</span>
+                                                        }
+
+                                                        @if ((pay.UserRolePermissions?.Count ?? 0) > 5)
+                                                        {
+                                                            <span>...</span>
+                                                        }
+                                                    </td>                                                                                                        
+                                                    @* <td class="text-center">                                                        
+                                                        @if (pay.Name == "Admin")
+                                                        {
+                                                            <div class="d-inline-flex gap-1">
+                                                                <a                                                                    
+                                                                   class="btn btn-sm btn-light"
+                                                                   disabled
+                                                                   title="Edit Role">
+                                                                    <i class="feather-edit-3"></i>
+                                                                </a>
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="d-inline-flex gap-1">
+                                                                <a asp-controller="UserRole"
+                                                                   asp-action="Manage"
+                                                                   asp-route-id="@pay.Id"
+                                                                   class="btn btn-sm btn-light"
+                                                                   title="Edit Role">
+                                                                    <i class="feather-edit-3"></i>
+                                                                </a>
+                                                            </div>
+
+                                                        }
+                                                    </td>                                                     *@
+                                                    <td class="text-center">
+                                                        @if (pay.Name == "Admin")
+                                                        {
+                                                            <div class="d-inline-flex gap-1">
+                                                                <button class="btn btn-sm btn-light" disabled title="Admin role cannot be edited">
+                                                                    <i class="feather-edit-3"></i>
+                                                                </button>
+                                                                <button class="btn btn-sm btn-light" disabled title="Admin role cannot be deleted">
+                                                                    <i class="feather-trash-2"></i>
+                                                                </button>
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="d-inline-flex gap-1">
+                                                                <a asp-controller="UserRole"
+                                                                   asp-action="Manage"
+                                                                   asp-route-id="@pay.Id"
+                                                                   class="btn btn-sm btn-light"
+                                                                   title="Edit Role">
+                                                                    <i class="feather-edit-3"></i>
+                                                                </a>
+
+                                                                <form id="delete-form-@pay.Id"
+                                                                      asp-controller="UserRole"
+                                                                      asp-action="Delete"
+                                                                      method="post"
+                                                                      class="d-none">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <input type="hidden" name="id" value="@pay.Id" />
+                                                                </form>
+
+                                                                <button class="btn btn-sm btn-light js-delete"
+                                                                        data-id="@pay.Id"
+                                                                        title="Delete Role">
+                                                                    <i class="feather-trash-2"></i>
+                                                                </button>
+                                                            </div>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+
+            // DataTable initialize
+            var table = $('.dataTable').DataTable();
+
+            // Delete button click (AJAX)
+            $(document).on('click', '.js-delete', function (e) {
+                e.preventDefault();
+
+                const id = $(this).data('id');
+                const form = $('#delete-form-' + id);
+                const token = form.find('input[name="__RequestVerificationToken"]').val();
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: 'This role will be permanently deleted!',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: form.attr('action'),
+                            type: 'POST',
+                            data: { id: id, __RequestVerificationToken: token },
+                            success: function (res) {
+                                if (res.success) {
+                                    // Row ko DataTable se remove karo aur redraw
+                                    table.row($('#row-' + id)).remove().draw(false);
+
+                                    Swal.fire('Deleted!', res.message, 'success');
+                                } else {
+                                    Swal.fire('Error', res.message, 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire('Error', 'Something went wrong', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Auto-hide success message
+            setTimeout(() => $('.alert-success').fadeOut('slow'), 5000);
+        });
+    </script>
+}

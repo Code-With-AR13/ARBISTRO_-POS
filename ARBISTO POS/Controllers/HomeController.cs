@@ -1,9 +1,11 @@
-using System.Diagnostics;
+using ARBISTO_POS.Attributes;
 using ARBISTO_POS.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace ARBISTO_POS.Controllers
 {
+    [Permission("Access Dashboard")]
     public class HomeController : Controller
     {
         public IActionResult Index()

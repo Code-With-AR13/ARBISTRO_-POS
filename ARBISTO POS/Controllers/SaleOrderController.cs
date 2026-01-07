@@ -1,4 +1,5 @@
-﻿using ARBISTO_POS.Data;
+﻿using ARBISTO_POS.Attributes;
+using ARBISTO_POS.Data;
 using ARBISTO_POS.Models;
 using ARBISTO_POS.ViewModels;
 using Microsoft.AspNetCore.Http;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace ARBISTO_POS.Controllers
 {
+    [Permission("Manage Sales/Payments")]    
     public class SaleOrderController : Controller
     {
         private ApplicationDbContext _context;
@@ -33,6 +35,7 @@ namespace ARBISTO_POS.Controllers
             return View(orders);
         }
 
+        [Permission("Manage Kitchen")]
         public async Task<IActionResult> Kitchen()
         {
             var orders = await _context.SaleOrders
@@ -199,7 +202,7 @@ namespace ARBISTO_POS.Controllers
 
 
 
-
+        [Permission("Manage POS")]
         // ============================
         // POS CREATE (GET)
         // ============================
@@ -222,6 +225,7 @@ namespace ARBISTO_POS.Controllers
             return View(vm);
         }
 
+        [Permission("Manage POS")]
         // ============================
         // POS CREATE (POST)
         // ============================
@@ -331,7 +335,7 @@ namespace ARBISTO_POS.Controllers
 
 
 
-
+        [Permission("Manage Sales/Payments")]
         // GET: SaleOrderController/Edit/5
         public async Task<IActionResult> Edit(int id)
         {
@@ -361,7 +365,8 @@ namespace ARBISTO_POS.Controllers
 
             return View(vm);
         }
-
+        //[Permission("Allow to Process Billing in POS Portal")]
+        [Permission("Manage Sales/Payments")]
         // POST: SaleOrderController/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
