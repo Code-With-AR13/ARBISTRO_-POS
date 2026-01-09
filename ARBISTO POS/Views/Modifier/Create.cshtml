@@ -152,11 +152,38 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        $(document).ready(function () {
-            let rowCounter = 0;           
 
-            // ✅ AJAX Select2 for Ingredients
+    <script>
+        // ✅ Toastr Configuration
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "timeOut": "5000"
+        };
+
+        // ✅ Show Error Message
+        @if (TempData["ErrorMessage"] != null)
+        {
+                <text>
+                toastr.error('@TempData["ErrorMessage"]');
+                </text>
+        }
+
+        // ✅ Show Success Message
+        @if (TempData["SuccessMessage"] != null)
+        {
+                <text>
+                toastr.success('@TempData["SuccessMessage"]');
+                </text>
+        }
+
+        $(document).ready(function () {
+            let rowCounter = 0;
+
+            // Your existing jQuery code here...
+            // (Same as before - ingredient selection, table management, etc.)
+
             $('#ingredientSelect').select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Search for Ingredient...',
@@ -166,9 +193,7 @@
                     dataType: 'json',
                     delay: 250,
                     data: function (params) {
-                        return {
-                            search: params.term
-                        };
+                        return { search: params.term };
                     },
                     processResults: function (data) {
                         return {
@@ -176,7 +201,7 @@
                                 return {
                                     id: item.id,
                                     text: item.name,
-                                    data: item  // ✅ Store complete item data
+                                    data: item
                                 };
                             })
                         };
@@ -186,20 +211,16 @@
                 minimumInputLength: 0
             });
 
-            // ✅ When ingredient is selected, add to table
             $('#ingredientSelect').on('select2:select', function (e) {
                 let ingredient = e.params.data.data;
 
-                console.log('Selected Ingredient:', ingredient); // 🔍 DEBUG
-
                 if (!ingredient || !ingredient.id) {
-                    alert('Invalid ingredient selected');
+                    toastr.error('Invalid ingredient selected'); // ✅ Toastr here too
                     return;
                 }
 
-                // Check if ingredient already exists in table
                 if ($(`#ingredientTableBody tr[data-ingredient-id="${ingredient.id}"]`).length > 0) {
-                    alert('This ingredient is already added!');
+                    toastr.warning('This ingredient is already added!'); // ✅ Toastr warning
                     $('#ingredientSelect').val(null).trigger('change');
                     return;
                 }
@@ -208,12 +229,9 @@
                 $('#ingredientSelect').val(null).trigger('change');
             });
 
-            // ✅ Add ingredient row to table
             function addIngredientRow(ingredient) {
                 rowCounter++;
                 let rowId = 'row_' + rowCounter;
-
-                console.log('Adding Row - AvailableQty:', ingredient.availableQty); // 🔍 DEBUG
 
                 let row = `
                     <tr id="${rowId}" data-ingredient-id="${ingredient.id}" data-row-index="${rowCounter}">
@@ -254,46 +272,45 @@
                 calculateTotals();
             }
 
-            // ✅ Attach event handlers to row elements
-                    function attachRowHandlers(rowId) {
-            let row = $('#' + rowId);
+            function attachRowHandlers(rowId) {
+                let row = $('#' + rowId);
 
-            row.find('.consumptionQty').on('input', function () {
-                let val = parseFloat(this.value) || 0;
-                row.find('.consumptionQtyHidden').val(val);
-                calculateTotals();
-            });
+                row.find('.consumptionQty').on('input', function () {
+                    let val = parseFloat(this.value) || 0;
+                    row.find('.consumptionQtyHidden').val(val);
+                    calculateTotals();
+                });
 
-            row.find('.salePrice').on('input', function () {
-                let val = parseFloat(this.value) || 0;
-                row.find('.salePriceHidden').val(val);
-                calculateTotals();
-            });
+                row.find('.salePrice').on('input', function () {
+                    let val = parseFloat(this.value) || 0;
+                    row.find('.salePriceHidden').val(val);
+                    calculateTotals();
+                });
 
-            row.find('.deleteRow').on('click', function () {
-                row.remove();
-                calculateTotals();
-            });
-        }
+                row.find('.deleteRow').on('click', function () {
+                    row.remove();
+                    calculateTotals();
+                });
+            }
 
-        function calculateTotals() {
-            let totalCost = 0;
-            let totalPrice = 0;
+            function calculateTotals() {
+                let totalCost = 0;
+                let totalPrice = 0;
 
-            $('#ingredientTableBody tr').each(function () {
-                let cost = parseFloat($(this).find('.costPrice').val()) || 0;
-                let price = parseFloat($(this).find('.salePrice').val()) || 0;
-                let qty = parseFloat($(this).find('.consumptionQty').val()) || 0;
+                $('#ingredientTableBody tr').each(function () {
+                    let cost = parseFloat($(this).find('.costPrice').val()) || 0;
+                    let price = parseFloat($(this).find('.salePrice').val()) || 0;
+                    let qty = parseFloat($(this).find('.consumptionQty').val()) || 0;
 
-                totalCost += cost * qty;
-                totalPrice += price * qty;
-            });
+                    totalCost += cost * qty;
+                    totalPrice += price * qty;
+                });
 
-            $('#totalCost').val(Math.round(totalCost));
-            $('#totalPrice').val(Math.round(totalPrice));
-        }
+                $('#totalCost').val(Math.round(totalCost));
+                $('#totalPrice').val(Math.round(totalPrice));
+            }
 
-            // ✅ Image Upload Logic
+            // Image Upload Logic
             const avatarDiv = $('#avatarDiv');
             const fileInput = $('#fileInput');
             const avatarPreview = $('#avatarPreview');
@@ -307,13 +324,13 @@
                 const file = e.target.files[0];
                 if (file) {
                     if (file.size > 2 * 1024 * 1024) {
-                        alert('File size must be less than 2MB');
+                        toastr.error('File size must be less than 2MB'); // ✅ Toastr
                         fileInput.val('');
                         return;
                     }
                     const validTypes = ['image/png', 'image/jpg', 'image/jpeg'];
                     if (!validTypes.includes(file.type)) {
-                        alert('Only PNG, JPG, and JPEG files are allowed');
+                        toastr.error('Only PNG, JPG, and JPEG files are allowed'); // ✅ Toastr
                         fileInput.val('');
                         return;
                     }

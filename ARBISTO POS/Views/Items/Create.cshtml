@@ -160,8 +160,37 @@
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />    
+    <partial name="_ValidationScriptsPartial" />
+
+    <!-- ✅ Toastr CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
     <script>
+        // ✅ Toastr Configuration
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "timeOut": "5000"
+        };
+
+        // ✅ Show Error Message
+        @if (TempData["ErrorMessage"] != null)
+        {
+                <text>
+                toastr.error('@TempData["ErrorMessage"]');
+                </text>
+        }
+
+        // ✅ Show Success Message
+        @if (TempData["SuccessMessage"] != null)
+        {
+                <text>
+                toastr.success('@TempData["SuccessMessage"]');
+                </text>
+        }
+
         $(document).ready(function () {
             let rowCounter = 0;
 
@@ -175,14 +204,10 @@
                     dataType: 'json',
                     delay: 250,
                     data: function (params) {
-                        return {
-                            search: params.term
-                        };
+                        return { search: params.term };
                     },
                     processResults: function (data) {
-                        return {
-                            results: data.results
-                        };
+                        return { results: data.results };
                     },
                     cache: true
                 },
@@ -199,9 +224,7 @@
                     dataType: 'json',
                     delay: 250,
                     data: function (params) {
-                        return {
-                            search: params.term
-                        };
+                        return { search: params.term };
                     },
                     processResults: function (data) {
                         return {
@@ -209,7 +232,7 @@
                                 return {
                                     id: item.id,
                                     text: item.name,
-                                    data: item  // ✅ Store complete item data
+                                    data: item
                                 };
                             })
                         };
@@ -219,20 +242,17 @@
                 minimumInputLength: 0
             });
 
-            // ✅ When ingredient is selected, add to table
+            // ✅ When ingredient is selected
             $('#ingredientSelect').on('select2:select', function (e) {
                 let ingredient = e.params.data.data;
 
-                console.log('Selected Ingredient:', ingredient); // 🔍 DEBUG
-
                 if (!ingredient || !ingredient.id) {
-                    alert('Invalid ingredient selected');
+                    toastr.error('Invalid ingredient selected');
                     return;
                 }
 
-                // Check if ingredient already exists in table
                 if ($(`#ingredientTableBody tr[data-ingredient-id="${ingredient.id}"]`).length > 0) {
-                    alert('This ingredient is already added!');
+                    toastr.warning('This ingredient is already added!');
                     $('#ingredientSelect').val(null).trigger('change');
                     return;
                 }
@@ -241,12 +261,10 @@
                 $('#ingredientSelect').val(null).trigger('change');
             });
 
-            // ✅ Add ingredient row to table
+            // ✅ Add ingredient row
             function addIngredientRow(ingredient) {
                 rowCounter++;
                 let rowId = 'row_' + rowCounter;
-
-                console.log('Adding Row - AvailableQty:', ingredient.availableQty); // 🔍 DEBUG
 
                 let row = `
                     <tr id="${rowId}" data-ingredient-id="${ingredient.id}" data-row-index="${rowCounter}">
@@ -263,13 +281,13 @@
                             <input type="hidden" name="ingredients[${rowCounter}].ConsumptionQty" class="consumptionQtyHidden" value="1" />
                         </td>
                         <td class="text-center">
-                            <div class="input-group input-group-sm">                                
+                            <div class="input-group input-group-sm">
                                 <input type="number" class="form-control form-control-sm text-center costPrice" value="${ingredient.cost || 0}" readonly />
                             </div>
                             <input type="hidden" name="ingredients[${rowCounter}].Cost" class="costPriceHidden" value="${ingredient.cost || 0}" />
                         </td>
                         <td class="text-center">
-                            <div class="input-group input-group-sm">                                
+                            <div class="input-group input-group-sm">
                                 <input type="number" class="form-control form-control-sm text-center salePrice" value="${ingredient.price || 0}" />
                             </div>
                             <input type="hidden" name="ingredients[${rowCounter}].Price" class="salePriceHidden" value="${ingredient.price || 0}" />
@@ -287,44 +305,43 @@
                 calculateTotals();
             }
 
-            // ✅ Attach event handlers to row elements
-                    function attachRowHandlers(rowId) {
-            let row = $('#' + rowId);
+            function attachRowHandlers(rowId) {
+                let row = $('#' + rowId);
 
-            row.find('.consumptionQty').on('input', function () {
-                let val = parseFloat(this.value) || 0;
-                row.find('.consumptionQtyHidden').val(val);
-                calculateTotals();
-            });
+                row.find('.consumptionQty').on('input', function () {
+                    let val = parseFloat(this.value) || 0;
+                    row.find('.consumptionQtyHidden').val(val);
+                    calculateTotals();
+                });
 
-            row.find('.salePrice').on('input', function () {
-                let val = parseFloat(this.value) || 0;
-                row.find('.salePriceHidden').val(val);
-                calculateTotals();
-            });
+                row.find('.salePrice').on('input', function () {
+                    let val = parseFloat(this.value) || 0;
+                    row.find('.salePriceHidden').val(val);
+                    calculateTotals();
+                });
 
-            row.find('.deleteRow').on('click', function () {
-                row.remove();
-                calculateTotals();
-            });
-        }
+                row.find('.deleteRow').on('click', function () {
+                    row.remove();
+                    calculateTotals();
+                });
+            }
 
-        function calculateTotals() {
-            let totalCost = 0;
-            let totalPrice = 0;
+            function calculateTotals() {
+                let totalCost = 0;
+                let totalPrice = 0;
 
-            $('#ingredientTableBody tr').each(function () {
-                let cost = parseFloat($(this).find('.costPrice').val()) || 0;
-                let price = parseFloat($(this).find('.salePrice').val()) || 0;
-                let qty = parseFloat($(this).find('.consumptionQty').val()) || 0;
+                $('#ingredientTableBody tr').each(function () {
+                    let cost = parseFloat($(this).find('.costPrice').val()) || 0;
+                    let price = parseFloat($(this).find('.salePrice').val()) || 0;
+                    let qty = parseFloat($(this).find('.consumptionQty').val()) || 0;
 
-                totalCost += cost * qty;
-                totalPrice += price * qty;
-            });
+                    totalCost += cost * qty;
+                    totalPrice += price * qty;
+                });
 
-            $('#totalCost').val(Math.round(totalCost));
-            $('#totalPrice').val(Math.round(totalPrice));
-        }
+                $('#totalCost').val(Math.round(totalCost));
+                $('#totalPrice').val(Math.round(totalPrice));
+            }
 
             // ✅ Image Upload Logic
             const avatarDiv = $('#avatarDiv');
@@ -340,13 +357,13 @@
                 const file = e.target.files[0];
                 if (file) {
                     if (file.size > 2 * 1024 * 1024) {
-                        alert('File size must be less than 2MB');
+                        toastr.error('File size must be less than 2MB');
                         fileInput.val('');
                         return;
                     }
                     const validTypes = ['image/png', 'image/jpg', 'image/jpeg'];
                     if (!validTypes.includes(file.type)) {
-                        alert('Only PNG, JPG, and JPEG files are allowed');
+                        toastr.error('Only PNG, JPG, and JPEG files are allowed');
                         fileInput.val('');
                         return;
                     }
@@ -362,3 +379,4 @@
         });
     </script>
 }
+

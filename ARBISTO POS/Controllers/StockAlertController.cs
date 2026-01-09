@@ -1,9 +1,11 @@
-﻿using ARBISTO_POS.Data;
+﻿using ARBISTO_POS.Attributes;
+using ARBISTO_POS.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace ARBISTO_POS.Controllers
 {
+    [Permission("Stock Reports")]
     public class StockAlertController : Controller
     {
         private ApplicationDbContext _context;

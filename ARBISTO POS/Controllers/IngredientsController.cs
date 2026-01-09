@@ -241,5 +241,98 @@ namespace ARBISTO_POS.Controllers
 
             return View(ingredient);
         }
+
+        // Method to consume ingredient quantity
+        private async Task<bool> ConsumeIngredient(int ingredientId, decimal quantity, string referenceType, int? referenceId, string notes = null)
+        {
+            var ingredient = await _context.Ingredients.FindAsync(ingredientId);
+
+            if (ingredient == null)
+                return false;
+
+            if (ingredient.AvailableQuantity < quantity)
+            {
+                ModelState.AddModelError("", $"Insufficient quantity for {ingredient.Name}. Available: {ingredient.AvailableQuantity}");
+                return false;
+            }
+
+            // Deduct quantity
+            ingredient.AvailableQuantity -= quantity;
+
+            // Log transaction
+            var transaction = new IngredientTransaction
+            {
+                IngredientId = ingredientId,
+                QuantityUsed = quantity,
+                RemainingQuantity = ingredient.AvailableQuantity,
+                TransactionType = "Used",
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+                TransactionDate = DateTime.UtcNow,
+                Notes = notes
+            };
+
+            _context.IngredientTransactions.Add(transaction);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        // Method to add ingredient quantity (for purchases)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddStock(int ingredientId, decimal quantity, string notes = null)
+        {
+            var ingredient = await _context.Ingredients.FindAsync(ingredientId);
+
+            if (ingredient == null)
+                return Json(new { success = false, message = "Ingredient not found" });
+
+            ingredient.AvailableQuantity += quantity;
+
+            var transaction = new IngredientTransaction
+            {
+                IngredientId = ingredientId,
+                QuantityUsed = quantity,
+                RemainingQuantity = ingredient.AvailableQuantity,
+                TransactionType = "Added",
+                TransactionDate = DateTime.UtcNow,
+                Notes = notes
+            };
+
+            _context.IngredientTransactions.Add(transaction);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Stock added successfully", newQuantity = ingredient.AvailableQuantity });
+        }
+
+        // Check stock availability
+        public async Task<IActionResult> CheckStock(int ingredientId)
+        {
+            var ingredient = await _context.Ingredients.FindAsync(ingredientId);
+
+            if (ingredient == null)
+                return Json(new { success = false, message = "Ingredient not found" });
+
+            return Json(new
+            {
+                success = true,
+                ingredientName = ingredient.Name,
+                availableQuantity = ingredient.AvailableQuantity,
+                unit = ingredient.Unit
+            });
+        }
+
+        // Get transaction history
+        public async Task<IActionResult> TransactionHistory(int ingredientId)
+        {
+            var transactions = await _context.IngredientTransactions
+                .Where(t => t.IngredientId == ingredientId)
+                .OrderByDescending(t => t.TransactionDate)
+                .ToListAsync();
+
+            return View(transactions);
+        }
+
     }
 }

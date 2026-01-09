@@ -19,7 +19,6 @@ namespace ARBISTO_POS.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        // ✅ FIXED: Index now properly includes ModifierIngredients
         public async Task<IActionResult> Index()
         {
             var items = await _context.Modifiers
@@ -44,12 +43,83 @@ namespace ARBISTO_POS.Controllers
             if (modifier == null)
                 return NotFound();
 
-            // ✅ IMPORTANT LINE (THIS WAS MISSING)
             ViewBag.ModifierIngredients = modifier.ModifierIngredients.ToList();
 
             return View(modifier);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Modifier item)
+        {
+            item.CreatedDate = DateTime.UtcNow;
+            ModelState.Remove("FoodCategory");
+
+            if (!ModelState.IsValid)
+                return View(item);
+
+            if (item.ImageFile != null)
+            {
+                string path = Path.Combine(_webHostEnvironment.WebRootPath, "images/Modifier");
+                Directory.CreateDirectory(path);
+
+                string fileName = Guid.NewGuid() + Path.GetExtension(item.ImageFile.FileName);
+                using var fs = new FileStream(Path.Combine(path, fileName), FileMode.Create);
+                await item.ImageFile.CopyToAsync(fs);
+
+                item.ModeImage = "/images/Modifier/" + fileName;
+            }
+
+            item.ModifierIngredients = new List<ModifierIngredients>();
+
+            foreach (var key in Request.Form.Keys)
+            {
+                if (!key.EndsWith(".IngredientId")) continue;
+
+                var index = Regex.Match(key, @"\[(\d+)\]").Groups[1].Value;
+
+                int ingredientId = int.Parse(Request.Form[key]);
+                decimal consumptionQty = decimal.Parse(Request.Form[$"ingredients[{index}].ConsumptionQty"]);
+
+                var ingredient = await _context.Ingredients.FindAsync(ingredientId);
+
+                if (ingredient == null)
+                {
+                    ModelState.AddModelError("", $"Ingredient with ID {ingredientId} not found");
+                    return View(item);
+                }
+
+                // ✅ Only this error → Toastr
+                if (ingredient.AvailableQuantity < consumptionQty)
+                {
+                    TempData["ErrorMessage"] = $"Insufficient quantity for {ingredient.Name}! Available: {ingredient.AvailableQuantity} {ingredient.Unit}, Required: {consumptionQty} {ingredient.Unit}";
+                    return View(item);
+                }
+
+                ingredient.AvailableQuantity -= consumptionQty;
+
+                item.ModifierIngredients.Add(new ModifierIngredients
+                {
+                    IngredientId = ingredientId,
+                    ConsumptionQty = consumptionQty,
+                    Cost = decimal.Parse(Request.Form[$"ingredients[{index}].Cost"]),
+                    Price = decimal.Parse(Request.Form[$"ingredients[{index}].Price"]),
+                    AvailableQty = ingredient.AvailableQuantity
+                });
+            }
+
+            item.ItemCost = (int)Math.Round(
+                item.ModifierIngredients.Sum(x => x.Cost * x.ConsumptionQty));
+
+            item.ItemPrice = (int)Math.Round(
+                item.ModifierIngredients.Sum(x => x.Price * x.ConsumptionQty));
+
+            _context.Modifiers.Add(item);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Modifier created successfully and ingredient quantities updated!";
+            return RedirectToAction(nameof(Index));
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -57,20 +127,24 @@ namespace ARBISTO_POS.Controllers
         {
             var existingModifier = await _context.Modifiers
                 .Include(m => m.ModifierIngredients)
+                    .ThenInclude(mi => mi.Ingredient)
                 .FirstOrDefaultAsync(m => m.ItemId == id);
 
             if (existingModifier == null)
                 return NotFound();
 
-            /* =========================
-               BASIC FIELDS
-            ========================= */
+            foreach (var oldIng in existingModifier.ModifierIngredients)
+            {
+                var ingredient = await _context.Ingredients.FindAsync(oldIng.IngredientId);
+                if (ingredient != null)
+                {
+                    ingredient.AvailableQuantity += oldIng.ConsumptionQty;
+                }
+            }
+
             existingModifier.ModeName = model.ModeName;
             existingModifier.ModeDiscription = model.ModeDiscription;
 
-            /* =========================
-               IMAGE UPDATE
-            ========================= */
             if (model.ImageFile != null)
             {
                 string folder = Path.Combine(_webHostEnvironment.WebRootPath, "images/Modifier");
@@ -85,15 +159,9 @@ namespace ARBISTO_POS.Controllers
                 existingModifier.ModeImage = "/images/Modifier/" + fileName;
             }
 
-            /* =========================
-               REMOVE OLD INGREDIENTS
-            ========================= */
             _context.ModifierIngredients.RemoveRange(existingModifier.ModifierIngredients);
             await _context.SaveChangesAsync();
 
-            /* =========================
-               ADD NEW INGREDIENTS (SAFE)
-            ========================= */
             var newIngredients = new List<ModifierIngredients>();
 
             foreach (var key in Request.Form.Keys)
@@ -102,22 +170,33 @@ namespace ARBISTO_POS.Controllers
 
                 var index = Regex.Match(key, @"\[(\d+)\]").Groups[1].Value;
                 int ingredientId = int.Parse(Request.Form[key]);
+                decimal consumptionQty = decimal.Parse(Request.Form[$"ingredients[{index}].ConsumptionQty"]);
 
-                // 🔒 SAFETY CHECK (FK FIX)
-                bool ingredientExists = await _context.Ingredients
-                    .AnyAsync(i => i.Id == ingredientId);
+                var ingredient = await _context.Ingredients.FindAsync(ingredientId);
 
-                if (!ingredientExists)
-                    continue;
+                if (ingredient == null)
+                {
+                    ModelState.AddModelError("", $"Ingredient with ID {ingredientId} not found");
+                    return View(model);
+                }
+
+                // ✅ Only this error → Toastr
+                if (ingredient.AvailableQuantity < consumptionQty)
+                {
+                    TempData["ErrorMessage"] = $"Insufficient quantity for {ingredient.Name}! Available: {ingredient.AvailableQuantity} {ingredient.Unit}, Required: {consumptionQty} {ingredient.Unit}";
+                    return View(model);
+                }
+
+                ingredient.AvailableQuantity -= consumptionQty;
 
                 newIngredients.Add(new ModifierIngredients
                 {
-                    Modifiers = existingModifier,   // ✅ BEST PRACTICE
+                    Modifiers = existingModifier,
                     IngredientId = ingredientId,
-                    ConsumptionQty = decimal.Parse(Request.Form[$"ingredients[{index}].ConsumptionQty"]),
+                    ConsumptionQty = consumptionQty,
                     Cost = decimal.Parse(Request.Form[$"ingredients[{index}].Cost"]),
                     Price = decimal.Parse(Request.Form[$"ingredients[{index}].Price"]),
-                    AvailableQty = decimal.Parse(Request.Form[$"ingredients[{index}].AvailableQty"])
+                    AvailableQty = ingredient.AvailableQuantity
                 });
             }
 
@@ -130,10 +209,53 @@ namespace ARBISTO_POS.Controllers
             _context.ModifierIngredients.AddRange(newIngredients);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Modifier updated successfully!";
+            TempData["SuccessMessage"] = "Modifier updated and ingredient quantities adjusted!";
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var modifier = await _context.Modifiers
+                    .Include(m => m.ModifierIngredients)
+                    .FirstOrDefaultAsync(m => m.ItemId == id);
+
+                if (modifier == null)
+                    return Json(new { success = false, message = "Modifier not found!" });
+
+                foreach (var modIng in modifier.ModifierIngredients)
+                {
+                    var ingredient = await _context.Ingredients.FindAsync(modIng.IngredientId);
+                    if (ingredient != null)
+                    {
+                        ingredient.AvailableQuantity += modIng.ConsumptionQty;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(modifier.ModeImage))
+                {
+                    var imagePath = Path.Combine(_webHostEnvironment.WebRootPath,
+                                                 modifier.ModeImage.TrimStart('/'));
+                    if (System.IO.File.Exists(imagePath))
+                        System.IO.File.Delete(imagePath);
+                }
+
+                if (modifier.ModifierIngredients != null && modifier.ModifierIngredients.Any())
+                    _context.ModifierIngredients.RemoveRange(modifier.ModifierIngredients);
+
+                _context.Modifiers.Remove(modifier);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Modifier deleted and ingredient quantities restored!" });
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Unable to delete modifier!" });
+            }
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetIngredients(string search = "")
@@ -157,102 +279,5 @@ namespace ARBISTO_POS.Controllers
 
             return Json(new { results = ingredients });
         }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Modifier item)
-        {
-            item.CreatedDate = DateTime.UtcNow;
-            ModelState.Remove("FoodCategory");
-
-            if (!ModelState.IsValid)
-                return View(item);
-
-            // ================= IMAGE UPLOAD =================
-            if (item.ImageFile != null)
-            {
-                string path = Path.Combine(_webHostEnvironment.WebRootPath, "images/Modifier");
-                Directory.CreateDirectory(path);
-
-                string fileName = Guid.NewGuid() + Path.GetExtension(item.ImageFile.FileName);
-                using var fs = new FileStream(Path.Combine(path, fileName), FileMode.Create);
-                await item.ImageFile.CopyToAsync(fs);
-
-                item.ModeImage = "/images/Modifier/" + fileName;
-            }
-
-            // ================= INGREDIENTS =================
-            item.ModifierIngredients = new List<ModifierIngredients>();
-
-            foreach (var key in Request.Form.Keys)
-            {
-                if (!key.EndsWith(".IngredientId")) continue;
-
-                var index = Regex.Match(key, @"\[(\d+)\]").Groups[1].Value;
-
-                item.ModifierIngredients.Add(new ModifierIngredients
-                {
-                    IngredientId = int.Parse(Request.Form[key]),
-                    ConsumptionQty = decimal.Parse(Request.Form[$"ingredients[{index}].ConsumptionQty"]),
-                    Cost = decimal.Parse(Request.Form[$"ingredients[{index}].Cost"]),
-                    Price = decimal.Parse(Request.Form[$"ingredients[{index}].Price"]),
-                    AvailableQty = decimal.Parse(Request.Form[$"ingredients[{index}].AvailableQty"])
-                });
-            }
-
-            // ================= CALCULATIONS =================
-            item.ItemCost = (int)Math.Round(
-                item.ModifierIngredients.Sum(x => x.Cost * x.ConsumptionQty));
-
-            item.ItemPrice = (int)Math.Round(
-                item.ModifierIngredients.Sum(x => x.Price * x.ConsumptionQty));
-
-            // ================= SAVE ONCE =================
-            _context.Modifiers.Add(item);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Modifier created successfully!";
-            return RedirectToAction(nameof(Index));
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
-        {
-            try
-            {
-                var modifier = await _context.Modifiers
-                    .Include(m => m.ModifierIngredients)
-                    .FirstOrDefaultAsync(m => m.ItemId == id);
-
-                if (modifier == null)
-                    return Json(new { success = false, message = "Modifier not found!" });
-
-                // Delete image
-                if (!string.IsNullOrEmpty(modifier.ModeImage))
-                {
-                    var imagePath = Path.Combine(_webHostEnvironment.WebRootPath,
-                                                 modifier.ModeImage.TrimStart('/'));
-                    if (System.IO.File.Exists(imagePath))
-                        System.IO.File.Delete(imagePath);
-                }
-
-                // Delete child records first
-                if (modifier.ModifierIngredients != null && modifier.ModifierIngredients.Any())
-                    _context.ModifierIngredients.RemoveRange(modifier.ModifierIngredients);
-
-                _context.Modifiers.Remove(modifier);
-                await _context.SaveChangesAsync();
-
-                return Json(new { success = true, message = "Modifier deleted successfully!" });
-            }
-            catch
-            {
-                return Json(new { success = false, message = "Unable to delete modifier!" });
-            }
-        }
-
-
-
     }
 }

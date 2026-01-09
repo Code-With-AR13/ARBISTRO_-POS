@@ -228,10 +228,56 @@
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+    <partial name="_ValidationScriptsPartial" />   
     <script>
+        // ✅ Toastr Configuration
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "timeOut": "5000"
+        };
+
+        // ✅ Show Error Message
+        @if (TempData["ErrorMessage"] != null)
+        {
+                <text>
+                toastr.error('@TempData["ErrorMessage"]');
+                </text>
+        }
+
+        // ✅ Show Success Message
+        @if (TempData["SuccessMessage"] != null)
+        {
+                <text>
+                toastr.success('@TempData["SuccessMessage"]');
+                </text>
+        }
+
         $(document).ready(function () {
-            let rowCounter = @ModifierIngredients.Count;           
+            let rowCounter = @(ViewBag.ModifierIngredients != null ? ((List<ModifierIngredients>)ViewBag.ModifierIngredients).Count : 0);
+
+            // ✅ Load existing ingredients on page load
+            @if (ViewBag.ModifierIngredients != null)
+            {
+                    var existingIngredients = (List<ModifierIngredients>)ViewBag.ModifierIngredients;
+                    for (int i = 0; i < existingIngredients.Count; i++)
+                    {
+                            var ing = existingIngredients[i];
+                            <text>
+                            addExistingIngredientRow({
+                                id: @ing.IngredientId,
+                                name: '@Html.Raw(ing.Ingredient?.Name ?? "Unknown")',
+                                cost: @ing.Cost,
+                                price: @ing.Price,
+                                availableQty: @ing.AvailableQty,
+                                consumptionQty: @ing.ConsumptionQty
+                            });
+                            </text>
+                    }
+            }
+
+            // ✅ AJAX Select2 for Ingredients
             $('#ingredientSelect').select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Search for Ingredient...',
@@ -259,24 +305,74 @@
                 minimumInputLength: 0
             });
 
+            // ✅ When ingredient is selected
             $('#ingredientSelect').on('select2:select', function (e) {
                 let ingredient = e.params.data.data;
+
                 if (!ingredient || !ingredient.id) {
-                    alert('Invalid ingredient selected');
+                    toastr.error('Invalid ingredient selected');
                     return;
                 }
+
                 if ($(`#ingredientTableBody tr[data-ingredient-id="${ingredient.id}"]`).length > 0) {
-                    alert('This ingredient is already added!');
+                    toastr.warning('This ingredient is already added!');
                     $('#ingredientSelect').val(null).trigger('change');
                     return;
                 }
+
                 addIngredientRow(ingredient);
                 $('#ingredientSelect').val(null).trigger('change');
             });
 
+            // ✅ Add existing ingredient row (for edit mode)
+            function addExistingIngredientRow(ingredient) {
+                rowCounter++;
+                let rowId = 'row_' + rowCounter;
+
+                let row = `
+                    <tr id="${rowId}" data-ingredient-id="${ingredient.id}" data-row-index="${rowCounter}">
+                        <td>
+                            <input type="text" class="form-control form-control-sm" value="${ingredient.name || 'Unknown'}" readonly />
+                            <input type="hidden" name="ingredients[${rowCounter}].IngredientId" value="${ingredient.id}" />
+                        </td>
+                        <td class="text-center">
+                            <input type="number" class="form-control form-control-sm text-center availableQty" value="${ingredient.availableQty || 0}" readonly />
+                            <input type="hidden" name="ingredients[${rowCounter}].AvailableQty" value="${ingredient.availableQty || 0}" />
+                        </td>
+                        <td class="text-center">
+                            <input type="number" class="form-control form-control-sm text-center consumptionQty" value="${ingredient.consumptionQty || 1}" />
+                            <input type="hidden" name="ingredients[${rowCounter}].ConsumptionQty" class="consumptionQtyHidden" value="${ingredient.consumptionQty || 1}" />
+                        </td>
+                        <td class="text-center">
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control form-control-sm text-center costPrice" value="${ingredient.cost || 0}" readonly />
+                            </div>
+                            <input type="hidden" name="ingredients[${rowCounter}].Cost" class="costPriceHidden" value="${ingredient.cost || 0}" />
+                        </td>
+                        <td class="text-center">
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control form-control-sm text-center salePrice" value="${ingredient.price || 0}" />
+                            </div>
+                            <input type="hidden" name="ingredients[${rowCounter}].Price" class="salePriceHidden" value="${ingredient.price || 0}" />
+                        </td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-danger deleteRow" title="Delete">
+                                <i class="feather-trash-2"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+
+                $('#ingredientTableBody').append(row);
+                attachRowHandlers(rowId);
+                calculateTotals();
+            }
+
+            // ✅ Add new ingredient row
             function addIngredientRow(ingredient) {
                 rowCounter++;
                 let rowId = 'row_' + rowCounter;
+
                 let row = `
                     <tr id="${rowId}" data-ingredient-id="${ingredient.id}" data-row-index="${rowCounter}">
                         <td>
@@ -292,11 +388,15 @@
                             <input type="hidden" name="ingredients[${rowCounter}].ConsumptionQty" class="consumptionQtyHidden" value="1" />
                         </td>
                         <td class="text-center">
-                            <input type="number" class="form-control form-control-sm text-center costPrice" value="${ingredient.cost || 0}" readonly />
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control form-control-sm text-center costPrice" value="${ingredient.cost || 0}" readonly />
+                            </div>
                             <input type="hidden" name="ingredients[${rowCounter}].Cost" class="costPriceHidden" value="${ingredient.cost || 0}" />
                         </td>
                         <td class="text-center">
-                            <input type="number" class="form-control form-control-sm text-center salePrice" value="${ingredient.price || 0}" />
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control form-control-sm text-center salePrice" value="${ingredient.price || 0}" />
+                            </div>
                             <input type="hidden" name="ingredients[${rowCounter}].Price" class="salePriceHidden" value="${ingredient.price || 0}" />
                         </td>
                         <td class="text-center">
@@ -306,54 +406,53 @@
                         </td>
                     </tr>
                 `;
+
                 $('#ingredientTableBody').append(row);
                 attachRowHandlers(rowId);
                 calculateTotals();
             }
 
-                    function attachRowHandlers(rowId) {
-            let row = $('#' + rowId);
+            // ✅ Attach event handlers
+            function attachRowHandlers(rowId) {
+                let row = $('#' + rowId);
 
-            row.find('.consumptionQty').on('input', function () {
-                row.find('.consumptionQtyHidden').val(this.value);
-                calculateTotals();
-            });
+                row.find('.consumptionQty').on('input', function () {
+                    let val = parseFloat(this.value) || 0;
+                    row.find('.consumptionQtyHidden').val(val);
+                    calculateTotals();
+                });
 
-            row.find('.salePrice').on('input', function () {
-                row.find('.salePriceHidden').val(this.value);
-                calculateTotals();
-            });
+                row.find('.salePrice').on('input', function () {
+                    let val = parseFloat(this.value) || 0;
+                    row.find('.salePriceHidden').val(val);
+                    calculateTotals();
+                });
 
-            row.find('.deleteRow').on('click', function () {
-                row.remove();
-                calculateTotals();
-            });
-        }
+                row.find('.deleteRow').on('click', function () {
+                    row.remove();
+                    calculateTotals();
+                });
+            }
 
-
+            // ✅ Calculate totals
             function calculateTotals() {
                 let totalCost = 0;
                 let totalPrice = 0;
+
                 $('#ingredientTableBody tr').each(function () {
                     let cost = parseFloat($(this).find('.costPrice').val()) || 0;
                     let price = parseFloat($(this).find('.salePrice').val()) || 0;
-                    let consumption = parseFloat($(this).find('.consumptionQty').val()) || 0;
-                    totalCost += (cost * consumption);
-                    totalPrice += (price * consumption);
+                    let qty = parseFloat($(this).find('.consumptionQty').val()) || 0;
+
+                    totalCost += cost * qty;
+                    totalPrice += price * qty;
                 });
+
                 $('#totalCost').val(Math.round(totalCost));
                 $('#totalPrice').val(Math.round(totalPrice));
             }
 
-            // Attach handlers to existing rows
-            $('#ingredientTableBody tr').each(function() {
-                let rowId = $(this).attr('id') || 'existing_' + Math.random();
-                $(this).attr('id', rowId);
-                 attachRowHandlers($(this).attr('id'));
-            });
-            calculateTotals();
-
-            // Image upload (same as create)
+            // ✅ Image Upload Logic
             const avatarDiv = $('#avatarDiv');
             const fileInput = $('#fileInput');
             const avatarPreview = $('#avatarPreview');
@@ -367,13 +466,13 @@
                 const file = e.target.files[0];
                 if (file) {
                     if (file.size > 2 * 1024 * 1024) {
-                        alert('File size must be less than 2MB');
+                        toastr.error('File size must be less than 2MB');
                         fileInput.val('');
                         return;
                     }
                     const validTypes = ['image/png', 'image/jpg', 'image/jpeg'];
                     if (!validTypes.includes(file.type)) {
-                        alert('Only PNG, JPG, and JPEG files are allowed');
+                        toastr.error('Only PNG, JPG, and JPEG files are allowed');
                         fileInput.val('');
                         return;
                     }

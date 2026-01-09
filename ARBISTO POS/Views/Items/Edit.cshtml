@@ -237,11 +237,40 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <!-- ✅ Toastr CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
     <script>
+        // ✅ Toastr Configuration
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "timeOut": "5000"
+        };
+
+        // ✅ Show Error Message
+        @if (TempData["ErrorMessage"] != null)
+        {
+                <text>
+                toastr.error('@TempData["ErrorMessage"]');
+                </text>
+        }
+
+        // ✅ Show Success Message
+        @if (TempData["SuccessMessage"] != null)
+        {
+                <text>
+                toastr.success('@TempData["SuccessMessage"]');
+                </text>
+        }
+
         $(document).ready(function () {
             let rowCounter = @itemIngredients.Count;
 
-            // Same JavaScript as Create view (unchanged)
+            // ✅ AJAX Select2 for Categories
             $('.select2-ajax-category').select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Search for Category...',
@@ -260,7 +289,8 @@
                 },
                 minimumInputLength: 0
             });
-                    $(document).ready(function () {
+
+            // ✅ Pre-select existing category
             var selectedCategoryId = '@Model.FoodCategoryId';
             var selectedCategoryText = '@Model.FoodCategory?.CateName';
 
@@ -268,8 +298,8 @@
                 var option = new Option(selectedCategoryText, selectedCategoryId, true, true);
                 $('.select2-ajax-category').append(option).trigger('change');
             }
-        });
 
+            // ✅ AJAX Select2 for Ingredients
             $('#ingredientSelect').select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Search for Ingredient...',
@@ -297,24 +327,30 @@
                 minimumInputLength: 0
             });
 
+            // ✅ When ingredient is selected
             $('#ingredientSelect').on('select2:select', function (e) {
                 let ingredient = e.params.data.data;
+
                 if (!ingredient || !ingredient.id) {
-                    alert('Invalid ingredient selected');
+                    toastr.error('Invalid ingredient selected');
                     return;
                 }
+
                 if ($(`#ingredientTableBody tr[data-ingredient-id="${ingredient.id}"]`).length > 0) {
-                    alert('This ingredient is already added!');
+                    toastr.warning('This ingredient is already added!');
                     $('#ingredientSelect').val(null).trigger('change');
                     return;
                 }
+
                 addIngredientRow(ingredient);
                 $('#ingredientSelect').val(null).trigger('change');
             });
 
+            // ✅ Add new ingredient row
             function addIngredientRow(ingredient) {
                 rowCounter++;
                 let rowId = 'row_' + rowCounter;
+
                 let row = `
                     <tr id="${rowId}" data-ingredient-id="${ingredient.id}" data-row-index="${rowCounter}">
                         <td>
@@ -344,86 +380,100 @@
                         </td>
                     </tr>
                 `;
+
                 $('#ingredientTableBody').append(row);
                 attachRowHandlers(rowId);
                 calculateTotals();
             }
 
-                    function attachRowHandlers(rowId) {
-            let row = $('#' + rowId);
+            // ✅ Attach event handlers to rows
+            function attachRowHandlers(rowId) {
+                let row = $('#' + rowId);
 
-            row.find('.consumptionQty').on('input', function () {
-                row.find('.consumptionQtyHidden').val(this.value);
-                calculateTotals();
-            });
+                row.find('.consumptionQty').on('input', function () {
+                    let val = parseFloat(this.value) || 0;
+                    row.find('.consumptionQtyHidden').val(val);
+                    calculateTotals();
+                });
 
-            row.find('.salePrice').on('input', function () {
-                row.find('.salePriceHidden').val(this.value);
-                calculateTotals();
-            });
+                row.find('.salePrice').on('input', function () {
+                    let val = parseFloat(this.value) || 0;
+                    row.find('.salePriceHidden').val(val);
+                    calculateTotals();
+                });
 
-            row.find('.deleteRow').on('click', function () {
-                row.remove();
-                calculateTotals();
-            });
-        }
+                row.find('.deleteRow').on('click', function () {
+                    row.remove();
+                    calculateTotals();
+                });
+            }
 
-
+            // ✅ Calculate totals
             function calculateTotals() {
                 let totalCost = 0;
                 let totalPrice = 0;
+
                 $('#ingredientTableBody tr').each(function () {
                     let cost = parseFloat($(this).find('.costPrice').val()) || 0;
                     let price = parseFloat($(this).find('.salePrice').val()) || 0;
                     let consumption = parseFloat($(this).find('.consumptionQty').val()) || 0;
+
                     totalCost += (cost * consumption);
                     totalPrice += (price * consumption);
                 });
+
                 $('#totalCost').val(Math.round(totalCost));
                 $('#totalPrice').val(Math.round(totalPrice));
             }
 
-            // Attach handlers to existing rows
+            // ✅ Attach handlers to existing rows (from server-rendered HTML)
             $('#ingredientTableBody tr').each(function() {
-                let rowId = $(this).attr('id') || 'existing_' + Math.random();
-                $(this).attr('id', rowId);
-                 attachRowHandlers($(this).attr('id'));
+                let rowId = $(this).attr('id');
+                if (!rowId) {
+                    rowId = 'existing_' + Math.random();
+                    $(this).attr('id', rowId);
+                }
+                attachRowHandlers(rowId);
             });
+
+            // Calculate initial totals
             calculateTotals();
 
-            // Image upload (same as create)
+            // ✅ Image Upload Logic
             const avatarDiv = $('#avatarDiv');
             const fileInput = $('#fileInput');
             const avatarPreview = $('#avatarPreview');
             const uploadOverlay = $('#uploadOverlay');
 
-            avatarDiv.on('click', function () { fileInput.click(); });
-            avatarDiv.on('mouseenter', function () { uploadOverlay.css('opacity', '1'); })
-                    .on('mouseleave', function () { uploadOverlay.css('opacity', '0'); });
+            if (avatarDiv.length && fileInput.length) {
+                avatarDiv.on('click', function () { fileInput.click(); });
+                avatarDiv.on('mouseenter', function () { uploadOverlay.css('opacity', '1'); })
+                        .on('mouseleave', function () { uploadOverlay.css('opacity', '0'); });
 
-            fileInput.on('change', function (e) {
-                const file = e.target.files[0];
-                if (file) {
-                    if (file.size > 2 * 1024 * 1024) {
-                        alert('File size must be less than 2MB');
-                        fileInput.val('');
-                        return;
+                fileInput.on('change', function (e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        if (file.size > 2 * 1024 * 1024) {
+                            toastr.error('File size must be less than 2MB');
+                            fileInput.val('');
+                            return;
+                        }
+                        const validTypes = ['image/png', 'image/jpg', 'image/jpeg'];
+                        if (!validTypes.includes(file.type)) {
+                            toastr.error('Only PNG, JPG, and JPEG files are allowed');
+                            fileInput.val('');
+                            return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = function (event) {
+                            avatarPreview.attr('src', event.target.result);
+                            avatarDiv.addClass('border-success');
+                            setTimeout(() => { avatarDiv.removeClass('border-success'); }, 1000);
+                        };
+                        reader.readAsDataURL(file);
                     }
-                    const validTypes = ['image/png', 'image/jpg', 'image/jpeg'];
-                    if (!validTypes.includes(file.type)) {
-                        alert('Only PNG, JPG, and JPEG files are allowed');
-                        fileInput.val('');
-                        return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = function (event) {
-                        avatarPreview.attr('src', event.target.result);
-                        avatarDiv.addClass('border-success');
-                        setTimeout(() => { avatarDiv.removeClass('border-success'); }, 1000);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
+                });
+            }
         });
     </script>
 }

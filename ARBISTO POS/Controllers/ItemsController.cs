@@ -20,7 +20,6 @@ namespace ARBISTO_POS.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        // ✅ FIXED: Index now properly includes ItemIngredients
         public async Task<IActionResult> Index()
         {
             var items = await _context.Items
@@ -53,23 +52,117 @@ namespace ARBISTO_POS.Controllers
             return View(item);
         }
 
+        // ✅ UPDATED: Create with Toastr
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Items item)
+        {
+            item.CreatedDate = DateTime.UtcNow;
+            ModelState.Remove("FoodCategory");
 
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = "Please fill all required fields correctly!";
+                return View(item);
+            }
+
+            if (item.ImageFile != null)
+            {
+                string path = Path.Combine(_webHostEnvironment.WebRootPath, "images/items");
+                Directory.CreateDirectory(path);
+
+                string fileName = Guid.NewGuid() + Path.GetExtension(item.ImageFile.FileName);
+                using var fs = new FileStream(Path.Combine(path, fileName), FileMode.Create);
+                await item.ImageFile.CopyToAsync(fs);
+
+                item.CateImage = "/images/items/" + fileName;
+            }
+
+            var ingredients = new List<ItemIngredients>();
+
+            foreach (var key in Request.Form.Keys)
+            {
+                if (!key.EndsWith(".IngredientId")) continue;
+
+                var index = Regex.Match(key, @"\[(\d+)\]").Groups[1].Value;
+
+                int ingredientId = int.Parse(Request.Form[key]);
+                decimal consumptionQty = decimal.Parse(Request.Form[$"ingredients[{index}].ConsumptionQty"]);
+
+                var ingredient = await _context.Ingredients.FindAsync(ingredientId);
+
+                if (ingredient == null)
+                {
+                    TempData["ErrorMessage"] = $"Ingredient with ID {ingredientId} not found!";
+                    return View(item);
+                }
+
+                // ✅ Toastr Error for Insufficient Quantity
+                if (ingredient.AvailableQuantity < consumptionQty)
+                {
+                    TempData["ErrorMessage"] = $"Insufficient quantity for {ingredient.Name}! Available: {ingredient.AvailableQuantity}, Required: {consumptionQty}";
+                    return View(item);
+                }
+
+                ingredient.AvailableQuantity -= consumptionQty;
+
+                ingredients.Add(new ItemIngredients
+                {
+                    IngredientId = ingredientId,
+                    ConsumptionQty = consumptionQty,
+                    Cost = decimal.Parse(Request.Form[$"ingredients[{index}].Cost"]),
+                    Price = decimal.Parse(Request.Form[$"ingredients[{index}].Price"]),
+                    AvailableQty = ingredient.AvailableQuantity
+                });
+            }
+
+            item.ItemCost = (int)Math.Round(ingredients.Sum(x => x.Cost * x.ConsumptionQty));
+            item.ItemPrice = (int)Math.Round(ingredients.Sum(x => x.Price * x.ConsumptionQty));
+
+            _context.Items.Add(item);
+            await _context.SaveChangesAsync();
+
+            foreach (var ing in ingredients)
+            {
+                ing.ItemId = item.ItemId;
+                _context.ItemIngredients.Add(ing);
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Item created successfully and ingredient quantities updated!";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // ✅ UPDATED: Edit with Toastr
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Items item)
         {
             var existingItem = await _context.Items
                 .Include(i => i.ItemIngredients)
+                    .ThenInclude(ii => ii.Ingredient)
                 .FirstOrDefaultAsync(i => i.ItemId == id);
 
-            if (existingItem == null) return NotFound();
+            if (existingItem == null)
+            {
+                TempData["ErrorMessage"] = "Item not found!";
+                return NotFound();
+            }
 
-            // BASIC FIELDS
+            // Restore old quantities
+            foreach (var oldIng in existingItem.ItemIngredients)
+            {
+                var ingredient = await _context.Ingredients.FindAsync(oldIng.IngredientId);
+                if (ingredient != null)
+                {
+                    ingredient.AvailableQuantity += oldIng.ConsumptionQty;
+                }
+            }
+
             existingItem.ItemName = item.ItemName;
             existingItem.ItemDiscription = item.ItemDiscription;
             existingItem.FoodCategoryId = item.FoodCategoryId;
 
-            // IMAGE UPDATE (OPTIONAL)
             if (item.ImageFile != null)
             {
                 string path = Path.Combine(_webHostEnvironment.WebRootPath, "images/items");
@@ -82,11 +175,9 @@ namespace ARBISTO_POS.Controllers
                 existingItem.CateImage = "/images/items/" + fileName;
             }
 
-            // REMOVE OLD INGREDIENTS
             _context.ItemIngredients.RemoveRange(existingItem.ItemIngredients);
             await _context.SaveChangesAsync();
 
-            // ADD NEW INGREDIENTS
             var ingredients = new List<ItemIngredients>();
 
             foreach (var key in Request.Form.Keys)
@@ -95,14 +186,34 @@ namespace ARBISTO_POS.Controllers
 
                 var index = Regex.Match(key, @"\[(\d+)\]").Groups[1].Value;
 
+                int ingredientId = int.Parse(Request.Form[key]);
+                decimal consumptionQty = decimal.Parse(Request.Form[$"ingredients[{index}].ConsumptionQty"]);
+
+                var ingredient = await _context.Ingredients.FindAsync(ingredientId);
+
+                if (ingredient == null)
+                {
+                    TempData["ErrorMessage"] = $"Ingredient not found!";
+                    return View(item);
+                }
+
+                // ✅ Toastr Error for Insufficient Quantity
+                if (ingredient.AvailableQuantity < consumptionQty)
+                {
+                    TempData["ErrorMessage"] = $"Insufficient quantity for {ingredient.Name}! Available: {ingredient.AvailableQuantity}, Required: {consumptionQty}";
+                    return View(item);
+                }
+
+                ingredient.AvailableQuantity -= consumptionQty;
+
                 ingredients.Add(new ItemIngredients
                 {
                     ItemId = id,
-                    IngredientId = int.Parse(Request.Form[key]),
-                    ConsumptionQty = decimal.Parse(Request.Form[$"ingredients[{index}].ConsumptionQty"]),
+                    IngredientId = ingredientId,
+                    ConsumptionQty = consumptionQty,
                     Cost = decimal.Parse(Request.Form[$"ingredients[{index}].Cost"]),
                     Price = decimal.Parse(Request.Form[$"ingredients[{index}].Price"]),
-                    AvailableQty = decimal.Parse(Request.Form[$"ingredients[{index}].AvailableQty"])
+                    AvailableQty = ingredient.AvailableQuantity
                 });
             }
 
@@ -112,14 +223,57 @@ namespace ARBISTO_POS.Controllers
             _context.ItemIngredients.AddRange(ingredients);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Item updated successfully!";
+            TempData["SuccessMessage"] = "Item updated and ingredient quantities adjusted!";
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var item = await _context.Items
+                    .Include(i => i.ItemIngredients)
+                    .FirstOrDefaultAsync(i => i.ItemId == id);
 
+                if (item == null)
+                    return Json(new { success = false, message = "Item not found" });
 
+                foreach (var itemIng in item.ItemIngredients)
+                {
+                    var ingredient = await _context.Ingredients.FindAsync(itemIng.IngredientId);
+                    if (ingredient != null)
+                    {
+                        ingredient.AvailableQuantity += itemIng.ConsumptionQty;
+                    }
+                }
 
-        // Keep all your existing methods (Create, GetCategories, GetIngredients)
+                if (!string.IsNullOrEmpty(item.CateImage))
+                {
+                    string imagePath = Path.Combine(
+                        _webHostEnvironment.WebRootPath,
+                        item.CateImage.TrimStart('/')
+                    );
+
+                    if (System.IO.File.Exists(imagePath))
+                        System.IO.File.Delete(imagePath);
+                }
+
+                if (item.ItemIngredients != null && item.ItemIngredients.Any())
+                    _context.ItemIngredients.RemoveRange(item.ItemIngredients);
+
+                _context.Items.Remove(item);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Item deleted and ingredient quantities restored!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Unable to delete item: " + ex.Message });
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetCategories(string search = "")
         {
@@ -158,104 +312,5 @@ namespace ARBISTO_POS.Controllers
 
             return Json(new { results = ingredients });
         }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Items item)
-        {
-            item.CreatedDate = DateTime.UtcNow;
-            ModelState.Remove("FoodCategory");
-            if (!ModelState.IsValid)
-                return View(item);
-
-            if (item.ImageFile != null)
-            {
-                string path = Path.Combine(_webHostEnvironment.WebRootPath, "images/items");
-                Directory.CreateDirectory(path);
-
-                string fileName = Guid.NewGuid() + Path.GetExtension(item.ImageFile.FileName);
-                using var fs = new FileStream(Path.Combine(path, fileName), FileMode.Create);
-                await item.ImageFile.CopyToAsync(fs);
-
-                item.CateImage = "/images/items/" + fileName;
-            }
-
-            var ingredients = new List<ItemIngredients>();
-
-            foreach (var key in Request.Form.Keys)
-            {
-                if (!key.EndsWith(".IngredientId")) continue;
-
-                var index = Regex.Match(key, @"\[(\d+)\]").Groups[1].Value;
-
-                ingredients.Add(new ItemIngredients
-                {
-                    IngredientId = int.Parse(Request.Form[key]),
-                    ConsumptionQty = decimal.Parse(Request.Form[$"ingredients[{index}].ConsumptionQty"]),
-                    Cost = decimal.Parse(Request.Form[$"ingredients[{index}].Cost"]),
-                    Price = decimal.Parse(Request.Form[$"ingredients[{index}].Price"]),
-                    AvailableQty = decimal.Parse(Request.Form[$"ingredients[{index}].AvailableQty"])
-                });
-            }
-
-            item.ItemCost = (int)Math.Round(ingredients.Sum(x => x.Cost * x.ConsumptionQty));
-            item.ItemPrice = (int)Math.Round(ingredients.Sum(x => x.Price * x.ConsumptionQty));
-
-            _context.Items.Add(item);
-            await _context.SaveChangesAsync();
-
-            foreach (var ing in ingredients)
-            {
-                ing.ItemId = item.ItemId;
-                _context.ItemIngredients.Add(ing);
-            }
-
-            await _context.SaveChangesAsync();
-            TempData["SuccessMessage"] = "Item created successfully!";
-            return RedirectToAction(nameof(Index));
-        }
-        // POST: Items/Delete (AJAX)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
-        {
-            try
-            {
-                var item = await _context.Items
-                    .Include(i => i.ItemIngredients)
-                    .FirstOrDefaultAsync(i => i.ItemId == id);
-
-                if (item == null)
-                    return Json(new { success = false, message = "Item not found" });
-
-                // 🖼️ delete image
-                if (!string.IsNullOrEmpty(item.CateImage))
-                {
-                    string imagePath = Path.Combine(
-                        _webHostEnvironment.WebRootPath,
-                        item.CateImage.TrimStart('/')
-                    );
-
-                    if (System.IO.File.Exists(imagePath))
-                        System.IO.File.Delete(imagePath);
-                }
-
-                // 🔥 delete child records first
-                if (item.ItemIngredients != null && item.ItemIngredients.Any())
-                    _context.ItemIngredients.RemoveRange(item.ItemIngredients);
-
-                _context.Items.Remove(item);
-                await _context.SaveChangesAsync();
-
-                return Json(new { success = true, message = "Item deleted successfully!" });
-            }
-            catch
-            {
-                return Json(new { success = false, message = "Unable to delete item!" });
-            }
-        }
-
-
-
     }
 }

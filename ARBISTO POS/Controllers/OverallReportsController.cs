@@ -1,11 +1,14 @@
 ﻿// using ARBISTO_POS.Migrations;  <-- YE LINE HATA DO
 
+using ARBISTO_POS.Attributes;
 using ARBISTO_POS.Data;
 using ARBISTO_POS.Models;
 using ARBISTO_POS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+
+[Permission("Overall Report")]
 public class OverallReportsController : Controller
 {
     private readonly ApplicationDbContext _context;

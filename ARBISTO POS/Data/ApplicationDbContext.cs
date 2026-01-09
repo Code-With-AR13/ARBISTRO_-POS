@@ -31,6 +31,8 @@ namespace ARBISTO_POS.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<UserRolePermission> UserRolePermissions { get; set; }
+        public DbSet<IngredientTransaction> IngredientTransactions { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

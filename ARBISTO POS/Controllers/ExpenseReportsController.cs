@@ -1,9 +1,12 @@
-﻿using ARBISTO_POS.Data;
+﻿using ARBISTO_POS.Attributes;
+using ARBISTO_POS.Data;
 using ARBISTO_POS.Models;
 using ARBISTO_POS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+
+[Permission("Expense Report")]
 public class ExpenseReportsController : Controller
 {
     private readonly ApplicationDbContext _context;
