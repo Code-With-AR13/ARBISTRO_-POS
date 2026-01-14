@@ -1,16 +1,17 @@
-using ARBISTO_POS.Controllers;
+﻿using ARBISTO_POS.Controllers;
 using ARBISTO_POS.Data;
 using ARBISTO_POS.Models;
 using ARBISTO_POS.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --------------------------------------------------
 // MVC + Global "must be authenticated" policy
+// --------------------------------------------------
 builder.Services.AddControllersWithViews(options =>
 {
     var policy = new AuthorizationPolicyBuilder()
@@ -19,7 +20,23 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new AuthorizeFilter(policy));
 });
 
-// Cookie auth
+// --------------------------------------------------
+// CORS (REQUIRED for Flutter / Web / Mobile)
+// --------------------------------------------------
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFlutter", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod(); // OPTIONS allowed
+    });
+});
+
+// --------------------------------------------------
+// Cookie Authentication
+// --------------------------------------------------
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -32,26 +49,32 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.Name = "ARAuth";
     });
 
-// Email service configuration
+// --------------------------------------------------
+// Email service
+// --------------------------------------------------
 var emailConfig = builder.Configuration
     .GetSection("EmailConfiguration")
     .Get<EmailConfiguration>();
 builder.Services.AddSingleton(emailConfig);
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 
-
-// Program.cs / Startup.cs me
+// --------------------------------------------------
+// Backup Settings
+// --------------------------------------------------
 builder.Services.Configure<BackupSettings>(
     builder.Configuration.GetSection("BackupSettings"));
 
-// builder.Services.AddHttpClient<WhatsAppService>();
-
+// --------------------------------------------------
+// Database
+// --------------------------------------------------
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
-// --- Seed 1st admin (runs once) ---
+// --------------------------------------------------
+// Seed First Admin (runs once)
+// --------------------------------------------------
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -73,6 +96,9 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// --------------------------------------------------
+// Middleware Pipeline (ORDER MATTERS)
+// --------------------------------------------------
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -81,12 +107,21 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
+
+// 🔥 CORS MUST BE HERE
+app.UseCors("AllowFlutter");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
+// --------------------------------------------------
+// Routes
+// --------------------------------------------------
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+// --------------------------------------------------
 app.Run();

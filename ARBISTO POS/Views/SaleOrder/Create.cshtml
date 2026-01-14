@@ -1617,5 +1617,33 @@ matchedItems.forEach((item, idx) => {
             });
         });
     </script>
+    <!-------------------------------------------------- Kitchen Invoice Auto Print Script--------------------------------------------------------->   
+    <script type="text/javascript">
+        @if (TempData["PrintKitchenInvoice"] != null && (bool)TempData["PrintKitchenInvoice"])
+        {
+                var orderId = (int)TempData["OrderId"];
+                <text>
+                $(document).ready(function() {
+                    // ✅ Small delay before opening window
+                    setTimeout(function() {
+                        // Open kitchen invoice in new window
+                        var printWindow = window.open(
+                            '@Url.Action("KitchenInvoice", "SaleOrder")?id=' + @orderId,
+                            '_blank',
+                            'width=400,height=600,toolbar=no,menubar=no,location=no'
+                        );
+
+                        // ✅ Check if window opened successfully
+                        if (printWindow) {
+                            printWindow.focus();
+                        } else {
+                            alert('Please allow pop-ups for this website to print kitchen invoice.');
+                        }
+                    }, 300);
+                });
+                </text>
+        }
+    </script>
+
 }
 

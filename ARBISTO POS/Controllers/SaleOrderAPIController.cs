@@ -57,6 +57,64 @@ namespace ARBISTO_POS.ApiControllers
 
             return Ok(orders);
         }
+        // ============================
+        // GET: api/SaleOrderApi/categories - Get all categories
+        // ============================
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetAllCategories()
+        {
+            try
+            {
+                var categories = await _context.FoodCategories
+                    .Select(c => new
+                    {
+                        id = c.Id,
+                        cateName = c.CateName,
+                        cateImage = c.CateImage ?? "/assets/images/upload.jpg",
+                        //description = c.Description,
+                        //itemCount = _context.Items.Count(i => i.FoodCategoryId == c.Id)
+                    })
+                    .ToListAsync();
+
+                return Ok(new { success = true, categories });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        // ============================
+        // GET: api/SaleOrderApi/categories/{id} - Get category by ID
+        // ============================
+        [HttpGet("categories/{id}")]
+        public async Task<IActionResult> GetCategoryById(int id)
+        {
+            try
+            {
+                var category = await _context.FoodCategories
+                    .Where(c => c.Id == id)
+                    .Select(c => new
+                    {
+                        id = c.Id,
+                        cateName = c.CateName,
+                        cateImage = c.CateImage ?? "/assets/images/upload.jpg",
+                        //description = c.Description,
+                        //itemCount = _context.Items.Count(i => i.FoodCategoryId == c.Id)
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (category == null)
+                    return NotFound(new { success = false, message = "Category not found" });
+
+                return Ok(new { success = true, category });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
 
         // ============================
         // GET: api/SaleOrderApi/{id} - Get order by ID

@@ -97,7 +97,10 @@ namespace ARBISTO_POS.Controllers
 
             var authProps = new AuthenticationProperties
             {
-                IsPersistent = rememberMe
+                IsPersistent = rememberMe,
+                ExpiresUtc = rememberMe
+                ? DateTimeOffset.UtcNow.AddHours(24) // ✅ Remember Me = 24 hours
+                : null
             };
 
             var id = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

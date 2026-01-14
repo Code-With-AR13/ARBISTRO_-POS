@@ -50,6 +50,39 @@ namespace ARBISTO_POS.Controllers
             return View(orders);
         }
 
+        // ============================
+        // KITCHEN INVOICE (AUTO PRINT)
+        // ============================
+        public async Task<IActionResult> KitchenInvoice(int id)
+        {
+            var order = await _context.SaleOrders
+                .Include(o => o.Customer)
+                .Include(o => o.Table)
+                .Include(o => o.PickUp)
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
+
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            var vm = new PosViewModel
+            {
+                Order = order,
+                CustomerId = order.CustomerId,
+                Categories = await _context.FoodCategories.ToListAsync(),
+                Items = await _context.Items.ToListAsync(),
+                Employees = await _context.Employees.ToListAsync(),
+                Tables = await _context.ServiceTables.ToListAsync(),
+                PickupPoints = await _context.PickPoints.ToListAsync(),
+                PaymentMethods = await _context.PaymentMethods.ToListAsync()
+            };
+
+            return View(vm);  // View name: KitchenInvoice.cshtml
+        }
+
+
         [HttpPost]
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> AssignChef(int orderId, int chefId)
@@ -226,16 +259,12 @@ namespace ARBISTO_POS.Controllers
         }
 
         [Permission("Manage POS")]
-        // ============================
-        // POS CREATE (POST)
-        // ============================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(
-            PosViewModel model,
-            string OrderItemsJson)
-        {            
-
+           PosViewModel model,
+           string OrderItemsJson)
+        {
             if (string.IsNullOrEmpty(OrderItemsJson))
             {
                 ModelState.AddModelError("", "No items in order.");
@@ -244,20 +273,24 @@ namespace ARBISTO_POS.Controllers
 
             var orderItems = JsonConvert.DeserializeObject<List<SaleOrderItems>>(OrderItemsJson);
 
+            // 🔹 Check Kitchen Printer Setting from Database
+            var printerSetting = await _context.AppSetttingPrinter.FirstOrDefaultAsync();
+            bool isKitchenPrinterEnabled = printerSetting != null && printerSetting.KitchenPrinter == "Yes";
+
             // 🔹 Create Order
             var order = new SaleOrders
             {
                 OrderNumber = $"ORD-{DateTime.Now.Ticks}",
                 OrderDate = DateTime.UtcNow,
                 OrderType = model.Order.OrderType,
-                OrderStatus = "Preparing",
+                OrderStatus = isKitchenPrinterEnabled ? "Ready" : "Preparing",  // ✅ Agar printer enabled hai to status "Ready"
                 CustomerId = model.CustomerId ?? 0,
                 TableId = model.Order.TableId,
                 PickUpId = model.Order.PickUpId,
-                DelivaryAddress = model.Order.DelivaryAddress,                
+                DelivaryAddress = model.Order.DelivaryAddress,
                 SubTotal = model.Order.SubTotal,
-                TaxAmount = model.Order.TaxAmount,        // ✅ Ab ye properly bind hoga
-                DiscountAmount = model.Order.DiscountAmount, // ✅ Ab ye properly bind hoga
+                TaxAmount = model.Order.TaxAmount,
+                DiscountAmount = model.Order.DiscountAmount,
                 GrandTotal = model.Order.GrandTotal,
                 PaymentStatus = "Unpaid",
                 Notes = model.Order.Notes
@@ -286,14 +319,20 @@ namespace ARBISTO_POS.Controllers
 
             await _context.SaveChangesAsync();
 
-            // ✅ Success message TempData mein store karein
-            TempData["SuccessMessage"] = $"Order successfully placed and go to Kitchen!" ;
-
-
-            return RedirectToAction(nameof(Create));
+            // ✅ Agar Kitchen Printer enabled hai to Kitchen Invoice print karwao
+            if (isKitchenPrinterEnabled)
+            {
+                TempData["SuccessMessage"] = "Order placed successfully! Printing kitchen invoice...";
+                TempData["PrintKitchenInvoice"] = true;
+                TempData["OrderId"] = order.OrderId;
+                return RedirectToAction(nameof(Create));
+            }
+            else
+            {
+                TempData["SuccessMessage"] = "Order successfully placed and sent to Kitchen!";
+                return RedirectToAction(nameof(Create));
+            }
         }
-
-
 
 
         // POST: SaleOrderController/ConfirmOrder/5
