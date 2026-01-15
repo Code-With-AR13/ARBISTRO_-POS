@@ -11,8 +11,8 @@ namespace ARBISTO_POS.ApiControllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
-    [Permission("Manage Sales/Payments")]
+    //[Authorize]
+    //[Permission("Manage Sales/Payments")]
     public class SaleOrderApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -60,6 +60,8 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/categories - Get all categories
         // ============================
+
+        [AllowAnonymous]
         [HttpGet("categories")]
         public async Task<IActionResult> GetAllCategories()
         {
