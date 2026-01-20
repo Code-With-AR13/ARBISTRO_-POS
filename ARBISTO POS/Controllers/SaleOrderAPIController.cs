@@ -25,6 +25,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi - List all orders
         // ============================
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAllOrders()
         {
@@ -89,6 +90,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/categories/{id} - Get category by ID
         // ============================
+        [AllowAnonymous]
         [HttpGet("categories/{id}")]
         public async Task<IActionResult> GetCategoryById(int id)
         {
@@ -121,6 +123,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/{id} - Get order by ID
         // ============================
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetOrderById(int id)
         {
@@ -141,6 +144,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/kitchen - Kitchen orders
         // ============================
+        [AllowAnonymous]
         [HttpGet("kitchen")]
         [Permission("Manage Kitchen")]
         public async Task<IActionResult> GetKitchenOrders()
@@ -161,6 +165,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // POST: api/SaleOrderApi/assign-chef - Assign chef to order
         // ============================
+        [AllowAnonymous]
         [HttpPost("assign-chef")]
         public async Task<IActionResult> AssignChef([FromBody] AssignChefRequest request)
         {
@@ -184,6 +189,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // PATCH: api/SaleOrderApi/{id}/status - Update order status
         // ============================
+        [AllowAnonymous]
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusRequest request)
         {
@@ -207,6 +213,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/customers - Search customers
         // ============================
+        [AllowAnonymous]
         [HttpGet("customers")]
         public IActionResult GetCustomers([FromQuery] string? search)
         {
@@ -236,6 +243,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/pickup-points - Get pickup points
         // ============================
+        [AllowAnonymous]
         [HttpGet("pickup-points")]
         public IActionResult GetPickupPoints([FromQuery] string? search)
         {
@@ -250,6 +258,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/tables - Get all tables with status
         // ============================
+        [AllowAnonymous]
         [HttpGet("tables")]
         public IActionResult GetTables()
         {
@@ -283,6 +292,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/customers/{customerId}/address
         // ============================
+        [AllowAnonymous]
         [HttpGet("customers/{customerId}/address")]
         public IActionResult GetCustomerAddress(int customerId)
         {
@@ -304,6 +314,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // POST: api/SaleOrderApi - Create new order (POS)
         // ============================
+        [AllowAnonymous]
         [HttpPost]
         [Permission("Manage POS")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
@@ -368,6 +379,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // PUT: api/SaleOrderApi/{id} - Update order
         // ============================
+        [AllowAnonymous]
         [HttpPut("{id}")]
         [Permission("Manage Sales/Payments")]
         public async Task<IActionResult> UpdateOrder(int id, [FromBody] CreateOrderRequest request)
@@ -435,6 +447,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // POST: api/SaleOrderApi/{id}/confirm - Confirm order (Kitchen)
         // ============================
+        [AllowAnonymous]
         [HttpPost("{id}/confirm")]
         public async Task<IActionResult> ConfirmOrder(int id)
         {
@@ -451,6 +464,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // POST: api/SaleOrderApi/{id}/complete - Complete order
         // ============================
+        [AllowAnonymous]
         [HttpPost("{id}/complete")]
         public async Task<IActionResult> CompleteOrder(int id)
         {
@@ -467,6 +481,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // POST: api/SaleOrderApi/hold - Hold order
         // ============================
+        [AllowAnonymous]
         [HttpPost("hold")]
         public async Task<IActionResult> HoldOrder([FromBody] HoldOrderViewModel model)
         {
@@ -536,6 +551,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/held-orders/count
         // ============================
+        [AllowAnonymous]
         [HttpGet("held-orders/count")]
         public async Task<IActionResult> GetHeldOrdersCount()
         {
@@ -581,6 +597,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // DELETE: api/SaleOrderApi/held-orders/{id}
         // ============================
+        [AllowAnonymous]
         [HttpDelete("held-orders/{id}")]
         public async Task<IActionResult> DeleteHeldOrder(int id)
         {
@@ -607,6 +624,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/held-orders/{id} - Load held order
         // ============================
+        [AllowAnonymous]
         [HttpGet("held-orders/{id}")]
         public async Task<IActionResult> LoadHeldOrder(int id)
         {
@@ -661,6 +679,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // POST: api/SaleOrderApi/process-payment - Process payment
         // ============================
+        [AllowAnonymous]
         [HttpPost("process-payment")]
         public async Task<IActionResult> ProcessPayment([FromBody] PaymentRequest request)
         {
@@ -688,6 +707,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/items-by-category/{categoryId}
         // ============================
+        [AllowAnonymous]
         [HttpGet("items-by-category/{categoryId}")]
         public IActionResult GetItemsByCategory(int categoryId)
         {
@@ -716,6 +736,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/items - Get all items
         // ============================
+        [AllowAnonymous]
         [HttpGet("items")]
         public IActionResult GetAllItems()
         {
@@ -736,6 +757,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         // GET: api/SaleOrderApi/{id}/invoice - Get invoice data
         // ============================
+        [AllowAnonymous]
         [HttpGet("{id}/invoice")]
         public async Task<IActionResult> GetInvoice(int id)
         {
