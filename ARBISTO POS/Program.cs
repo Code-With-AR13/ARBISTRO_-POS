@@ -23,16 +23,27 @@ builder.Services.AddControllersWithViews(options =>
 // --------------------------------------------------
 // CORS (REQUIRED for Flutter / Web / Mobile)
 // --------------------------------------------------
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAll", policy =>
+//    {
+//        policy
+//            .AllowAnyOrigin()
+//            .AllowAnyHeader()
+//            .AllowAnyMethod(); // OPTIONS allowed
+//    });
+//});
+// Add to ConfigureServices (services section)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFlutter", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod(); // OPTIONS allowed
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
     });
 });
+
+
+
 
 // --------------------------------------------------
 // Cookie Authentication
@@ -110,8 +121,20 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// 🔥 CORS MUST BE HERE
-app.UseCors("AllowFlutter");
+// In app.Build() pipeline - REPLACE UseStaticFiles()
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Add CORS headers to ALL static files (images fix)
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "*");
+        ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=31536000"); // Optional cache
+    }
+});
+
+app.UseCors("AllowAll");  // Keep after StaticFiles
 
 app.UseAuthentication();
 app.UseAuthorization();
