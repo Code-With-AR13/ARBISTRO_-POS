@@ -17,7 +17,7 @@ using System.Web;
 
 namespace ARBISTO_POS.Controllers
 {
-    [Authorize]
+    //[Authorize]
     public class AuthController : Controller
     {
         private readonly ApplicationDbContext _db;

@@ -142,7 +142,7 @@ namespace ARBISTO_POS.ApiControllers
         // GET: api/SaleOrderApi/kitchen - Kitchen orders
         // ============================
         [HttpGet("kitchen")]
-        [Permission("Manage Kitchen")]
+        //[Permission("Manage Kitchen")]
         public async Task<IActionResult> GetKitchenOrders()
         {
             var orders = await _context.SaleOrders

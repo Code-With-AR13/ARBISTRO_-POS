@@ -14,7 +14,7 @@ namespace ARBISTO_POS.ApiControllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // default: sari APIs protected
+    //[Authorize] 
     public class AuthApiController : ControllerBase
     {
         private readonly ApplicationDbContext _db;

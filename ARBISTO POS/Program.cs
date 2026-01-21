@@ -117,24 +117,23 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
 
 app.UseRouting();
+app.UseCors("AllowAll");
 
-// In app.Build() pipeline - REPLACE UseStaticFiles()
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
-        // Add CORS headers to ALL static files (images fix)
         ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
         ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
         ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "*");
-        ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=31536000"); // Optional cache
+        ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=3600");  // Added for cache
     }
 });
 
-app.UseCors("AllowAll");  // Keep after StaticFiles
+
+// Keep after StaticFiles
 
 app.UseAuthentication();
 app.UseAuthorization();
