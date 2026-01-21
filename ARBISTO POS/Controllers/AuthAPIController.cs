@@ -13,8 +13,7 @@ using System.Web;
 namespace ARBISTO_POS.ApiControllers
 {
     [Route("api/[controller]")]
-    [ApiController]
-    //[Authorize] 
+    [ApiController]    
     public class AuthApiController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
