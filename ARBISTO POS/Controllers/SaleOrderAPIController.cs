@@ -146,7 +146,7 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         [AllowAnonymous]
         [HttpGet("kitchen")]
-        [Permission("Manage Kitchen")]
+        //[Permission("Manage Kitchen")]
         public async Task<IActionResult> GetKitchenOrders()
         {
             var orders = await _context.SaleOrders
