@@ -311,19 +311,106 @@ namespace ARBISTO_POS.ApiControllers
             });
         }
 
-        // ============================
-        // POST: api/SaleOrderApi - Create new order (POS)
-        // ============================
         [AllowAnonymous]
-        [HttpPost]
-        [Permission("Manage POS")]
+        [HttpPost("CreateOrder")]
+        //[Permission("Manage POS")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
-            if (request.OrderItems == null || !request.OrderItems.Any())
+            if (!ModelState.IsValid)
             {
-                return BadRequest(new { message = "No items in order." });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Validation failed",
+                    errors = ModelState
+                        .Where(x => x.Value.Errors.Count > 0)
+                        .ToDictionary(
+                            k => k.Key,
+                            v => v.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                        )
+                });
             }
 
+            // ============================
+            // 1️⃣ Basic request validation
+            // ============================
+            if (request == null)
+                return BadRequest(new { message = "Invalid request data." });
+
+            if (request.OrderItems == null || !request.OrderItems.Any())
+                return BadRequest(new { message = "Order must contain at least one item." });
+
+            if (request.SubTotal <= 0 || request.GrandTotal <= 0)
+                return BadRequest(new { message = "Invalid order amount." });
+
+            // ============================
+            // 2️⃣ OrderType based validation
+            // ============================
+            if (request.OrderType == "DineIn" && request.TableId == null)
+                return BadRequest(new { message = "Table is required for Dine-In orders." });
+
+            if (request.OrderType == "TakeAway" && request.PickUpId == null)
+                return BadRequest(new { message = "Pickup counter is required for Takeaway orders." });
+
+            if (request.OrderType == "Delivery" &&
+                string.IsNullOrWhiteSpace(request.DelivaryAddress))
+                return BadRequest(new { message = "Delivery address is required for delivery orders." });
+
+            // ============================
+            // 3️⃣ ItemId exists in DB check
+            // ============================
+            var itemIds = request.OrderItems.Select(x => x.ItemId).ToList();
+
+            var dbItems = await _context.Items
+                .Where(i => itemIds.Contains(i.ItemId))
+                .Select(i => new { i.ItemId, i.ItemName, })
+                .ToListAsync();
+
+            var missingItemIds = itemIds.Except(dbItems.Select(i => i.ItemId)).ToList();
+
+            if (missingItemIds.Any())
+            {
+                return BadRequest(new
+                {
+                    message = "Some items were not found.",
+                    missingItemIds = missingItemIds
+                });
+            }
+
+            var inactiveItems = dbItems
+                .Select(i => i.ItemName)
+                .ToList();
+
+            if (inactiveItems.Any())
+            {
+                return BadRequest(new
+                {
+                    message = "Some items are currently unavailable.",
+                    items = inactiveItems
+                });
+            }
+
+            // ============================
+            // 4️⃣ Item-level validation
+            // ============================
+            foreach (var item in request.OrderItems)
+            {
+                if (item.Quantity <= 0)
+                    return BadRequest(new
+                    {
+                        message = $"Invalid quantity for item {item.ItemName ?? "Unknown"}."
+                    });
+
+                if (item.Price <= 0)
+                    return BadRequest(new
+                    {
+                        message = $"Invalid price for item {item.ItemName ?? "Unknown"}."
+                    });
+            }
+
+            // ============================
+            // 5️⃣ Create Order (same logic)
+            // ============================
             var order = new SaleOrders
             {
                 OrderNumber = $"ORD-{DateTime.Now.Ticks}",
@@ -335,9 +422,9 @@ namespace ARBISTO_POS.ApiControllers
                 PickUpId = request.PickUpId,
                 DelivaryAddress = request.DelivaryAddress,
                 SubTotal = request.SubTotal,
-                TaxAmount = request.TaxAmount,
-                DiscountAmount = request.DiscountAmount,
-                GrandTotal = request.GrandTotal,
+                TaxAmount = (decimal)request.TaxAmount,
+                DiscountAmount = (decimal)request.DiscountAmount,
+                GrandTotal = (decimal)request.GrandTotal,
                 PaymentStatus = "Unpaid",
                 Notes = request.Notes
             };
@@ -345,6 +432,9 @@ namespace ARBISTO_POS.ApiControllers
             _context.SaleOrders.Add(order);
             await _context.SaveChangesAsync();
 
+            // ============================
+            // 6️⃣ Create Order Items
+            // ============================
             foreach (var item in request.OrderItems)
             {
                 var orderItem = new SaleOrderItems
@@ -353,9 +443,9 @@ namespace ARBISTO_POS.ApiControllers
                     ItemId = item.ItemId,
                     ItemName = item.ItemName,
                     ItemImage = item.ItemImage,
-                    Price = item.Price,
-                    Quantity = item.Quantity,
-                    Total = item.Price * item.Quantity,
+                    Price = (decimal)item.Price,
+                    Quantity = (int)item.Quantity,
+                    Total = (decimal)(item.Price * item.Quantity),
                     CustomerId = request.CustomerId
                 };
 
@@ -364,17 +454,21 @@ namespace ARBISTO_POS.ApiControllers
 
             await _context.SaveChangesAsync();
 
+            // ============================
+            // 7️⃣ Success response
+            // ============================
             return CreatedAtAction(
                 nameof(GetOrderById),
                 new { id = order.OrderId },
                 new
                 {
                     success = true,
-                    message = "Order successfully placed and sent to Kitchen!",
+                    message = "Order successfully placed and sent to kitchen.",
                     orderId = order.OrderId,
                     orderNumber = order.OrderNumber
                 });
         }
+
 
         // ============================
         // PUT: api/SaleOrderApi/{id} - Update order
@@ -399,9 +493,9 @@ namespace ARBISTO_POS.ApiControllers
                 order.PickUpId = request.PickUpId;
                 order.DelivaryAddress = request.DelivaryAddress;
                 order.SubTotal = request.SubTotal;
-                order.TaxAmount = request.TaxAmount;
-                order.DiscountAmount = request.DiscountAmount;
-                order.GrandTotal = request.GrandTotal;
+                order.TaxAmount = (decimal)request.TaxAmount;
+                order.DiscountAmount = (decimal)request.DiscountAmount;
+                order.GrandTotal = (decimal)request.GrandTotal;
                 order.Notes = request.Notes;
 
                 _context.SaleOrderItems.RemoveRange(order.OrderItems);
@@ -416,9 +510,9 @@ namespace ARBISTO_POS.ApiControllers
                             ItemId = item.ItemId,
                             ItemName = item.ItemName,
                             ItemImage = item.ItemImage,
-                            Price = item.Price,
-                            Quantity = item.Quantity,
-                            Total = item.Price * item.Quantity,
+                            Price = (decimal)item.Price,
+                            Quantity = (int)item.Quantity,
+                            Total = (decimal)(item.Price * item.Quantity),
                             CustomerId = request.CustomerId
                         };
 
@@ -803,9 +897,9 @@ namespace ARBISTO_POS.ApiControllers
             public int? PickUpId { get; set; }
             public string? DelivaryAddress { get; set; }
             public decimal SubTotal { get; set; }
-            public decimal TaxAmount { get; set; }
-            public decimal DiscountAmount { get; set; }
-            public decimal GrandTotal { get; set; }
+            public decimal? TaxAmount { get; set; }
+            public decimal? DiscountAmount { get; set; }
+            public decimal? GrandTotal { get; set; }
             public string? Notes { get; set; }
             public List<OrderItemDto> OrderItems { get; set; } = new();
         }
@@ -813,10 +907,10 @@ namespace ARBISTO_POS.ApiControllers
         public class OrderItemDto
         {
             public int ItemId { get; set; }
-            public string ItemName { get; set; } = default!;
+            public string? ItemName { get; set; } = default!;
             public string? ItemImage { get; set; }
-            public decimal Price { get; set; }
-            public int Quantity { get; set; }
+            public decimal? Price { get; set; }
+            public int? Quantity { get; set; }
         }
 
         public class PaymentRequest

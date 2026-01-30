@@ -316,7 +316,7 @@
                     <i class="feather-edit-3"></i>
                 </button>
             </span>
-            <span id="tax">@Model.Order.TaxAmount.ToString("F2")</span>
+            <span id="tax">@Model.Order.TaxAmount</span>
              <input type="hidden"
         asp-for="Order.TaxAmount"
         id="TaxHidden"
@@ -333,7 +333,7 @@
                     <i class="feather-edit-3"></i>
                 </button>
             </span>
-            <span id="discount">@Model.Order.DiscountAmount.ToString("F2")</span>
+            <span id="discount">@Model.Order.DiscountAmount</span>
              <input type="hidden"
                        asp-for="Order.DiscountAmount"
                        id="DiscountHidden"

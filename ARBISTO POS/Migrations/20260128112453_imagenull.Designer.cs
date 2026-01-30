@@ -4,6 +4,7 @@ using ARBISTO_POS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ARBISTO_POS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260128112453_imagenull")]
+    partial class imagenull
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -768,13 +771,13 @@ namespace ARBISTO_POS.Migrations
                     b.Property<int?>("ChefId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("CustomerId")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
                     b.Property<string>("DelivaryAddress")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("DiscountAmount")
+                    b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("GrandTotal")
@@ -814,7 +817,7 @@ namespace ARBISTO_POS.Migrations
                     b.Property<int?>("TableId")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("TaxAmount")
+                    b.Property<decimal>("TaxAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("OrderId");
@@ -1090,7 +1093,9 @@ namespace ARBISTO_POS.Migrations
 
                     b.HasOne("ARBISTO_POS.Models.Customers", "Customer")
                         .WithMany()
-                        .HasForeignKey("CustomerId");
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("ARBISTO_POS.Models.PaymentMethods", "Payment")
                         .WithMany()

@@ -78,8 +78,8 @@ public class OverallReportsController : Controller
             CustomerName = o.Customer!.Name,
             ChefName = o.Chef != null ? o.Chef.FullName : "N/A",
             SubTotal = o.SubTotal,
-            TaxAmount = o.TaxAmount,
-            DiscountAmount = o.DiscountAmount,
+            TaxAmount = o.TaxAmount ?? 0,
+            DiscountAmount = o.DiscountAmount ?? 0,
             GrandTotal = o.GrandTotal
         }).ToList();
 

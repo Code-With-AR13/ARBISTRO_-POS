@@ -25,10 +25,10 @@ namespace ARBISTO_POS.Models
         public string OrderStatus { get; set; }   // Pending, Preparing, Ready
 
         // ================= Customer =================
-        public int CustomerId { get; set; }
+        public int? CustomerId { get; set; }
 
         [ForeignKey(nameof(CustomerId))]
-        public Customers Customer { get; set; }
+        public Customers? Customer { get; set; }
 
         // ================= Table (Dine-In) =================
         public int? TableId { get; set; }
@@ -40,7 +40,7 @@ namespace ARBISTO_POS.Models
         public int? PickUpId { get; set; }
 
         [ForeignKey(nameof(PickUpId))]
-        public PickPoints PickUp { get; set; }
+        public PickPoints? PickUp { get; set; }
         // ================= Pickup (TakeAway) =================        
         public string? DelivaryAddress { get; set; }
 
@@ -49,21 +49,21 @@ namespace ARBISTO_POS.Models
         public int? PaymentId { get; set; }
 
         [ForeignKey(nameof(PaymentId))]
-        public PaymentMethods Payment { get; set; }
+        public PaymentMethods? Payment { get; set; }
 
         public string PaymentStatus { get; set; } = "Unpaid";
 
         // ================= Amounts =================
         public decimal SubTotal { get; set; }
-        public decimal TaxAmount { get; set; }
-        public decimal DiscountAmount { get; set; }
+        public decimal? TaxAmount { get; set; }
+        public decimal? DiscountAmount { get; set; }
         public decimal GrandTotal { get; set; }
 
         // ================= Staff / Chef =================
         public int? ChefId { get; set; }
 
         [ForeignKey(nameof(ChefId))]
-        public Employees Chef { get; set; }       
+        public Employees? Chef { get; set; }       
 
         // ================= Extra =================
         public string? Notes { get; set; }
