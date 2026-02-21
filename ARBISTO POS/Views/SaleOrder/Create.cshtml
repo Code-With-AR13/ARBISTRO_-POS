@@ -35,7 +35,8 @@
 
     .blink {
         animation: blink-animation 3s infinite; /* 1s duration, infinite loop */
-    }    
+    }   
+    
 </style>
 <!------------------------------------------------------------------------ NAVBAR ------------------------------------------------------------->
 <nav class="navbar navbar-expand-lg navbar-dark bg-white shadow-sm">
@@ -88,7 +89,54 @@
                             </span>
                         </button>
                     </li>
+                <!-- Button Notification -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link position-relative d-flex align-items-center justify-content-center
+          rounded-3 shadow-sm"
+                       href="#"
+                       id="notificationDropdown"
+                       role="button"
+                       data-bs-toggle="dropdown"
+                       aria-expanded="false"
+                       style="width:45px;height:45px;background:linear-gradient(135deg,#ff4d4f,#ff0000);">
 
+                        <i class="feather-bell fs-5 text-white"></i>
+
+                        <!-- Badge -->
+                        <span id="notificationCount"
+                              class="position-absolute top-0 start-100 translate-middle
+                 badge rounded-pill bg-dark text-white d-none"
+                              style="font-size:11px; min-width:20px;">
+                            0
+                        </span>
+                    </a>
+
+    <!-- Dropdown -->
+    <div class="dropdown-menu dropdown-menu-end shadow border-0 p-0"
+         style="width: 350px;"
+         aria-labelledby="notificationDropdown">
+
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
+            <span class="fw-semibold">Notifications</span>
+            <button id="markAllBtn"
+                    class="btn btn-sm btn-link text-decoration-none">
+                Mark all
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div id="notificationList"
+             class="list-group list-group-flush"
+             style="max-height: 350px; overflow-y: auto;">
+            <div class="text-center text-muted py-3">
+                No notifications
+            </div>
+        </div>
+
+    </div>
+</li>
+                
                     <li class="nav-item dropdown">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" class="d-flex align-items-center">
                             <img src="~/assets/images/logo-abbr (2).png" alt="user-image" class="rounded-circle" style="width:48px; height:48px; object-fit:cover;" />
@@ -1644,6 +1692,134 @@ matchedItems.forEach((item, idx) => {
                 </text>
         }
     </script>
+    <!-------------------------------------------------- Kitchen ready item notification Script--------------------------------------------------------->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
+    <script>
+        /* =========================================
+           ITEM READY NOTIFICATION (POS SIDE)
+        ========================================= */
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/notificationHub")
+            .build();
+
+                connection.on("ReceiveItemReadyNotification", function (title, message) {
+
+            // 🔊 Play sound
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.play();
+
+            // 🔔 Toast
+            toastr.success(message, title);
+
+            // 🔄 Reload unread count from DB (professional way)
+            loadUnreadCount();
+        });
+
+        connection.start().catch(err => console.error(err));
+
+        /* =========================================
+           LOAD UNREAD COUNT ON PAGE LOAD
+        ========================================= */
+
+                function updateBadge(count) {
+            const badge = document.getElementById('notificationCount');
+
+            if (count > 0) {
+                badge.innerText = count;
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+        }
+
+        async function loadUnreadCount() {
+            try {
+                const response = await fetch('/Notification/GetUnreadCount');
+                const data = await response.json();
+                updateBadge(data.count);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadUnreadCount);
+
+        /* =========================================
+           MARK ALL AS READ ON BELL CLICK
+        ========================================= */
+
+            document.getElementById('markAllBtn')
+        .addEventListener('click', async function () {
+
+            await fetch('/Notification/MarkAllAsRead', {
+                method: 'POST'
+            });
+
+            loadUnreadCount();
+            loadNotifications();
+        });
+
+        // document.getElementById('notificationBell')
+        // ?.addEventListener('click', async function () {
+
+        //     try {
+        //         await fetch('/Notification/MarkAllAsRead', {
+        //             method: 'POST'
+        //         });
+
+        //         document.getElementById('notificationCount').innerText = 0;
+
+        //     } catch (err) {
+        //         console.error(err);
+        //     }
+        // });
+
+                               async function loadNotifications() {
+
+            const response = await fetch('/Notification/GetLatest');
+            const data = await response.json();
+
+            const container = document.getElementById('notificationList');
+            container.innerHTML = "";
+
+            if (data.length === 0) {
+                container.innerHTML =
+                    '<div class="text-center text-muted py-3">No notifications</div>';
+                return;
+            }
+
+            data.forEach(n => {
+
+                const item = document.createElement('a');
+                item.href = "#";
+                item.className =
+                    `list-group-item list-group-item-action ${n.isRead ? '' : 'list-group-item-light fw-semibold'}`;
+
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between">
+                        <small class="fw-bold">${n.title}</small>
+                        <small class="text-muted">${n.createdAt}</small>
+                    </div>
+                    <div class="small">${n.message}</div>
+                `;
+
+                item.addEventListener('click', async function () {
+
+                    await fetch('/Notification/MarkSingleAsRead?id=' + n.id,
+                        { method: 'POST' });
+
+                    loadUnreadCount();
+                    loadNotifications();
+                });
+
+                container.appendChild(item);
+            });
+        }
+
+        document.getElementById('notificationDropdown')
+            .addEventListener('click', loadNotifications);
+    </script>
 }
 

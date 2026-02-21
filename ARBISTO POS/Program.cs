@@ -1,5 +1,6 @@
 ﻿using ARBISTO_POS.Controllers;
 using ARBISTO_POS.Data;
+using ARBISTO_POS.Hubs;
 using ARBISTO_POS.Models;
 using ARBISTO_POS.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -42,7 +43,10 @@ builder.Services.AddCors(options =>
     });
 });
 
-
+// --------------------------------------------------
+// Register SignalR
+// --------------------------------------------------
+builder.Services.AddSignalR();
 
 
 // --------------------------------------------------
@@ -146,4 +150,13 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 // --------------------------------------------------
+
+
+// --------------------------------------------------
+// Map SignalR hubs
+// --------------------------------------------------
+app.MapHub<NotificationHub>("/notificationHub");
+
+// --------------------------------------------------
+
 app.Run();

@@ -1,9 +1,11 @@
 ﻿using ARBISTO_POS.Attributes;
 using ARBISTO_POS.Data;
+using ARBISTO_POS.Hubs;
 using ARBISTO_POS.Models;
 using ARBISTO_POS.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
@@ -17,10 +19,12 @@ namespace ARBISTO_POS.Controllers
     public class SaleOrderController : Controller
     {
         private ApplicationDbContext _context;
+        private IHubContext<NotificationHub> _hubContext;
 
-        public SaleOrderController(ApplicationDbContext context)
+        public SaleOrderController(ApplicationDbContext context, IHubContext<NotificationHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         // GET: SaleOrderController
@@ -50,6 +54,31 @@ namespace ARBISTO_POS.Controllers
             return View(orders);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetPreparingOrders()
+        {
+            var orders = await _context.SaleOrders
+                .Include(o => o.OrderItems)
+                .Where(o => o.OrderStatus == "Preparing")
+                .OrderByDescending(o => o.OrderDate)
+                .Select(o => new
+                {
+                    orderId = o.OrderId,
+                    orderNumber = o.OrderNumber,
+                    customerId = o.CustomerId,
+                    orderType = o.OrderType,
+                    orderDate = o.OrderDate.ToString("dd-MM-yyyy HH:mm:ss"),
+                    items = o.OrderItems.Select(i => new
+                    {
+                        itemId = i.ItemId,
+                        itemName = i.ItemName,
+                        quantity = i.Quantity
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            return Json(orders);
+        }
         // ============================
         // KITCHEN INVOICE (AUTO PRINT)
         // ============================
@@ -318,6 +347,31 @@ namespace ARBISTO_POS.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            // ===============================
+            // CREATE NOTIFICATION
+            // ===============================
+
+            var notification = new Notification
+            {
+                Title = "New Kitchen Order",
+                Message = $"Order #{order.OrderNumber} is waiting in kitchen.",
+                Type = "Kitchen",
+                ReferenceId = order.OrderId
+            };
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+
+            // ===============================
+            // SEND REAL-TIME SIGNALR ALERT
+            // ===============================
+
+            await _hubContext.Clients.All.SendAsync(
+                "ReceiveKitchenNotification",
+                notification.Title,
+                notification.Message
+            );
 
             // ✅ Agar Kitchen Printer enabled hai to Kitchen Invoice print karwao
             if (isKitchenPrinterEnabled)
@@ -835,7 +889,53 @@ namespace ARBISTO_POS.Controllers
 
             return View(vm);          // View name: InvoicePrint.cshtml
         }
+        // ============================
+        // Notification 
+        // ============================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> NotifyItemReady(int orderId, string itemName)
+        {
+            //var order = await _context.SaleOrders.FindAsync(orderId);
+            var order = await _context.SaleOrders
+    .Include(o => o.Customer)
+    .Include(o => o.Table)
+    .FirstOrDefaultAsync(o => o.OrderId == orderId);
+            if (order == null)
+                return Json(new { success = false });
 
+            var customerName = order.Customer?.Name ?? "Walking Customer";
+            var locationInfo = "";
+
+            if (order.OrderType == "DINE IN")
+                locationInfo = $"Table: {order.Table?.TabName}";
+            else if (order.OrderType == "DELIVERY")
+                locationInfo = "Delivery Order";
+            else if (order.OrderType == "PICKUP POINT")
+                locationInfo = "Pickup Order";
+
+            var notification = new Notification
+            {
+                Title = "Item Ready",
+                Message = $"{locationInfo} | {customerName} | Order #{order.OrderNumber} → {itemName} Ready",
+                Type = "ItemReady",
+                ReferenceId = orderId,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+
+            // 🔥 Send to POS only
+            await _hubContext.Clients.All.SendAsync(
+                "ReceiveItemReadyNotification",
+                notification.Title,
+                notification.Message
+            );
+
+            return Json(new { success = true });
+        }
 
     }
 }

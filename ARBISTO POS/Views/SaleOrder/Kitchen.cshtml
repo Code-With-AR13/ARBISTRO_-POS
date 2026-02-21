@@ -23,12 +23,20 @@
                         <i class="feather-plus me-2"></i>
                         <span>New Sale Order</span>
                     </a>
-                </div>
+                </div>               
             </div>
         </div>
     </div>
 </main>
+@{
+    var chefs = (List<ARBISTO_POS.Models.Employees>)ViewBag.Chefs;
+}
 
+<script>
+    const chefsList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                chefs.Select(c => new { id = c.Id, name = c.FullName })
+        ));
+</script>
 <div class="row">
 @foreach (var order in Model)
 {
@@ -81,7 +89,7 @@
                     @foreach (var item in order.OrderItems)
                     {
                         <div class="form-check mb-2">
-                            <input class="form-check-input item-checkbox"
+                            <input class="form-check-input item-checkbox p-2"
                                    type="checkbox"
                                    value="@item.ItemId"
                                    id="item_@order.OrderId@item.ItemId"
@@ -151,36 +159,61 @@
                 updateProgress(orderId);
             });
 
-            // Checkbox change event
-            document.querySelectorAll('.item-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const orderId = this.dataset.orderId;
-                    updateProgress(orderId);
-                    checkAndCompleteOrder(orderId);
-                });
-            });
+            // Checkbox change event            
+        //             document.addEventListener('change', function (e) {
+        //     if (e.target.classList.contains('item-checkbox')) {
+        //         const orderId = e.target.dataset.orderId;
+        //         updateProgress(orderId);
+        //         checkAndCompleteOrder(orderId);
+        //     }
+        // });
+                document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('item-checkbox')) {
+
+                const orderId = e.target.dataset.orderId;
+                const itemName = e.target.nextElementSibling.innerText;
+
+                updateProgress(orderId);
+                checkAndCompleteOrder(orderId);
+
+                // 🔥 SEND READY ITEM NOTIFICATION
+                if (e.target.checked) {
+
+                    fetch('/SaleOrder/NotifyItemReady', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken':
+                                document.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: `orderId=${orderId}&itemName=${encodeURIComponent(itemName)}`
+                    });
+                }
+            }
+        });
 
             // Chef selection change event
-            document.querySelectorAll('.chef-select').forEach(select => {
-                select.addEventListener('change', function() {
-                    const orderId = this.dataset.orderId;
-                    const chefId = this.value;
-                    const chefStatus = document.getElementById(`chefStatus_${orderId}`);
+                    document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('chef-select')) {
 
-                    if (chefId) {
-                        assignChefToOrder(orderId, chefId, function(success) {
-                            if (success) {
-                                chefStatus.innerHTML = '<span class="text-success">Chef assigned</span>';
-                                checkAndCompleteOrder(orderId);
-                            } else {
-                                chefStatus.innerHTML = '<span class="text-danger">Failed to assign chef</span>';
-                            }
-                        });
-                    } else {
-                        chefStatus.innerHTML = '<span class="text-danger">Please select a chef</span>';
-                    }
-                });
-            });
+                const orderId = e.target.dataset.orderId;
+                const chefId = e.target.value;
+                const chefStatus = document.getElementById(`chefStatus_${orderId}`);
+
+                if (chefId) {
+                    assignChefToOrder(orderId, chefId, function(success) {
+                        if (success) {
+                            chefStatus.innerHTML = '<span class="text-success">Chef assigned</span>';
+                            checkAndCompleteOrder(orderId);
+                        } else {
+                            chefStatus.innerHTML = '<span class="text-danger">Failed to assign chef</span>';
+                        }
+                    });
+                } else {
+                    chefStatus.innerHTML = '<span class="text-danger">Please select a chef</span>';
+                }
+            }
+        });
         });
 
         function calculateProgress(orderId) {
@@ -331,5 +364,174 @@
         }
 
 
+    </script>
+    <!-------------------------------------------------- Notification Script--------------------------------------------------------->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/notificationHub")
+            .build();
+
+        connection.on("ReceiveKitchenNotification", function (title, message) {
+
+            // Play sound
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.play();
+
+            // Show toast notification
+            toastr.info(message, title);
+
+            console.log("Kitchen Notification Received");
+        });
+
+        connection.start().catch(err => console.error(err));
+    </script>
+    <!-------------------------------------------------- Ajax  Script--------------------------------------------------------->
+    <script>
+        let existingOrderIds = new Set();
+
+        // Store initial order IDs
+        document.querySelectorAll('.order-card').forEach(card => {
+            existingOrderIds.add(card.dataset.orderId);
+        });
+
+        async function checkForNewOrders() {
+            try {
+                const response = await fetch('/SaleOrder/GetPreparingOrders');
+                const orders = await response.json();
+
+                orders.forEach(order => {
+
+                    // Agar already page pe hai to skip
+                    if (existingOrderIds.has(order.orderId.toString()))
+                        return;
+
+                    console.log("New Order Found:", order.orderNumber);
+
+                    // Add to set
+                    existingOrderIds.add(order.orderId.toString());
+
+                    // Render card dynamically
+                    renderNewOrderCard(order);
+
+                    // Play sound
+                    const audio = new Audio('/sounds/notification.mp3');
+                    audio.play();
+
+                    toastr.success("New Order Arrived!", "Kitchen Alert");
+                });
+            }
+            catch (err) {
+                console.error("Error checking orders:", err);
+            }
+        }
+
+                function renderNewOrderCard(order) {
+
+            let itemsHtml = "";
+
+            order.items.forEach(item => {
+                itemsHtml += `
+                    <div class="form-check mb-2">
+                        <input class="form-check-input item-checkbox p-2"
+                               type="checkbox"
+                               value="${item.itemId}"
+                               data-order-id="${order.orderId}">
+                        <label class="form-check-label">
+                            ${item.quantity} x ${item.itemName}
+                        </label>
+                    </div>
+                `;
+            });
+
+            // 🔥 Generate Chef Options
+            let chefOptions = `<option value="">Select Chef</option>`;
+
+            chefsList.forEach(chef => {
+                chefOptions += `<option value="${chef.id}">${chef.name}</option>`;
+            });
+
+            const cardHtml = `
+            <div class="col-md-6 col-lg-6 px-4 mt-3">
+                <div class="card mb-3 order-card"
+                     data-order-id="${order.orderId}"
+                     id="orderCard_${order.orderId}">
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5>Order #${order.orderNumber}</h5>
+                                <small>Date: ${order.orderDate}</small>
+                            </div>
+                            <span class="badge bg-primary">${order.orderType}</span>
+                        </div>
+
+                        <!-- 🔥 Chef Dropdown Added -->
+                        <div class="mb-3">
+                            <label class="form-label">Assign Chef:</label>
+                            <select class="form-select chef-select"
+                                    id="chefSelect_${order.orderId}"
+                                    data-order-id="${order.orderId}">
+                                ${chefOptions}
+                            </select>
+                            <small class="text-muted" id="chefStatus_${order.orderId}"></small>
+                        </div>
+
+                        <div class="order-items mb-3">
+                            ${itemsHtml}
+                        </div>
+
+                        <div class="progress mb-3" style="height: 10px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                 id="progress_${order.orderId}"
+                                 style="width: 0%">
+                            </div>
+                        </div>
+
+                        <small class="text-muted d-block mb-3 text-center">
+                            Progress: <span id="progress-text_${order.orderId}">0%</span>
+                        </small>
+
+                        <div class="status-message alert alert-success d-none text-center"
+                             id="statusMessage_${order.orderId}">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Order is Ready and has been sent!
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            `;
+
+            document.querySelector('.row').insertAdjacentHTML('afterbegin', cardHtml);
+
+            // 🔥 AUTO SELECT FIRST CHEF FOR AJAX CARD
+setTimeout(() => {
+
+    const select = document.getElementById(`chefSelect_${order.orderId}`);
+    const firstChefOption = select.querySelector('option[value]:not([value=""])');
+
+    if (firstChefOption) {
+        const chefId = firstChefOption.value;
+        select.value = chefId;
+
+        assignChefToOrder(order.orderId, chefId, function(success) {
+            const chefStatus = document.getElementById(`chefStatus_${order.orderId}`);
+            if (success) {
+                chefStatus.innerHTML = '<span class="text-success">Chef assigned</span>';
+            } else {
+                chefStatus.innerHTML = '<span class="text-danger">Failed to assign chef</span>';
+            }
+        });
+    }
+
+    updateProgress(order.orderId);
+
+}, 100);
+        }
+
+        // Check every 5 seconds
+        setInterval(checkForNewOrders, 5000);
     </script>
 }

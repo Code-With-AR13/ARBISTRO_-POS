@@ -313,7 +313,6 @@ namespace ARBISTO_POS.ApiControllers
 
         [AllowAnonymous]
         [HttpPost("CreateOrder")]
-        //[Permission("Manage POS")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
             if (!ModelState.IsValid)
@@ -331,9 +330,6 @@ namespace ARBISTO_POS.ApiControllers
                 });
             }
 
-            // ============================
-            // 1️⃣ Basic request validation
-            // ============================
             if (request == null)
                 return BadRequest(new { message = "Invalid request data." });
 
@@ -344,87 +340,81 @@ namespace ARBISTO_POS.ApiControllers
                 return BadRequest(new { message = "Invalid order amount." });
 
             // ============================
-            // 2️⃣ OrderType based validation
+            // OrderType validation
             // ============================
-            if (request.OrderType == "DineIn" && request.TableId == null)
-                return BadRequest(new { message = "Table is required for Dine-In orders." });
+            if (request.OrderType == "DineIn")
+            {
+                if (request.TableId == null)
+                    return BadRequest(new { message = "Table is required for Dine-In orders." });
 
-            if (request.OrderType == "TakeAway" && request.PickUpId == null)
-                return BadRequest(new { message = "Pickup counter is required for Takeaway orders." });
+                // 🔹 Table existence check
+                var tableExists = await _context.ServiceTables
+                    .AnyAsync(t => t.Id == request.TableId.Value);
+
+                if (!tableExists)
+                    return BadRequest(new { message = $"Table with Id {request.TableId.Value} does not exist." });
+            }
+
+            if (request.OrderType == "TakeAway")
+            {
+                if (request.PickUpId == null)
+                    return BadRequest(new { message = "Pickup counter is required for Takeaway orders." });
+            }
 
             if (request.OrderType == "Delivery" &&
                 string.IsNullOrWhiteSpace(request.DelivaryAddress))
                 return BadRequest(new { message = "Delivery address is required for delivery orders." });
 
             // ============================
-            // 3️⃣ ItemId exists in DB check
+            // Item existence check
             // ============================
             var itemIds = request.OrderItems.Select(x => x.ItemId).ToList();
 
-            var dbItems = await _context.Items
+            var dbItemIds = await _context.Items
                 .Where(i => itemIds.Contains(i.ItemId))
-                .Select(i => new { i.ItemId, i.ItemName, })
+                .Select(i => i.ItemId)
                 .ToListAsync();
 
-            var missingItemIds = itemIds.Except(dbItems.Select(i => i.ItemId)).ToList();
+            var missingItemIds = itemIds.Except(dbItemIds).ToList();
 
             if (missingItemIds.Any())
             {
                 return BadRequest(new
                 {
                     message = "Some items were not found.",
-                    missingItemIds = missingItemIds
-                });
-            }
-
-            var inactiveItems = dbItems
-                .Select(i => i.ItemName)
-                .ToList();
-
-            if (inactiveItems.Any())
-            {
-                return BadRequest(new
-                {
-                    message = "Some items are currently unavailable.",
-                    items = inactiveItems
+                    missingItemIds
                 });
             }
 
             // ============================
-            // 4️⃣ Item-level validation
+            // Item-level validation
             // ============================
             foreach (var item in request.OrderItems)
             {
                 if (item.Quantity <= 0)
-                    return BadRequest(new
-                    {
-                        message = $"Invalid quantity for item {item.ItemName ?? "Unknown"}."
-                    });
+                    return BadRequest(new { message = "Item quantity must be greater than zero." });
 
                 if (item.Price <= 0)
-                    return BadRequest(new
-                    {
-                        message = $"Invalid price for item {item.ItemName ?? "Unknown"}."
-                    });
+                    return BadRequest(new { message = "Item price must be greater than zero." });
             }
 
             // ============================
-            // 5️⃣ Create Order (same logic)
+            // Create Order
             // ============================
             var order = new SaleOrders
             {
-                OrderNumber = $"ORD-{DateTime.Now.Ticks}",
+                OrderNumber = $"ORD-{DateTime.UtcNow.Ticks}",
                 OrderDate = DateTime.UtcNow,
                 OrderType = request.OrderType,
                 OrderStatus = "Preparing",
-                CustomerId = request.CustomerId ?? 0,
+                CustomerId = request.CustomerId,  // NULL allowed
                 TableId = request.TableId,
                 PickUpId = request.PickUpId,
                 DelivaryAddress = request.DelivaryAddress,
                 SubTotal = request.SubTotal,
-                TaxAmount = (decimal)request.TaxAmount,
-                DiscountAmount = (decimal)request.DiscountAmount,
-                GrandTotal = (decimal)request.GrandTotal,
+                TaxAmount = request.TaxAmount ?? 0,
+                DiscountAmount = request.DiscountAmount ?? 0,
+                GrandTotal = request.GrandTotal ?? 0,
                 PaymentStatus = "Unpaid",
                 Notes = request.Notes
             };
@@ -433,7 +423,7 @@ namespace ARBISTO_POS.ApiControllers
             await _context.SaveChangesAsync();
 
             // ============================
-            // 6️⃣ Create Order Items
+            // Create Order Items
             // ============================
             foreach (var item in request.OrderItems)
             {
@@ -454,20 +444,19 @@ namespace ARBISTO_POS.ApiControllers
 
             await _context.SaveChangesAsync();
 
-            // ============================
-            // 7️⃣ Success response
-            // ============================
             return CreatedAtAction(
                 nameof(GetOrderById),
                 new { id = order.OrderId },
                 new
                 {
                     success = true,
-                    message = "Order successfully placed and sent to kitchen.",
+                    message = "Order successfully placed.",
                     orderId = order.OrderId,
                     orderNumber = order.OrderNumber
                 });
         }
+
+
 
 
         // ============================
@@ -573,22 +562,30 @@ namespace ARBISTO_POS.ApiControllers
         }
 
         // ============================
-        // POST: api/SaleOrderApi/hold - Hold order
+        // POST: api/SaleOrderApi/hold
         // ============================
-        [AllowAnonymous]
         [HttpPost("hold")]
+        [AllowAnonymous]
         public async Task<IActionResult> HoldOrder([FromBody] HoldOrderViewModel model)
         {
             try
             {
                 if (model == null || model.Items == null || !model.Items.Any())
-                    return BadRequest(new { success = false, message = "Invalid order data or no items" });
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Invalid order data or no items"
+                    });
+                }
 
+                // Generate order number if not provided
                 if (string.IsNullOrEmpty(model.OrderNumber))
                 {
                     model.OrderNumber = $"HLD-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}";
                 }
 
+                // Create HeldOrders entity
                 var heldOrder = new HeldOrders
                 {
                     OrderNumber = model.OrderNumber,
@@ -609,9 +606,10 @@ namespace ARBISTO_POS.ApiControllers
                     HeldOrderItems = new List<HeldOrdersItem>()
                 };
 
+                // Add items
                 foreach (var item in model.Items)
                 {
-                    var heldOrderItem = new HeldOrdersItem
+                    heldOrder.HeldOrderItems.Add(new HeldOrdersItem
                     {
                         CustomerId = model.CustomerId,
                         ItemId = item.ItemId,
@@ -620,11 +618,10 @@ namespace ARBISTO_POS.ApiControllers
                         Price = item.Price ?? 0,
                         Quantity = item.Quantity ?? 0,
                         Total = item.Total ?? 0
-                    };
-
-                    heldOrder.HeldOrderItems.Add(heldOrderItem);
+                    });
                 }
 
+                // Save
                 _context.HeldOrders.Add(heldOrder);
                 await _context.SaveChangesAsync();
 
@@ -638,9 +635,14 @@ namespace ARBISTO_POS.ApiControllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = $"Error holding order: {ex.Message}" });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = $"Error holding order: {ex.Message}"
+                });
             }
         }
+
 
         // ============================
         // GET: api/SaleOrderApi/held-orders/count
@@ -654,121 +656,124 @@ namespace ARBISTO_POS.ApiControllers
         }
 
         // ============================
-        // GET: api/SaleOrderApi/held-orders - Get all held orders
+        // GET / DELETE: api/SaleOrderApi/held-orders
         // ============================
+
+        [AllowAnonymous]
         [HttpGet("held-orders")]
-        public async Task<IActionResult> GetHeldOrders()
+        [HttpDelete("held-orders")]
+        public async Task<IActionResult> ManageHeldOrders([FromQuery] int? id)
         {
-            var heldOrders = await _context.HeldOrders
-                .Include(h => h.Customer)
-                .Include(h => h.Table)
-                .Include(h => h.HeldOrderItems)
-                .OrderByDescending(h => h.OrderDate)
-                .Select(h => new
+            try
+            {
+                // ===============================
+                // DELETE
+                // ===============================
+                if (HttpContext.Request.Method == HttpMethods.Delete)
                 {
-                    h.OrderId,
-                    h.OrderNumber,
-                    h.OrderDate,
-                    h.OrderType,
-                    Customer = h.Customer != null ? new { h.Customer.Id, h.Customer.Name } : null,
-                    Table = h.Table != null ? new { h.Table.Id, h.Table.TabName } : null,
-                    h.GrandTotal,
-                    Items = h.HeldOrderItems.Select(i => new
+                    if (id == null)
+                        return BadRequest(new { success = false, message = "Order id is required for delete." });
+
+                    var heldOrderToDelete = await _context.HeldOrders
+                        .Include(h => h.HeldOrderItems)
+                        .FirstOrDefaultAsync(h => h.OrderId == id);
+
+                    if (heldOrderToDelete == null)
+                        return NotFound(new { success = false, message = "Order not found" });
+
+                    _context.HeldOrders.Remove(heldOrderToDelete);
+                    await _context.SaveChangesAsync();
+
+                    return Ok(new { success = true, message = "Held order deleted successfully." });
+                }
+
+                // ===============================
+                // GET SINGLE ORDER
+                // ===============================
+                if (id.HasValue)
+                {
+                    var heldOrder = await _context.HeldOrders
+                        .Include(h => h.HeldOrderItems)
+                        .Include(h => h.Customer)
+                        .Include(h => h.Table)
+                        .FirstOrDefaultAsync(h => h.OrderId == id);
+
+                    if (heldOrder == null)
+                        return NotFound(new { success = false, message = "Order not found" });
+
+                    var items = heldOrder.HeldOrderItems.Select(item => new
                     {
-                        i.ItemId,
-                        i.ItemName,
-                        i.ItemImage,
-                        i.Price,
-                        i.Quantity,
-                        i.Total
-                    }).ToList()
-                })
-                .ToListAsync();
+                        id = item.ItemId,
+                        name = item.ItemName,
+                        price = item.Price,
+                        image = item.ItemImage ?? "/assets/images/upload.jpg",
+                        qty = item.Quantity
+                    }).ToList();
 
-            return Ok(heldOrders);
-        }
+                    return Ok(new
+                    {
+                        success = true,
+                        order = new
+                        {
+                            id = heldOrder.OrderId,
+                            orderNumber = heldOrder.OrderNumber,
+                            orderType = heldOrder.OrderType,
+                            customerId = heldOrder.CustomerId,
+                            tableId = heldOrder.TableId,
+                            pickUpId = heldOrder.PickUpId,
+                            deliveryAddress = heldOrder.DelivaryAddress,
+                            subTotal = heldOrder.SubTotal,
+                            taxAmount = heldOrder.TaxAmount,
+                            discountAmount = heldOrder.DiscountAmount,
+                            grandTotal = heldOrder.GrandTotal,
+                            items,
+                            customerName = heldOrder.Customer?.Name,
+                            tableName = heldOrder.Table?.TabName
+                        }
+                    });
+                }
 
-        // ============================
-        // DELETE: api/SaleOrderApi/held-orders/{id}
-        // ============================
-        [AllowAnonymous]
-        [HttpDelete("held-orders/{id}")]
-        public async Task<IActionResult> DeleteHeldOrder(int id)
-        {
-            try
-            {
-                var heldOrder = await _context.HeldOrders
-                    .Include(h => h.HeldOrderItems)
-                    .FirstOrDefaultAsync(h => h.OrderId == id);
-
-                if (heldOrder == null)
-                    return NotFound(new { success = false, message = "Order not found" });
-
-                _context.HeldOrders.Remove(heldOrder);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { success = true, message = "Held order deleted" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { success = false, message = ex.Message });
-            }
-        }
-
-        // ============================
-        // GET: api/SaleOrderApi/held-orders/{id} - Load held order
-        // ============================
-        [AllowAnonymous]
-        [HttpGet("held-orders/{id}")]
-        public async Task<IActionResult> LoadHeldOrder(int id)
-        {
-            try
-            {
-                var heldOrder = await _context.HeldOrders
-                    .Include(h => h.HeldOrderItems)
+                // ===============================
+                // GET ALL ORDERS
+                // ===============================
+                var heldOrders = await _context.HeldOrders
                     .Include(h => h.Customer)
                     .Include(h => h.Table)
-                    .FirstOrDefaultAsync(h => h.OrderId == id);
-
-                if (heldOrder == null)
-                    return NotFound(new { success = false, message = "Order not found" });
-
-                var items = heldOrder.HeldOrderItems.Select(item => new
-                {
-                    id = item.ItemId,
-                    name = item.ItemName,
-                    price = item.Price,
-                    image = item.ItemImage ?? "/assets/images/upload.jpg",
-                    qty = item.Quantity
-                }).ToList();
-
-                return Ok(new
-                {
-                    success = true,
-                    order = new
+                    .Include(h => h.HeldOrderItems)
+                    .OrderByDescending(h => h.OrderDate)
+                    .Select(h => new
                     {
-                        id = heldOrder.OrderId,
-                        orderNumber = heldOrder.OrderNumber,
-                        orderType = heldOrder.OrderType,
-                        customerId = heldOrder.CustomerId,
-                        tableId = heldOrder.TableId,
-                        pickUpId = heldOrder.PickUpId,
-                        deliveryAddress = heldOrder.DelivaryAddress,
-                        subTotal = heldOrder.SubTotal,
-                        taxAmount = heldOrder.TaxAmount,
-                        discountAmount = heldOrder.DiscountAmount,
-                        grandTotal = heldOrder.GrandTotal,
-                        items,
-                        customerName = heldOrder.Customer?.Name,
-                        tableName = heldOrder.Table?.TabName
-                    }
-                });
+                        h.OrderId,
+                        h.OrderNumber,
+                        h.OrderDate,
+                        h.OrderType,
+                        Customer = h.Customer != null ? new { h.Customer.Id, h.Customer.Name } : null,
+                        Table = h.Table != null ? new { h.Table.Id, h.Table.TabName } : null,
+                        h.GrandTotal,
+                        Items = h.HeldOrderItems.Select(i => new
+                        {
+                            i.ItemId,
+                            i.ItemName,
+                            i.ItemImage,
+                            i.Price,
+                            i.Quantity,
+                            i.Total
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                return Ok(heldOrders);
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
+
 
         // ============================
         // POST: api/SaleOrderApi/process-payment - Process payment
