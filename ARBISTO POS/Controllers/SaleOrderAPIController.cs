@@ -642,51 +642,17 @@ namespace ARBISTO_POS.ApiControllers
                 });
             }
         }
-
-
+        
         // ============================
-        // GET: api/SaleOrderApi/held-orders/count
-        // ============================
-        [AllowAnonymous]
-        [HttpGet("held-orders/count")]
-        public async Task<IActionResult> GetHeldOrdersCount()
-        {
-            var count = await _context.HeldOrders.CountAsync();
-            return Ok(new { count });
-        }
-
-        // ============================
-        // GET / DELETE: api/SaleOrderApi/held-orders
+        // GET: api/SaleOrderApi/held-orders
         // ============================
 
         [AllowAnonymous]
         [HttpGet("held-orders")]
-        [HttpDelete("held-orders")]
-        public async Task<IActionResult> ManageHeldOrders([FromQuery] int? id)
+        public async Task<IActionResult> GetHeldOrders([FromQuery] int? id)
         {
             try
             {
-                // ===============================
-                // DELETE
-                // ===============================
-                if (HttpContext.Request.Method == HttpMethods.Delete)
-                {
-                    if (id == null)
-                        return BadRequest(new { success = false, message = "Order id is required for delete." });
-
-                    var heldOrderToDelete = await _context.HeldOrders
-                        .Include(h => h.HeldOrderItems)
-                        .FirstOrDefaultAsync(h => h.OrderId == id);
-
-                    if (heldOrderToDelete == null)
-                        return NotFound(new { success = false, message = "Order not found" });
-
-                    _context.HeldOrders.Remove(heldOrderToDelete);
-                    await _context.SaveChangesAsync();
-
-                    return Ok(new { success = true, message = "Held order deleted successfully." });
-                }
-
                 // ===============================
                 // GET SINGLE ORDER
                 // ===============================
@@ -762,7 +728,12 @@ namespace ARBISTO_POS.ApiControllers
                     })
                     .ToListAsync();
 
-                return Ok(heldOrders);
+                return Ok(new
+                {
+                    success = true,
+                    totalRecords = heldOrders.Count,
+                    orders = heldOrders
+                });
             }
             catch (Exception ex)
             {
@@ -774,6 +745,41 @@ namespace ARBISTO_POS.ApiControllers
             }
         }
 
+        // ============================
+        // DELETE: api/SaleOrderApi/held-orders/{id}
+        // ============================
+
+        [AllowAnonymous]
+        [HttpDelete("held-orders/{id}")]
+        public async Task<IActionResult> DeleteHeldOrder(int id)
+        {
+            try
+            {
+                var heldOrderToDelete = await _context.HeldOrders
+                    .Include(h => h.HeldOrderItems)
+                    .FirstOrDefaultAsync(h => h.OrderId == id);
+
+                if (heldOrderToDelete == null)
+                    return NotFound(new { success = false, message = "Order not found" });
+
+                _context.HeldOrders.Remove(heldOrderToDelete);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Held order deleted successfully."
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
 
         // ============================
         // POST: api/SaleOrderApi/process-payment - Process payment

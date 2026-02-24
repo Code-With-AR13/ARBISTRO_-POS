@@ -36,7 +36,38 @@
     .blink {
         animation: blink-animation 3s infinite; /* 1s duration, infinite loop */
     }   
-    
+    /* Chat Bubble Style */
+    .chat-bubble {
+        background: white;
+        padding: 10px 14px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        max-width: 85%;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        position: relative;
+    }
+
+        .chat-bubble.unread {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+    .chat-time {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 4px;
+        text-align: right;
+    }
+
+    .chat-item-name {
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .chat-order-info {
+        font-size: 12px;
+        color: #6c757d;
+    }
 </style>
 <!------------------------------------------------------------------------ NAVBAR ------------------------------------------------------------->
 <nav class="navbar navbar-expand-lg navbar-dark bg-white shadow-sm">
@@ -117,13 +148,23 @@
          aria-labelledby="notificationDropdown">
 
         <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
-            <span class="fw-semibold">Notifications</span>
-            <button id="markAllBtn"
-                    class="btn btn-sm btn-link text-decoration-none">
-                Mark all
-            </button>
-        </div>
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
+                            <span class="fw-semibold text-dark">
+                                <i class="feather-bell me-1"></i> Notifications
+                            </span>
+
+                            <div class="d-flex gap-2">
+                                <button id="markAllBtn"
+                                        class="btn btn-sm btn-outline-primary">
+                                    Mark All
+                                </button>
+
+                                <button id="deleteAllBtn"
+                                        class="btn btn-sm btn-outline-danger">
+                                    Delete All
+                                </button>
+                            </div>
+                        </div>
 
         <!-- Body -->
         <div id="notificationList"
@@ -136,7 +177,31 @@
 
     </div>
 </li>
-                
+ <!-- Notification Model -->
+                <div class="modal fade" id="conversationModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-scrollable modal-md">
+                        <div class="modal-content border-0 shadow-lg">
+
+                            <!-- Header -->
+                            <div class="modal-header border-0 bg-primary text-white">
+                                <h6 class="modal-title fw-semibold">
+                                    <i class="feather-message-circle me-2"></i>
+                                    Order Conversation
+                                </h6>
+                                <button type="button" class="btn-close btn-close-white"
+                                        data-bs-dismiss="modal"></button>
+                            </div>
+
+                            <!-- Chat Body -->
+                            <div class="modal-body p-3 bg-white"
+                                 id="conversationBody"
+                                 style="background:#f5f7fb; max-height:500px; overflow-y:auto;">
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <!-- Button Profile -->
                     <li class="nav-item dropdown">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" class="d-flex align-items-center">
                             <img src="~/assets/images/logo-abbr (2).png" alt="user-image" class="rounded-circle" style="width:48px; height:48px; object-fit:cover;" />
@@ -1749,34 +1814,106 @@ matchedItems.forEach((item, idx) => {
         /* =========================================
            MARK ALL AS READ ON BELL CLICK
         ========================================= */
-
-            document.getElementById('markAllBtn')
+        document.getElementById('markAllBtn')
         .addEventListener('click', async function () {
 
-            await fetch('/Notification/MarkAllAsRead', {
-                method: 'POST'
+            const response = await fetch('/Notification/GetUnreadCount');
+            const data = await response.json();
+
+            // ✅ If no notifications
+            if (!data.count || data.count === 0) {
+
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Notifications',
+                    text: 'There is no notification to mark as read.',
+                    confirmButtonColor: '#0d6efd'
+                });
+
+                return;
+            }
+
+            // ✅ Otherwise confirm
+            Swal.fire({
+                title: 'Mark all as read?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0d6efd',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Mark All'
+            }).then(async (result) => {
+
+                if (result.isConfirmed) {
+
+                    await fetch('/Notification/MarkAllAsRead', {
+                        method: 'POST'
+                    });
+
+                    loadUnreadCount();
+                    loadNotifications();
+
+                    toastr.success('All notifications marked as read', 'Success');
+                }
             });
-
-            loadUnreadCount();
-            loadNotifications();
         });
+        /* =========================================
+           DELETE ALL ON CLICK
+        ========================================= */
+                document.getElementById('deleteAllBtn')
+        .addEventListener('click', async function () {
 
-        // document.getElementById('notificationBell')
-        // ?.addEventListener('click', async function () {
+            const response = await fetch('/Notification/GetLatest');
+            const data = await response.json();
 
-        //     try {
-        //         await fetch('/Notification/MarkAllAsRead', {
-        //             method: 'POST'
-        //         });
+            // ✅ If no notifications exist
+            if (!data || data.length === 0) {
 
-        //         document.getElementById('notificationCount').innerText = 0;
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Notifications',
+                    text: 'There is no notification to delete.',
+                    confirmButtonColor: '#dc3545'
+                });
 
-        //     } catch (err) {
-        //         console.error(err);
-        //     }
-        // });
+                return;
+            }
 
-                               async function loadNotifications() {
+            // ✅ Otherwise confirm delete
+            Swal.fire({
+                title: 'Delete All Notifications?',
+                text: "This action cannot be undone.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Delete All',
+                cancelButtonText: 'Cancel'
+            }).then(async (result) => {
+
+                if (result.isConfirmed) {
+
+                    try {
+
+                        await fetch('/Notification/DeleteAll', {
+                            method: 'POST'
+                        });
+
+                        loadUnreadCount();
+                        loadNotifications();
+
+                        toastr.success('All notifications deleted successfully', 'Deleted');
+
+                    } catch (err) {
+                        console.error(err);
+                        toastr.error('Failed to delete notifications', 'Error');
+                    }
+                }
+            });
+        });
+        /* =========================================
+           LOAD NOTIFICATION
+        ========================================= */
+                async function loadNotifications() {
 
             const response = await fetch('/Notification/GetLatest');
             const data = await response.json();
@@ -1789,33 +1926,122 @@ matchedItems.forEach((item, idx) => {
                     '<div class="text-center text-muted py-3">No notifications</div>';
                 return;
             }
-
+                    // ✅ Sort latest first (new on top)
+        data.sort((a, b) => new Date(b.createdAtRaw) - new Date(a.createdAtRaw));
             data.forEach(n => {
 
                 const item = document.createElement('a');
                 item.href = "#";
-                item.className =
-                    `list-group-item list-group-item-action ${n.isRead ? '' : 'list-group-item-light fw-semibold'}`;
+                item.className = "list-group-item list-group-item-action border-0 py-3";
 
-                item.innerHTML = `
-                    <div class="d-flex justify-content-between">
-                        <small class="fw-bold">${n.title}</small>
-                        <small class="text-muted">${n.createdAt}</small>
+                // Badge logic
+                const badgeHtml = n.unreadCount > 0
+                    ? `<span class="badge bg-danger rounded-pill">${n.unreadCount}</span>`
+                    : '';
+
+                        item.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start">
+
+                <div class="me-2">
+                    <div class="fw-semibold ${n.unreadCount > 0 ? 'text-dark' : 'text-muted'}">
+                        ${n.title}
                     </div>
-                    <div class="small">${n.message}</div>
-                `;
+                    <div class="small text-muted text-truncate" style="max-width:220px;">
+                        ${n.lastMessage}
+                    </div>
+                </div>
 
-                item.addEventListener('click', async function () {
+                <div class="text-end">
+                    ${badgeHtml}
+                    <div class="small text-secondary mt-1">
+                        ${n.createdAt}
+                    </div>
+                </div>
 
-                    await fetch('/Notification/MarkSingleAsRead?id=' + n.id,
-                        { method: 'POST' });
+            </div>
+        `;
 
-                    loadUnreadCount();
-                    loadNotifications();
+                item.addEventListener('click', function () {
+                    openConversation(n.referenceId);
                 });
 
                 container.appendChild(item);
             });
+        }
+        /* =========================================
+          LOAD CONVERSATION
+        ========================================= */
+                 async function openConversation(referenceId) {
+
+            try {
+
+                const response = await fetch('/Notification/GetConversation?referenceId=' + referenceId);
+                const messages = await response.json();
+
+                const body = document.getElementById('conversationBody');
+                body.innerHTML = "";
+
+                // ✅ If no messages
+                if (!messages || messages.length === 0) {
+
+                    body.innerHTML = `
+                        <div class="d-flex flex-column align-items-center justify-content-center text-center text-muted"
+                             style="height:250px;">
+                            <i class="feather-message-circle mb-2" style="font-size:40px;"></i>
+                            <div class="fw-semibold">No messages</div>
+                            <small>No items ready yet</small>
+                        </div>
+                    `;
+
+                } else {
+
+                    messages.forEach(m => {
+
+                        // Split message
+                        const parts = m.message.split('→');
+                        const orderInfo = parts.length > 1 ? parts[0].trim() : '';
+                        const itemInfo = parts.length > 1 ? parts[1].trim() : m.message;
+
+                        body.innerHTML += `
+                            <div class="mb-3">
+                                <div class="p-3 rounded-3 shadow-sm bg-white border">
+
+                                    <div class="fw-semibold text-dark mb-1">
+                                        ${itemInfo}
+                                    </div>
+
+                                    <div class="small text-muted mb-1">
+                                        ${orderInfo}
+                                    </div>
+
+                                    <div class="text-end small text-secondary">
+                                        ${m.time}
+                                    </div>
+
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // Auto scroll bottom
+                    body.scrollTop = body.scrollHeight;
+                }
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('conversationModal'));
+                modal.show();
+
+                // Mark only this reference as read
+                await fetch('/Notification/MarkByReference?referenceId=' + referenceId, {
+                    method: 'POST'
+                });
+
+                loadUnreadCount();
+                loadNotifications();
+
+            } catch (err) {
+                console.error(err);
+            }
         }
 
         document.getElementById('notificationDropdown')

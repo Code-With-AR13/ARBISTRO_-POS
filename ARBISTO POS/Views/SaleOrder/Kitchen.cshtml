@@ -431,19 +431,24 @@
 
             let itemsHtml = "";
 
-            order.items.forEach(item => {
-                itemsHtml += `
-                    <div class="form-check mb-2">
-                        <input class="form-check-input item-checkbox p-2"
-                               type="checkbox"
-                               value="${item.itemId}"
-                               data-order-id="${order.orderId}">
-                        <label class="form-check-label">
-                            ${item.quantity} x ${item.itemName}
-                        </label>
-                    </div>
-                `;
-            });
+                    order.items.forEach(item => {
+
+            const checkboxId = `item_${order.orderId}_${item.itemId}`;
+
+            itemsHtml += `
+                <div class="form-check mb-2">
+                    <input class="form-check-input item-checkbox p-2"
+                           type="checkbox"
+                           value="${item.itemId}"
+                           id="${checkboxId}"
+                           data-order-id="${order.orderId}">
+                    <label class="form-check-label"
+                           for="${checkboxId}">
+                        ${item.quantity} x ${item.itemName}
+                    </label>
+                </div>
+            `;
+        });
 
             // 🔥 Generate Chef Options
             let chefOptions = `<option value="">Select Chef</option>`;

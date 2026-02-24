@@ -47,8 +47,10 @@ builder.Services.AddCors(options =>
 // Register SignalR
 // --------------------------------------------------
 builder.Services.AddSignalR();
-
-
+// --------------------------------------------------
+// Register AutoDelete Service
+// --------------------------------------------------
+builder.Services.AddHostedService<NotificationCleanupService>();
 // --------------------------------------------------
 // Cookie Authentication
 // --------------------------------------------------

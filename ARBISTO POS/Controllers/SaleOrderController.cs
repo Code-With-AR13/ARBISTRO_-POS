@@ -732,7 +732,6 @@ namespace ARBISTO_POS.Controllers
         }
 
 
-
         [HttpPost]
         public async Task<IActionResult> ProcessPayment([FromBody] PaymentRequest request)
         {
