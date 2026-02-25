@@ -68,6 +68,18 @@
         font-size: 12px;
         color: #6c757d;
     }
+    /* Force SUCCESS toast to dark green */
+    #toast-container > .toast.toast-success {
+        background-color: #008000 !important; /* dark green */
+        color: #ffffff !important;
+    }
+
+        /* Keep same color on hover (no light/black change) */
+        #toast-container > .toast.toast-success:hover {
+            background-color: #008000 !important;
+            color: #ffffff !important;
+        }
+
 </style>
 <!------------------------------------------------------------------------ NAVBAR ------------------------------------------------------------->
 <nav class="navbar navbar-expand-lg navbar-dark bg-white shadow-sm">
@@ -769,24 +781,24 @@
                 });
             }
         });
-
+       
         // Toastr Configuration - Right Top Corner
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": true,
-            "progressBar": true,
-            "positionClass": "toast-top-center",  // Right top corner
-            "preventDuplicates": false,
-            "onclick": null,
-            "showDuration": "300",
-            "hideDuration": "1000",
-            "timeOut": "5000",
-            "extendedTimeOut": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut"
+            toastr.options = {
+            closeButton: true,
+            debug: false,
+            newestOnTop: true,                 // ✅ new toast on top [web:49]
+            progressBar: true,
+            positionClass: "toast-top-center",
+            preventDuplicates: false,
+            onclick: null,
+            showDuration: "300",
+            hideDuration: "1000",
+            timeOut: "5000",
+            extendedTimeOut: "1000",
+            showEasing: "swing",
+            hideEasing: "linear",
+            showMethod: "fadeIn",
+            hideMethod: "fadeOut"
         };
 
         // Success Toaster Check karein
@@ -1769,18 +1781,54 @@ matchedItems.forEach((item, idx) => {
             .withUrl("/notificationHub")
             .build();
 
-                connection.on("ReceiveItemReadyNotification", function (title, message) {
+                       connection.on("ReceiveItemReadyNotification", function (title, message) {
 
-            // 🔊 Play sound
-            const audio = new Audio('/sounds/notification.mp3');
+            // 1) Sound
+            const audio = new Audio("/sounds/notification.mp3");
             audio.play();
 
-            // 🔔 Toast
-            toastr.success(message, title);
+            // 2) Make toast short (Table + Item only)
+            const shortToast = buildShortItemReadyToast(message);
 
-            // 🔄 Reload unread count from DB (professional way)
+            // 3) Show toast short, title same
+            toastr.success(shortToast, title);
+
+            // 4) Badge reload (same as your code)
             loadUnreadCount();
         });
+
+        function buildShortItemReadyToast(message) {
+            if (!message) return "Item ready";
+
+            // Your message format in DB:
+            // $"{locationInfo} | {customerName} | Order #{order.OrderNumber} → {itemName} Ready" [file:36]
+            // Example: "Table: Table No 3 In Hall | Walking Customer | Order #ORD-... → 1x Bun Ready"
+
+            const parts = message.split("|").map(p => p.trim());
+
+            // locationInfo is parts[0] => "Table: Table No 3 In Hall" (or "Delivery Order" etc.) [file:36]
+            const locationInfo = parts.length > 0 ? parts[0] : "";
+
+            // item info is usually after arrow "→"
+            let itemPart = "";
+            const arrowSplit = message.split("→");
+            if (arrowSplit.length > 1) itemPart = arrowSplit[1].trim(); // "1x Bun Ready"
+
+            // Keep only table number text if it's DineIn, else keep location as-is
+            // (You can tune this regex based on your exact wording)
+            let locationShort = locationInfo;
+            if (locationInfo.toLowerCase().startsWith("table:")) {
+                // Remove "Table:" prefix, keep rest
+                locationShort = locationInfo.replace(/^table:\s*/i, "").trim();
+            }
+
+            // Final short toast: "Table No 3 In Hall — 1x Bun Ready"
+            if (locationShort && itemPart) return `${locationShort} — ${itemPart}`;
+            if (itemPart) return itemPart;
+            if (locationShort) return locationShort;
+            return "Item ready";
+        }
+
 
         connection.start().catch(err => console.error(err));
 

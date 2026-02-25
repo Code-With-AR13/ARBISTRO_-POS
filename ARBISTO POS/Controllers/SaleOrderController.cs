@@ -351,14 +351,47 @@ namespace ARBISTO_POS.Controllers
             // ===============================
             // CREATE NOTIFICATION
             // ===============================
+            // ✅ Title logic
+            string title;
+
+            if (order.OrderType == "DINE IN")
+            {
+                string tableName = null;
+
+                // Agar Table navigation load nahi ho rahi to DB se le aao:
+                if (order.Table != null)
+                {
+                    tableName = order.Table.TabName;
+                }
+                else if (order.TableId > 0)
+                {
+                    var table = await _context.ServiceTables
+                        .FirstOrDefaultAsync(t => t.Id == order.TableId);
+
+                    tableName = table?.TabName;
+                }
+
+                // Final fallback, null safe:
+                if (string.IsNullOrEmpty(tableName))
+                {
+                    tableName = $"Table #{order.TableId}";
+                }
+
+                title = $"{tableName} - DINE IN";
+            }
+            else
+            {
+                title = order.OrderType ?? "ORDER";
+            }
 
             var notification = new Notification
             {
-                Title = "New Kitchen Order",
+                Title = title,
                 Message = $"Order #{order.OrderNumber} is waiting in kitchen.",
                 Type = "Kitchen",
                 ReferenceId = order.OrderId
             };
+
 
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
@@ -547,14 +580,6 @@ namespace ARBISTO_POS.Controllers
         {
             return await _context.SaleOrders.AnyAsync(e => e.OrderId == id);
         }
-
-
-
-
-
-
-
-
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -779,9 +804,6 @@ namespace ARBISTO_POS.Controllers
             public decimal TotalAmount { get; set; }
             public decimal ReceivedAmount { get; set; }           
         }
-
-
-
 
         [HttpGet]
         public JsonResult GetItemsByCategory(int categoryId)

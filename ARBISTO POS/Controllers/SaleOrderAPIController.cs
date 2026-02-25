@@ -1,9 +1,11 @@
 ﻿using ARBISTO_POS.Attributes;
 using ARBISTO_POS.Data;
+using ARBISTO_POS.Hubs;
 using ARBISTO_POS.Models;
 using ARBISTO_POS.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
@@ -16,10 +18,12 @@ namespace ARBISTO_POS.ApiControllers
     public class SaleOrderApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public SaleOrderApiController(ApplicationDbContext context)
+        public SaleOrderApiController(ApplicationDbContext context , IHubContext<NotificationHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         // ============================
@@ -444,6 +448,31 @@ namespace ARBISTO_POS.ApiControllers
 
             await _context.SaveChangesAsync();
 
+            // ===============================
+            // CREATE NOTIFICATION
+            // ===============================
+
+            var notification = new Notification
+            {
+                Title = order.Table.TabName,
+                Message = $"Order #{order.OrderNumber} is waiting in kitchen.",
+                Type = "Kitchen",
+                ReferenceId = order.OrderId
+            };
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+
+            // ===============================
+            // SEND REAL-TIME SIGNALR ALERT
+            // ===============================
+
+            await _hubContext.Clients.All.SendAsync(
+                "ReceiveKitchenNotification",
+                notification.Title,
+                notification.Message
+            );
+
             return CreatedAtAction(
                 nameof(GetOrderById),
                 new { id = order.OrderId },
@@ -456,13 +485,75 @@ namespace ARBISTO_POS.ApiControllers
                 });
         }
 
-
-
-
         // ============================
-        // PUT: api/SaleOrderApi/{id} - Update order
+        // Item Ready Notification API
         // ============================
-        [AllowAnonymous]
+        // POST: api/notification/item-ready
+        [HttpPost("item-ready")]
+        public async Task<IActionResult> NotifyItemReady([FromBody] ItemReadyRequest request)
+        {
+            if (request == null)
+                return BadRequest(new { success = false, message = "Invalid request." });
+
+            var order = await _context.SaleOrders
+                .Include(o => o.Customer)
+                .Include(o => o.Table)
+                .FirstOrDefaultAsync(o => o.OrderId == request.OrderId);
+
+            if (order == null)
+                return NotFound(new { success = false, message = "Order not found." });
+
+            var customerName = order.Customer?.Name ?? "Walking Customer";
+            var locationInfo = "";
+
+            if (order.OrderType == "DINE IN")
+                locationInfo = $"Table: {order.Table?.TabName}";
+            else if (order.OrderType == "DELIVERY")
+                locationInfo = "Delivery Order";
+            else if (order.OrderType == "PICKUP POINT")
+                locationInfo = "Pickup Order";
+
+            var notification = new Notification
+            {
+                Title = "Item Ready",
+                Message = $"{locationInfo} | {customerName} | Order #{order.OrderNumber} → {request.ItemName} Ready",
+                Type = "ItemReady",
+                ReferenceId = request.OrderId,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+
+            // Send to POS only (SignalR)
+            await _hubContext.Clients.All.SendAsync(
+                "ReceiveItemReadyNotification",
+                notification.Title,
+                notification.Message
+            );
+
+            return Ok(new
+            {
+                success = true,
+                notificationId = notification.Id,
+                title = notification.Title,
+                message = notification.Message
+            });
+        }   
+
+    // Request DTO
+    public class ItemReadyRequest
+    {
+        public int OrderId { get; set; }
+        public string ItemName { get; set; } = string.Empty;
+    }
+
+
+// ============================
+// PUT: api/SaleOrderApi/{id} - Update order
+// ============================
+[AllowAnonymous]
         [HttpPut("{id}")]
         [Permission("Manage Sales/Payments")]
         public async Task<IActionResult> UpdateOrder(int id, [FromBody] CreateOrderRequest request)
@@ -879,6 +970,9 @@ namespace ARBISTO_POS.ApiControllers
 
             return Ok(order);
         }
+
+
+
 
         // Helper method
         private async Task<bool> OrderExists(int id)
