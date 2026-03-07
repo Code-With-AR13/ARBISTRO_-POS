@@ -257,7 +257,7 @@ namespace ARBISTO_POS.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet]       
         public async Task<IActionResult> GetIngredients(string search = "")
         {
             var query = _context.Ingredients.AsNoTracking();

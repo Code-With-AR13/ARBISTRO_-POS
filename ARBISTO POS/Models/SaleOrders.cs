@@ -68,6 +68,10 @@ namespace ARBISTO_POS.Models
         // ================= Extra =================
         public string? Notes { get; set; }
 
+        [ForeignKey("CreatedByUserId")]
+        public AppUser CreatedByUser { get; set; }
+        public int CreatedByUserId { get; set; }   // AspNetUsers ka Id (string hota hai)     
+
         // ================= Navigation =================
         public ICollection<SaleOrderItems> OrderItems { get; set; }
     }

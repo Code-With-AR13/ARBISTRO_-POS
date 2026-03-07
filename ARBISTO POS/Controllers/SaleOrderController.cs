@@ -12,6 +12,7 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace ARBISTO_POS.Controllers
 {
@@ -34,6 +35,9 @@ namespace ARBISTO_POS.Controllers
             var orders = await _context.SaleOrders
                 .Include(o => o.Customer)
                 .Include(o => o.OrderItems)
+                .Include(o => o.CreatedByUser)
+                .OrderByDescending(o => o.OrderId)
+                .ThenByDescending(o => o.OrderDate) // ✅ backup sorting
                 .ToListAsync();
 
             return View(orders);
@@ -53,7 +57,30 @@ namespace ARBISTO_POS.Controllers
 
             return View(orders);
         }
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> UpdateKitchenItemStatus(int orderId, int itemId, bool isPrepared)
+        {
+            try
+            {
+                var orderItem = await _context.SaleOrderItems
+                    .FirstOrDefaultAsync(x => x.OrderId == orderId && x.ItemId == itemId);
 
+                if (orderItem == null)
+                    return Json(new { success = false, message = "Order item not found" });
+
+                orderItem.IsPrepared = isPrepared;
+                orderItem.PreparedAt = isPrepared ? DateTime.UtcNow : null;
+
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
         [HttpGet]
         public async Task<IActionResult> GetPreparingOrders()
         {
@@ -110,7 +137,6 @@ namespace ARBISTO_POS.Controllers
 
             return View(vm);  // View name: KitchenInvoice.cshtml
         }
-
 
         [HttpPost]
         [IgnoreAntiforgeryToken]
@@ -306,6 +332,9 @@ namespace ARBISTO_POS.Controllers
             var printerSetting = await _context.AppSetttingPrinter.FirstOrDefaultAsync();
             bool isKitchenPrinterEnabled = printerSetting != null && printerSetting.KitchenPrinter == "Yes";
 
+            // userid save
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)); // logged-in user id
+
             // 🔹 Create Order
             var order = new SaleOrders
             {
@@ -322,7 +351,8 @@ namespace ARBISTO_POS.Controllers
                 DiscountAmount = model.Order.DiscountAmount,
                 GrandTotal = model.Order.GrandTotal,
                 PaymentStatus = "Unpaid",
-                Notes = model.Order.Notes
+                Notes = model.Order.Notes,
+                CreatedByUserId = userId   // ✅ yahan set
             };
 
             _context.SaleOrders.Add(order);
@@ -917,14 +947,18 @@ namespace ARBISTO_POS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> NotifyItemReady(int orderId, string itemName)
         {
-            //var order = await _context.SaleOrders.FindAsync(orderId);
             var order = await _context.SaleOrders
-    .Include(o => o.Customer)
-    .Include(o => o.Table)
-    .FirstOrDefaultAsync(o => o.OrderId == orderId);
-            if (order == null)
-                return Json(new { success = false });
+                .Include(o => o.Customer)
+                .Include(o => o.Table)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
+            if (order == null)
+                return Json(new { success = false, message = "Order not found" });
+
+            // ✅ jis user ne order place kiya
+            var targetUserId = order.CreatedByUserId;
+
+            // ----- existing message logic same -----
             var customerName = order.Customer?.Name ?? "Walking Customer";
             var locationInfo = "";
 
@@ -942,20 +976,71 @@ namespace ARBISTO_POS.Controllers
                 Type = "ItemReady",
                 ReferenceId = orderId,
                 IsRead = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+
+                // ✅ NEW: bell me sirf isi user ko show hoga
+                TargetUserId = targetUserId
             };
 
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
 
-            // 🔥 Send to POS only
-            await _hubContext.Clients.All.SendAsync(
-                "ReceiveItemReadyNotification",
-                notification.Title,
-                notification.Message
-            );
+            // ✅ realtime bhi sirf isi user ko
+            //await _hubContext.Clients.User(targetUserId.ToString())
+            //    .SendAsync("ReceiveItemReadyNotification", notification.Title, notification.Message);
+            // Flutter support
+            await _hubContext.Clients.Group($"user-{targetUserId}")
+                .SendAsync("ReceiveItemReadyNotification", notification.Title, notification.Message);
+
+            //// Website POS support
+            await _hubContext.Clients.User(targetUserId.ToString())
+                .SendAsync("ReceiveItemReadyNotification", notification.Title, notification.Message);
 
             return Json(new { success = true });
+        }
+        // GET: SaleOrderController/Delete/5  (optional - agar aap direct view nahi chahte to remove bhi kar sakte)
+        public async Task<IActionResult> Delete(int id)
+        {
+            var order = await _context.SaleOrders
+                .Include(o => o.Customer)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
+
+            if (order == null) return NotFound();
+
+            return View(order);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            try
+            {
+                // order + items load
+                var order = await _context.SaleOrders
+                    .Include(o => o.OrderItems)
+                    .FirstOrDefaultAsync(o => o.OrderId == id);
+
+                if (order == null)
+                    return Json(new { success = false, message = "Order not found." });
+
+                // ✅ delete items first
+                if (order.OrderItems != null && order.OrderItems.Any())
+                {
+                    _context.SaleOrderItems.RemoveRange(order.OrderItems);
+                }
+
+                // ✅ delete order
+                _context.SaleOrders.Remove(order);
+
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Order deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error: " + ex.Message });
+            }
         }
 
     }

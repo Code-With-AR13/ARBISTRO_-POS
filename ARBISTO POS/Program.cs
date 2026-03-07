@@ -6,6 +6,7 @@ using ARBISTO_POS.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,32 +22,26 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new AuthorizeFilter(policy));
 });
 
-// --------------------------------------------------
-// CORS (REQUIRED for Flutter / Web / Mobile)
-// --------------------------------------------------
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowAll", policy =>
-//    {
-//        policy
-//            .AllowAnyOrigin()
-//            .AllowAnyHeader()
-//            .AllowAnyMethod(); // OPTIONS allowed
-//    });
-//});
 // Add to ConfigureServices (services section)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-    });
-});
+    options.AddPolicy("AllowAll",
+        builder =>
+        {
+            builder
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()
+                .SetIsOriginAllowed(_ => true);
+        });
+}); ;
 
 // --------------------------------------------------
 // Register SignalR
 // --------------------------------------------------
 builder.Services.AddSignalR();
+// ✅ This makes Clients.User("123") work using ClaimTypes.NameIdentifier
+builder.Services.AddSingleton<IUserIdProvider, NameIdentifierUserIdProvider>();
 // --------------------------------------------------
 // Register AutoDelete Service
 // --------------------------------------------------

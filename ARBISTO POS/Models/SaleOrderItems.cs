@@ -36,5 +36,8 @@ namespace ARBISTO_POS.Models
         public int Quantity { get; set; }
         public decimal Total { get; set; }
         public string? ItemImage { get; set; }
+        // ✅ NEW: kitchen tick persist
+        public bool IsPrepared { get; set; } = false;
+        public DateTime? PreparedAt { get; set; }
     }
 }

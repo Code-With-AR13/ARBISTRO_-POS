@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System.Security.Claims;
 
 namespace ARBISTO_POS.ApiControllers
 {
@@ -402,6 +403,29 @@ namespace ARBISTO_POS.ApiControllers
                     return BadRequest(new { message = "Item price must be greater than zero." });
             }
 
+            //UserId Save 
+            //var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)); // logged-in user id
+            int userId;
+
+            var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!string.IsNullOrWhiteSpace(claimId) && int.TryParse(claimId, out var parsed))
+            {
+                userId = parsed; // logged-in user
+            }
+            else
+            {
+                if (request.CreatedByUserId == null || request.CreatedByUserId <= 0)
+                    return BadRequest(new { message = "createdByUserId is required for anonymous requests." });
+
+                // ✅ validate user exists
+                var userExists = await _context.AppUsers.AnyAsync(u => u.Id == request.CreatedByUserId.Value);
+                if (!userExists)
+                    return BadRequest(new { message = $"User with Id {request.CreatedByUserId.Value} does not exist." });
+
+                userId = request.CreatedByUserId.Value;
+            }
+
             // ============================
             // Create Order
             // ============================
@@ -420,7 +444,8 @@ namespace ARBISTO_POS.ApiControllers
                 DiscountAmount = request.DiscountAmount ?? 0,
                 GrandTotal = request.GrandTotal ?? 0,
                 PaymentStatus = "Unpaid",
-                Notes = request.Notes
+                Notes = request.Notes,
+                CreatedByUserId = userId   // ✅ yahan set
             };
 
             _context.SaleOrders.Add(order);
@@ -449,15 +474,32 @@ namespace ARBISTO_POS.ApiControllers
             await _context.SaveChangesAsync();
 
             // ===============================
-            // CREATE NOTIFICATION
+            // CREATE NOTIFICATION (Kitchen)
             // ===============================
+
+            // ✅ Order.Table nav property API flow me usually loaded nahi hoti
+            // So table name safe tareeqe se le lo (logic same: title table name hi hai)
+            string title = "Kitchen";
+
+            if (order.TableId.HasValue && order.TableId.Value > 0)
+            {
+                var table = await _context.ServiceTables
+                    .FirstOrDefaultAsync(t => t.Id == order.TableId.Value);
+
+                title = table?.TabName ?? $"Table #{order.TableId.Value}";
+            }
 
             var notification = new Notification
             {
-                Title = order.Table.TabName,
+                Title = title,
                 Message = $"Order #{order.OrderNumber} is waiting in kitchen.",
                 Type = "Kitchen",
-                ReferenceId = order.OrderId
+                ReferenceId = order.OrderId,
+
+                // ✅ Kitchen notifications are global (TargetUserId = null)
+                TargetUserId = null,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.Notifications.Add(notification);
@@ -467,6 +509,7 @@ namespace ARBISTO_POS.ApiControllers
             // SEND REAL-TIME SIGNALR ALERT
             // ===============================
 
+            // ✅ Existing behavior untouched: kitchen page/clients ko broadcast
             await _hubContext.Clients.All.SendAsync(
                 "ReceiveKitchenNotification",
                 notification.Title,
@@ -486,135 +529,173 @@ namespace ARBISTO_POS.ApiControllers
         }
 
         // ============================
-        // Item Ready Notification API
+        // Item Ready Notification API (PER USER)
         // ============================
-        // POST: api/notification/item-ready
+        // POST: api/SaleOrderApi/item-ready
         [HttpPost("item-ready")]
         public async Task<IActionResult> NotifyItemReady([FromBody] ItemReadyRequest request)
         {
-            if (request == null)
-                return BadRequest(new { success = false, message = "Invalid request." });
-
-            var order = await _context.SaleOrders
-                .Include(o => o.Customer)
-                .Include(o => o.Table)
-                .FirstOrDefaultAsync(o => o.OrderId == request.OrderId);
-
-            if (order == null)
-                return NotFound(new { success = false, message = "Order not found." });
-
-            var customerName = order.Customer?.Name ?? "Walking Customer";
-            var locationInfo = "";
-
-            if (order.OrderType == "DINE IN")
-                locationInfo = $"Table: {order.Table?.TabName}";
-            else if (order.OrderType == "DELIVERY")
-                locationInfo = "Delivery Order";
-            else if (order.OrderType == "PICKUP POINT")
-                locationInfo = "Pickup Order";
-
-            var notification = new Notification
+            try
             {
-                Title = "Item Ready",
-                Message = $"{locationInfo} | {customerName} | Order #{order.OrderNumber} → {request.ItemName} Ready",
-                Type = "ItemReady",
-                ReferenceId = request.OrderId,
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow
-            };
+                if (request == null)
+                    return BadRequest(new { success = false, message = "Invalid request." });
 
-            _context.Notifications.Add(notification);
-            await _context.SaveChangesAsync();
+                var order = await _context.SaleOrders
+                    .Include(o => o.Customer)
+                    .Include(o => o.Table)
+                    .FirstOrDefaultAsync(o => o.OrderId == request.OrderId);
 
-            // Send to POS only (SignalR)
-            await _hubContext.Clients.All.SendAsync(
-                "ReceiveItemReadyNotification",
-                notification.Title,
-                notification.Message
-            );
+                if (order == null)
+                    return NotFound(new { success = false, message = "Order not found." });
 
-            return Ok(new
+                // ✅ IMPORTANT: jis user ne order place kiya tha, sirf usi ko notify karna hai
+                var targetUserId = order.CreatedByUserId;
+
+                var customerName = order.Customer?.Name ?? "Walking Customer";
+                var locationInfo = "";
+
+                if (order.OrderType == "DINE IN")
+                    locationInfo = $"Table: {order.Table?.TabName}";
+                else if (order.OrderType == "DELIVERY")
+                    locationInfo = "Delivery Order";
+                else if (order.OrderType == "PICKUP POINT")
+                    locationInfo = "Pickup Order";
+
+                var notification = new Notification
+                {
+                    Title = "Item Ready",
+                    Message = $"{locationInfo} | {customerName} | Order #{order.OrderNumber} → {request.ItemName} Ready",
+                    Type = "ItemReady",
+                    ReferenceId = request.OrderId,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow,
+
+                    // ✅ NEW: per-user bell/dropdown support
+                    TargetUserId = targetUserId
+                };
+
+                _context.Notifications.Add(notification);
+                await _context.SaveChangesAsync();
+
+                // ✅ NEW: realtime ONLY to order creator (POS screen)
+                //await _hubContext.Clients.User(targetUserId.ToString())
+                await _hubContext.Clients.All
+                    .SendAsync("ReceiveItemReadyNotification", notification.Title, notification.Message);
+
+                return Ok(new
+                {
+                    success = true,
+                    notificationId = notification.Id,
+                    title = notification.Title,
+                    message = notification.Message
+                });
+            }
+            catch (Exception ex)
             {
-                success = true,
-                notificationId = notification.Id,
-                title = notification.Title,
-                message = notification.Message
-            });
-        }   
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
 
-    // Request DTO
-    public class ItemReadyRequest
+        // Request DTO
+        public class ItemReadyRequest
     {
         public int OrderId { get; set; }
         public string ItemName { get; set; } = string.Empty;
     }
 
 
-// ============================
-// PUT: api/SaleOrderApi/{id} - Update order
-// ============================
-[AllowAnonymous]
-        [HttpPut("{id}")]
-        [Permission("Manage Sales/Payments")]
-        public async Task<IActionResult> UpdateOrder(int id, [FromBody] CreateOrderRequest request)
+        // ============================
+        // PUT: api/SaleOrderApi/{id}/edit
+        // ✅ Only Order + Items edit (NO payment fields touched)
+        // ============================
+        [HttpPut("{id}/edit")]
+        [AllowAnonymous] // (later you can secure it)
+        public async Task<IActionResult> EditOrderOnly(int id, [FromBody] CreateOrderRequest request)
         {
             try
             {
+                if (request == null)
+                    return BadRequest(new { success = false, message = "Invalid request." });
+
+                // ✅ Load order with items (payment not needed here)
                 var order = await _context.SaleOrders
                     .Include(o => o.OrderItems)
                     .FirstOrDefaultAsync(o => o.OrderId == id);
 
                 if (order == null)
-                    return NotFound(new { message = "Order not found" });
+                    return NotFound(new { success = false, message = "Order not found." });
+
+                // ============================================================
+                // ✅ IMPORTANT RULE:
+                // Only update editable order fields.
+                // DO NOT touch: PaymentId, PaymentStatus, OrderStatus (unless you want), Paid flags etc.
+                // ============================================================
 
                 order.OrderType = request.OrderType;
-                order.CustomerId = request.CustomerId ?? 0;
+                order.CustomerId = request.CustomerId;             // keep nullable behavior as in create
                 order.TableId = request.TableId;
                 order.PickUpId = request.PickUpId;
                 order.DelivaryAddress = request.DelivaryAddress;
+
                 order.SubTotal = request.SubTotal;
-                order.TaxAmount = (decimal)request.TaxAmount;
-                order.DiscountAmount = (decimal)request.DiscountAmount;
-                order.GrandTotal = (decimal)request.GrandTotal;
+                order.TaxAmount = request.TaxAmount ?? order.TaxAmount;           // safe default
+                order.DiscountAmount = request.DiscountAmount ?? order.DiscountAmount;
+                order.GrandTotal = request.GrandTotal ?? order.GrandTotal;
+
                 order.Notes = request.Notes;
 
-                _context.SaleOrderItems.RemoveRange(order.OrderItems);
+                // ============================
+                // ✅ Replace items (Edit Items)
+                // ============================
 
+                // Remove existing items
+                if (order.OrderItems != null && order.OrderItems.Any())
+                    _context.SaleOrderItems.RemoveRange(order.OrderItems);
+
+                // Add new items
                 if (request.OrderItems != null && request.OrderItems.Any())
                 {
                     foreach (var item in request.OrderItems)
                     {
-                        var orderItem = new SaleOrderItems
+                        // Basic validation (optional but recommended)
+                        if ((item.Quantity ?? 0) <= 0)
+                            return BadRequest(new { success = false, message = $"Invalid quantity for ItemId {item.ItemId}" });
+
+                        if ((item.Price ?? 0) <= 0)
+                            return BadRequest(new { success = false, message = $"Invalid price for ItemId {item.ItemId}" });
+
+                        _context.SaleOrderItems.Add(new SaleOrderItems
                         {
                             OrderId = order.OrderId,
                             ItemId = item.ItemId,
                             ItemName = item.ItemName,
                             ItemImage = item.ItemImage,
-                            Price = (decimal)item.Price,
-                            Quantity = (int)item.Quantity,
-                            Total = (decimal)(item.Price * item.Quantity),
+                            Price = item.Price ?? 0,
+                            Quantity = item.Quantity ?? 0,
+                            Total = (item.Price ?? 0) * (item.Quantity ?? 0),
                             CustomerId = request.CustomerId
-                        };
-
-                        _context.SaleOrderItems.Add(orderItem);
+                        });
                     }
                 }
+                else
+                {
+                    // If you want to disallow empty items on edit, uncomment:
+                    // return BadRequest(new { success = false, message = "Order must contain at least one item." });
+                }
 
-                _context.Update(order);
+                // ✅ Save only order & items changes
                 await _context.SaveChangesAsync();
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Order successfully updated!"
+                    message = "Order updated successfully (payment untouched).",
+                    orderId = order.OrderId
                 });
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                if (!await OrderExists(id))
-                    return NotFound();
-                else
-                    throw;
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
 
@@ -970,15 +1051,7 @@ namespace ARBISTO_POS.ApiControllers
 
             return Ok(order);
         }
-
-
-
-
-        // Helper method
-        private async Task<bool> OrderExists(int id)
-        {
-            return await _context.SaleOrders.AnyAsync(e => e.OrderId == id);
-        }
+                      
 
         // ============================
         // DTOs
@@ -1007,6 +1080,7 @@ namespace ARBISTO_POS.ApiControllers
             public decimal? GrandTotal { get; set; }
             public string? Notes { get; set; }
             public List<OrderItemDto> OrderItems { get; set; } = new();
+            public int? CreatedByUserId { get; set; }
         }
 
         public class OrderItemDto

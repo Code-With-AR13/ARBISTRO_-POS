@@ -16,7 +16,9 @@ namespace ARBISTO_POS.Models
         public int? ReferenceId { get; set; } // OrderId etc
 
         public bool IsRead { get; set; } = false;
-
+        // ✅ NEW: This decides "kis user ko bell me show hogi"
+        // Null = (legacy/global) notifications (aap optionally later handle kar sakte ho)
+        public int? TargetUserId { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

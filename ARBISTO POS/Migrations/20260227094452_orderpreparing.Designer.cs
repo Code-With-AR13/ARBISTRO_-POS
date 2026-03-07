@@ -4,6 +4,7 @@ using ARBISTO_POS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ARBISTO_POS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260227094452_orderpreparing")]
+    partial class orderpreparing
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -674,9 +677,6 @@ namespace ARBISTO_POS.Migrations
                     b.Property<int?>("ReferenceId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("TargetUserId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -810,9 +810,6 @@ namespace ARBISTO_POS.Migrations
                     b.Property<int?>("ChefId")
                         .HasColumnType("int");
 
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("CustomerId")
                         .HasColumnType("int");
 
@@ -865,8 +862,6 @@ namespace ARBISTO_POS.Migrations
                     b.HasKey("OrderId");
 
                     b.HasIndex("ChefId");
-
-                    b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("CustomerId");
 
@@ -1135,12 +1130,6 @@ namespace ARBISTO_POS.Migrations
                         .WithMany()
                         .HasForeignKey("ChefId");
 
-                    b.HasOne("ARBISTO_POS.Models.AppUser", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("ARBISTO_POS.Models.Customers", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId");
@@ -1158,8 +1147,6 @@ namespace ARBISTO_POS.Migrations
                         .HasForeignKey("TableId");
 
                     b.Navigation("Chef");
-
-                    b.Navigation("CreatedByUser");
 
                     b.Navigation("Customer");
 

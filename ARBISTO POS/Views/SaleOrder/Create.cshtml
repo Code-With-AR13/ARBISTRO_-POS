@@ -220,9 +220,8 @@
                         </a>
                         @if (User?.Identity?.IsAuthenticated == true)
                         {
-                            <div class="dropdown-menu dropdown-menu-end shadow">
-                                <a class="dropdown-item" href="#"><i class="feather-user me-2"></i>Profile</a>
-                                <a class="dropdown-item" href="#"><i class="feather-settings me-2"></i>Settings</a>
+                            <div class="dropdown-menu dropdown-menu-end shadow">                                
+                                <a class="dropdown-item" asp-controller="AppSettting" asp-action="Index"><i class="feather-settings me-2"></i>Account Settings</a>
                                 <a class="dropdown-item" asp-controller="Home" asp-action="Index"><i class="feather-arrow-left me-2"></i>Back to Dashboard</a>
                                 <div class="dropdown-divider"></div>
                                 <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0">

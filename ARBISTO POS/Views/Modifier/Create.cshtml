@@ -26,8 +26,8 @@
     <div class="row">
         <div class="col-lg-12">
             <div class="card border-top-0">
-                <div class="card-header">
-                    <h5 class="card-title">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0">
                         <i class="feather-plus-circle me-2"></i>Add New Modifier
                     </h5>
                 </div>
@@ -36,12 +36,13 @@
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                     <form asp-action="Create" method="post" enctype="multipart/form-data">
-                        <div class="row">
+                        <div class="row g-4">
                             <!-- Image Upload Section -->
-                            <div class="col-lg-4 mb-4">
-                                <div class="card bg-light">
+                            <div class="col-lg-4">
+                                <div class="card bg-light h-100">
                                     <div class="card-body text-center">
                                         <label class="form-label fw-semibold">Item Image</label>
+
                                         <div class="position-relative mx-auto" style="width: 200px; height: 200px;">
                                             <div class="border border-2 border-dashed rounded-3 overflow-hidden h-100 w-100 position-relative bg-white"
                                                  id="avatarDiv" style="cursor: pointer;">
@@ -49,23 +50,26 @@
                                                      src="~/assets/images/upload.jpg"
                                                      class="img-fluid h-100 w-100"
                                                      style="object-fit: cover;"
-                                                     alt="Upload Image">
+                                                     alt="Upload Image" />
                                                 <div class="position-absolute start-0 top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50"
                                                      id="uploadOverlay"
                                                      style="opacity: 0; transition: opacity 0.3s;">
                                                     <i class="feather-camera text-white" style="font-size: 32px;"></i>
                                                 </div>
                                             </div>
+
                                             <input asp-for="ImageFile"
                                                    type="file"
                                                    accept="image/png,image/jpg,image/jpeg"
                                                    id="fileInput"
-                                                   style="display: none;" />
+                                                   style="display:none;" />
                                         </div>
+
                                         <div class="mt-3">
                                             <small class="text-muted d-block"><i class="feather-info me-1"></i>Click image to upload</small>
                                             <small class="text-muted d-block">Max Size: 2MB</small>
                                         </div>
+
                                         <span asp-validation-for="ImageFile" class="text-danger small"></span>
                                     </div>
                                 </div>
@@ -73,49 +77,49 @@
 
                             <!-- Form Fields -->
                             <div class="col-lg-8">
-                                <div class="mb-3">
-                                    <label asp-for="ModeName" class="form-label fw-semibold">Item Name <span class="text-danger">*</span></label>
-                                    <input asp-for="ModeName" class="form-control" placeholder="e.g., Chicken Burger" />
-                                    <span asp-validation-for="ModeName" class="text-danger small"></span>
-                                </div>
-                               
-                                <div class="mb-3">
-                                    <label asp-for="ModeDiscription" class="form-label fw-semibold">Description</label>
-                                    <textarea asp-for="ModeDiscription" class="form-control" rows="3" placeholder="Enter details..."></textarea>
-                                    <span asp-validation-for="ModeDiscription" class="text-danger small"></span>
-                                </div>
-
-                                <!-- AJAX Ingredient Dropdown -->
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Ingredient <span class="text-danger">*</span></label>
-                                    <select id="ingredientSelect" class="form-select select2-ajax-ingredient" style="width: 100%;">
-                                        <option value="">Search for Ingredient...</option>
-                                    </select>
-                                </div>
-
-                                <!-- Ingredients Table -->
-                                <div class="clearfix mb-4">
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered" id="ingredientsTable">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th class="text-center" style="width: 25%;">Ingredient Name</th>
-                                                    <th class="text-center" style="width: 12%;">Available Qty</th>
-                                                    <th class="text-center" style="width: 12%;">Consumption Qty</th>
-                                                    <th class="text-center" style="width: 12%;">Cost</th>
-                                                    <th class="text-center" style="width: 12%;">Price</th>
-                                                    <th class="text-center" style="width: 10%;">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="ingredientTableBody">
-                                                <!-- Rows will be added here dynamically -->
-                                            </tbody>
-                                        </table>
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label asp-for="ModeName" class="form-label fw-semibold">Item Name <span class="text-danger">*</span></label>
+                                        <input asp-for="ModeName" class="form-control" placeholder="e.g., Extra Cheese / Spicy / Add-ons..." />
+                                        <span asp-validation-for="ModeName" class="text-danger small"></span>
                                     </div>
-                                </div>
 
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-12">
+                                        <label asp-for="ModeDiscription" class="form-label fw-semibold">Description</label>
+                                        <textarea asp-for="ModeDiscription" class="form-control" rows="3" placeholder="Enter details..."></textarea>                                       
+                                    </div>
+
+                                    <!-- ✅ Simple Ingredient Dropdown (No Select2) -->
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Ingredient <span class="text-danger">*</span></label>
+                                        <select id="ingredientSelect" class="form-select" data-select2-selector="icon" style="width:100%;">
+                                            <option value="">Select Ingredient...</option>
+                                        </select>                                        
+                                    </div>
+
+                                    <!-- Ingredients Table -->
+                                    <div class="col-12">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered align-middle" id="ingredientsTable">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th class="text-center" style="width: 25%;">Ingredient Name</th>
+                                                        <th class="text-center" style="width: 12%;">Available Qty</th>
+                                                        <th class="text-center" style="width: 12%;">Consumption Qty</th>
+                                                        <th class="text-center" style="width: 12%;">Cost</th>
+                                                        <th class="text-center" style="width: 12%;">Price</th>
+                                                        <th class="text-center" style="width: 10%;">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="ingredientTableBody">
+                                                    <!-- Rows will be added here dynamically -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Totals -->
+                                    <div class="col-md-6">
                                         <label asp-for="ItemCost" class="form-label fw-semibold">Cost Price <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">Rs.</span>
@@ -123,7 +127,8 @@
                                         </div>
                                         <span asp-validation-for="ItemCost" class="text-danger small"></span>
                                     </div>
-                                    <div class="col-md-6 mb-3">
+
+                                    <div class="col-md-6">
                                         <label asp-for="ItemPrice" class="form-label fw-semibold">Sale Price <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">Rs.</span>
@@ -131,18 +136,21 @@
                                         </div>
                                         <span asp-validation-for="ItemPrice" class="text-danger small"></span>
                                     </div>
-                                </div>
 
-                                <div class="d-flex gap-2 justify-content-end mt-4">
-                                    <a asp-action="Index" class="btn btn-light">
-                                        <i class="feather-x me-1"></i>Cancel
-                                    </a>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="feather-save me-1"></i>Create Item
-                                    </button>
+                                    <!-- Actions -->
+                                    <div class="col-12">
+                                        <div class="d-flex gap-2 justify-content-end mt-2">
+                                            <a asp-action="Index" class="btn btn-light">
+                                                <i class="feather-x me-1"></i>Cancel
+                                            </a>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="feather-save me-1"></i>Create Modifier
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                            </div><!-- /col-lg-8 -->
+                        </div><!-- /row -->
                     </form>
                 </div>
             </div>
@@ -152,6 +160,10 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <!-- ✅ Toastr CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script>
         // ✅ Toastr Configuration
@@ -166,7 +178,7 @@
         @if (TempData["ErrorMessage"] != null)
         {
                 <text>
-                toastr.error('@TempData["ErrorMessage"]');
+                    toastr.error('@TempData["ErrorMessage"]');
                 </text>
         }
 
@@ -174,61 +186,72 @@
         @if (TempData["SuccessMessage"] != null)
         {
                 <text>
-                toastr.success('@TempData["SuccessMessage"]');
+                    toastr.success('@TempData["SuccessMessage"]');
                 </text>
         }
 
         $(document).ready(function () {
             let rowCounter = 0;
 
-            // Your existing jQuery code here...
-            // (Same as before - ingredient selection, table management, etc.)
+            // --------------------------------------
+            // ✅ Simple Dropdown data load (No Select2)
+            // --------------------------------------
+            const ingredientMap = {}; // id -> ingredient object
 
-            $('#ingredientSelect').select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Search for Ingredient...',
-                allowClear: true,
-                ajax: {
+            function loadIngredientsDropdown() {
+                $.ajax({
                     url: '@Url.Action("GetIngredients", "Items")',
+                    type: 'GET',
                     dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return { search: params.term };
-                    },
-                    processResults: function (data) {
-                        return {
-                            results: data.results.map(function (item) {
-                                return {
-                                    id: item.id,
-                                    text: item.name,
-                                    data: item
-                                };
-                            })
-                        };
-                    },
-                    cache: true
-                },
-                minimumInputLength: 0
-            });
+                    data: { search: "" }, // empty -> load list
+                    success: function (data) {
+                        const list = (data && data.results) ? data.results : [];
 
-            $('#ingredientSelect').on('select2:select', function (e) {
-                let ingredient = e.params.data.data;
+                        const $ddl = $('#ingredientSelect');
+                        $ddl.empty();
+                        $ddl.append(`<option value="">Select Ingredient...</option>`);
 
+                        list.forEach(function (item) {
+                            if (!item || !item.id) return;
+
+                            ingredientMap[item.id] = item;
+                            $ddl.append(`<option value="${item.id}">${item.name || 'Unknown'}</option>`);
+                        });
+                    },
+                    error: function () {
+                        toastr.error('Failed to load ingredients');
+                    }
+                });
+            }
+
+            loadIngredientsDropdown();
+
+            // ✅ When dropdown changes -> add row
+            $('#ingredientSelect').on('change', function () {
+                const id = $(this).val();
+
+                if (!id) return;
+
+                const ingredient = ingredientMap[id];
                 if (!ingredient || !ingredient.id) {
-                    toastr.error('Invalid ingredient selected'); // ✅ Toastr here too
+                    toastr.error('Invalid ingredient selected');
+                    $(this).val('');
                     return;
                 }
 
                 if ($(`#ingredientTableBody tr[data-ingredient-id="${ingredient.id}"]`).length > 0) {
-                    toastr.warning('This ingredient is already added!'); // ✅ Toastr warning
-                    $('#ingredientSelect').val(null).trigger('change');
+                    toastr.warning('This ingredient is already added!');
+                    $(this).val('');
                     return;
                 }
 
                 addIngredientRow(ingredient);
-                $('#ingredientSelect').val(null).trigger('change');
+                $(this).val(''); // reset back to placeholder
             });
 
+            // --------------------------------------
+            // ✅ Your existing logic (untouched)
+            // --------------------------------------
             function addIngredientRow(ingredient) {
                 rowCounter++;
                 let rowId = 'row_' + rowCounter;
@@ -244,7 +267,7 @@
                             <input type="hidden" name="ingredients[${rowCounter}].AvailableQty" value="${ingredient.availableQty || 0}" />
                         </td>
                         <td class="text-center">
-                            <input type="number" class="form-control form-control-sm text-center consumptionQty" value="1"  />
+                            <input type="number" class="form-control form-control-sm text-center consumptionQty" value="1" />
                             <input type="hidden" name="ingredients[${rowCounter}].ConsumptionQty" class="consumptionQtyHidden" value="1" />
                         </td>
                         <td class="text-center">
@@ -310,27 +333,30 @@
                 $('#totalPrice').val(Math.round(totalPrice));
             }
 
-            // Image Upload Logic
+            // --------------------------------------
+            // ✅ Image Upload Logic (same as Items view)
+            // --------------------------------------
             const avatarDiv = $('#avatarDiv');
             const fileInput = $('#fileInput');
             const avatarPreview = $('#avatarPreview');
             const uploadOverlay = $('#uploadOverlay');
 
             avatarDiv.on('click', function () { fileInput.click(); });
+
             avatarDiv.on('mouseenter', function () { uploadOverlay.css('opacity', '1'); })
-                    .on('mouseleave', function () { uploadOverlay.css('opacity', '0'); });
+                     .on('mouseleave', function () { uploadOverlay.css('opacity', '0'); });
 
             fileInput.on('change', function (e) {
                 const file = e.target.files[0];
                 if (file) {
                     if (file.size > 2 * 1024 * 1024) {
-                        toastr.error('File size must be less than 2MB'); // ✅ Toastr
+                        toastr.error('File size must be less than 2MB');
                         fileInput.val('');
                         return;
                     }
                     const validTypes = ['image/png', 'image/jpg', 'image/jpeg'];
                     if (!validTypes.includes(file.type)) {
-                        toastr.error('Only PNG, JPG, and JPEG files are allowed'); // ✅ Toastr
+                        toastr.error('Only PNG, JPG, and JPEG files are allowed');
                         fileInput.val('');
                         return;
                     }

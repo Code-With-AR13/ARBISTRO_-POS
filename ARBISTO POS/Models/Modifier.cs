@@ -11,7 +11,7 @@ namespace ARBISTO_POS.Models
         [Required(ErrorMessage = "Item name is required")]
         [StringLength(100)]
         public string ModeName { get; set; }       
-        public string ModeDiscription { get; set; }
+        public string? ModeDiscription { get; set; }
 
         [Display(Name = "Category Image")]
         public string? ModeImage { get; set; }

@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = "Kitchen";   
+    ViewData["Title"] = "Kitchen";
 }
 <main class="nxl-container-fluid">
     @Html.AntiForgeryToken()
@@ -23,38 +23,40 @@
                         <i class="feather-plus me-2"></i>
                         <span>New Sale Order</span>
                     </a>
-                </div>               
+                </div>
             </div>
         </div>
     </div>
 </main>
+
 @{
     var chefs = (List<ARBISTO_POS.Models.Employees>)ViewBag.Chefs;
 }
 
 <script>
     const chefsList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                chefs.Select(c => new { id = c.Id, name = c.FullName })
-        ));
+                                chefs.Select(c => new { id = c.Id, name = c.FullName })
+                ));
 </script>
-<div class="row">
-@foreach (var order in Model)
-{
-        <div class="col-md-6 col-lg-6 px-4 mt-3">
-        <div class="card mb-3 order-card"
-             data-order-id="@order.OrderId"
-             id="orderCard_@order.OrderId">
 
-            <div class="card-body">
-                <!-- Order Header -->
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                        <h5 class="mb-1">Order #@order.OrderNumber</h5>
-                        <small class="text-muted">Customer: @order.CustomerId</small><br>
-                        <small class="text-muted">
-                            Date: @order.OrderDate.ToString("dd-MM-yyyy HH:mm:ss")
-                        </small>
-                    </div>
+<div class="row">
+    @foreach (var order in Model)
+    {
+        <div class="col-md-6 col-lg-6 px-4 mt-3">
+            <div class="card mb-3 order-card"
+                 data-order-id="@order.OrderId"
+                 id="orderCard_@order.OrderId">
+
+                <div class="card-body">
+                    <!-- Order Header -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="mb-1">Order #@order.OrderNumber</h5>
+                            <small class="text-muted">Customer: @order.CustomerId</small><br>
+                            <small class="text-muted">
+                                Date: @order.OrderDate.ToString("dd-MM-yyyy HH:mm:ss")
+                            </small>
+                        </div>
                         @if (order.OrderType == "DINE IN")
                         {
                             <span class="badge bg-primary">Dine In</span>
@@ -69,152 +71,172 @@
                         }
                     </div>
 
-                <!-- Chef Selection -->
-                <div class="mb-3">
-                    <label class="form-label">Assign Chef:</label>
-                    <select class="form-select chef-select"
-                            id="chefSelect_@order.OrderId"
-                            data-order-id="@order.OrderId">
-                        <option value="">Select Chef</option>
-                        @foreach (var chef in ViewBag.Chefs)
-                        {
-                            <option value="@chef.Id">@chef.FullName</option>
-                        }
-                    </select>
-                    <small class="text-muted" id="chefStatus_@order.OrderId"></small>
-                </div>
-
-                <!-- Order Items -->
-                <div class="order-items mb-3">
-                    @foreach (var item in order.OrderItems)
-                    {
-                        <div class="form-check mb-2">
-                            <input class="form-check-input item-checkbox p-2"
-                                   type="checkbox"
-                                   value="@item.ItemId"
-                                   id="item_@order.OrderId@item.ItemId"
-                                   data-order-id="@order.OrderId">
-                            <label class="form-check-label"
-                                   for="item_@order.OrderId@item.ItemId">
-                                @item.Quantity x @item.ItemName
-                            </label>
-                        </div>
-                    }
-                </div>
-
-                <!-- Progress Bar -->
-                <div class="progress mb-3" style="height: 10px;">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated"
-                         role="progressbar"
-                         id="progress_@order.OrderId"
-                         style="width: 0%">
+                    <!-- Chef Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Assign Chef:</label>
+                        <select class="form-select chef-select"
+                                id="chefSelect_@order.OrderId"
+                                data-order-id="@order.OrderId">
+                            <option value="">Select Chef</option>
+                            @foreach (var chef in ViewBag.Chefs)
+                            {
+                                <option value="@chef.Id">@chef.FullName</option>
+                            }
+                        </select>
+                        <small class="text-muted" id="chefStatus_@order.OrderId"></small>
                     </div>
-                </div>
 
-                <small class="text-muted d-block mb-3 text-center">
-                    Progress: <span id="progress-text_@order.OrderId">0%</span>
-                </small>
+                    <!-- Order Items -->
+                    <div class="order-items mb-3">
+                        @foreach (var item in order.OrderItems)
+                        {
+                            <div class="form-check mb-2">
+                                <input class="form-check-input item-checkbox p-2"
+                                       type="checkbox"
+                                       value="@item.ItemId"
+                                       id="item_@order.OrderId@item.ItemId"
+                                       data-order-id="@order.OrderId"
+                                       @(item.IsPrepared ? "checked" : "")>
+                                <label class="form-check-label"
+                                       for="item_@order.OrderId@item.ItemId">
+                                    @item.Quantity x @item.ItemName
+                                </label>
+                            </div>
+                        }
+                    </div>
 
-                <!-- Status Message -->
-                <div class="status-message alert alert-success d-none text-center"
-                     id="statusMessage_@order.OrderId">
-                    <i class="fas fa-check-circle me-2"></i>
-                    Order is Ready and has been sent!
+                    <!-- Progress Bar -->
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar"
+                             id="progress_@order.OrderId"
+                             style="width: 0%">
+                        </div>
+                    </div>
+
+                    <small class="text-muted d-block mb-3 text-center">
+                        Progress: <span id="progress-text_@order.OrderId">0%</span>
+                    </small>
+
+                    <!-- Status Message -->
+                    <div class="status-message alert alert-success d-none text-center"
+                         id="statusMessage_@order.OrderId">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Order is Ready and has been sent!
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-}
+    }
 </div>
-
 
 @section Scripts {
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('Kitchen page loaded');
 
-                 // ✅ AUTO-SELECT FIRST CHEF FOR EACH ORDER
-        document.querySelectorAll('.chef-select').forEach(select => {
-            const orderId = select.dataset.orderId;
-            const firstChefOption = select.querySelector('option[value]:not([value=""])');
+            // ✅ AUTO-SELECT FIRST CHEF FOR EACH ORDER
+            document.querySelectorAll('.chef-select').forEach(select => {
+                const orderId = select.dataset.orderId;
+                const firstChefOption = select.querySelector('option[value]:not([value=""])');
 
-            if (firstChefOption) {
-                const chefId = firstChefOption.value;
-                select.value = chefId; // Set dropdown to first chef
+                if (firstChefOption) {
+                    const chefId = firstChefOption.value;
+                    select.value = chefId; // Set dropdown to first chef
 
-                // Automatically assign chef to order
-                assignChefToOrder(orderId, chefId, function(success) {
-                    const chefStatus = document.getElementById(`chefStatus_${orderId}`);
-                    if (success) {
-                        chefStatus.innerHTML = '<span class="text-success">Chef assigned</span>';
-                    } else {
-                        chefStatus.innerHTML = '<span class="text-danger">Failed to assign chef</span>';
-                    }
-                });
-            }
-        });
-            // Initialize progress for each order
+                    // Automatically assign chef to order
+                    assignChefToOrder(orderId, chefId, function (success) {
+                        const chefStatus = document.getElementById(`chefStatus_${orderId}`);
+                        if (success) {
+                            chefStatus.innerHTML = '<span class="text-success">Chef assigned</span>';
+                        } else {
+                            chefStatus.innerHTML = '<span class="text-danger">Failed to assign chef</span>';
+                        }
+                    });
+                }
+            });
+
+            // Initialize progress for each order (will read checked items from DB-rendered view)
             document.querySelectorAll('.order-card').forEach(card => {
                 const orderId = card.dataset.orderId;
                 updateProgress(orderId);
             });
 
-            // Checkbox change event            
-        //             document.addEventListener('change', function (e) {
-        //     if (e.target.classList.contains('item-checkbox')) {
-        //         const orderId = e.target.dataset.orderId;
-        //         updateProgress(orderId);
-        //         checkAndCompleteOrder(orderId);
-        //     }
-        // });
-                document.addEventListener('change', function (e) {
-            if (e.target.classList.contains('item-checkbox')) {
+            // ✅ Checkbox change event (existing logic SAME + DB save added)
+            document.addEventListener('change', function (e) {
+                if (e.target.classList.contains('item-checkbox')) {
 
-                const orderId = e.target.dataset.orderId;
-                const itemName = e.target.nextElementSibling.innerText;
+                    const orderId = e.target.dataset.orderId;
+                    const itemId = e.target.value;          // ✅ itemId
+                    const isPrepared = e.target.checked;    // ✅ tick state
+                    const itemName = e.target.nextElementSibling.innerText;
 
-                updateProgress(orderId);
-                checkAndCompleteOrder(orderId);
+                    // ✅ NEW: Persist tick/untick in DB
+                    saveKitchenItemStatus(orderId, itemId, isPrepared);
 
-                // 🔥 SEND READY ITEM NOTIFICATION
-                if (e.target.checked) {
+                    // Existing logic (untouched)
+                    updateProgress(orderId);
+                    checkAndCompleteOrder(orderId);
 
-                    fetch('/SaleOrder/NotifyItemReady', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'RequestVerificationToken':
-                                document.querySelector('input[name="__RequestVerificationToken"]').value
-                        },
-                        body: `orderId=${orderId}&itemName=${encodeURIComponent(itemName)}`
-                    });
+                    // 🔥 SEND READY ITEM NOTIFICATION (same)
+                    if (isPrepared) {
+                        fetch('/SaleOrder/NotifyItemReady', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'RequestVerificationToken':
+                                    document.querySelector('input[name="__RequestVerificationToken"]').value
+                            },
+                            body: `orderId=${orderId}&itemName=${encodeURIComponent(itemName)}`
+                        });
+                    }
                 }
-            }
-        });
+            });
 
-            // Chef selection change event
-                    document.addEventListener('change', function (e) {
-            if (e.target.classList.contains('chef-select')) {
+            // Chef selection change event (same)
+            document.addEventListener('change', function (e) {
+                if (e.target.classList.contains('chef-select')) {
 
-                const orderId = e.target.dataset.orderId;
-                const chefId = e.target.value;
-                const chefStatus = document.getElementById(`chefStatus_${orderId}`);
+                    const orderId = e.target.dataset.orderId;
+                    const chefId = e.target.value;
+                    const chefStatus = document.getElementById(`chefStatus_${orderId}`);
 
-                if (chefId) {
-                    assignChefToOrder(orderId, chefId, function(success) {
-                        if (success) {
-                            chefStatus.innerHTML = '<span class="text-success">Chef assigned</span>';
-                            checkAndCompleteOrder(orderId);
-                        } else {
-                            chefStatus.innerHTML = '<span class="text-danger">Failed to assign chef</span>';
-                        }
-                    });
-                } else {
-                    chefStatus.innerHTML = '<span class="text-danger">Please select a chef</span>';
+                    if (chefId) {
+                        assignChefToOrder(orderId, chefId, function (success) {
+                            if (success) {
+                                chefStatus.innerHTML = '<span class="text-success">Chef assigned</span>';
+                                checkAndCompleteOrder(orderId);
+                            } else {
+                                chefStatus.innerHTML = '<span class="text-danger">Failed to assign chef</span>';
+                            }
+                        });
+                    } else {
+                        chefStatus.innerHTML = '<span class="text-danger">Please select a chef</span>';
+                    }
                 }
-            }
+            });
         });
-        });
+
+        // ✅ NEW: Save checkbox state to DB (tick/untick)
+        function saveKitchenItemStatus(orderId, itemId, isPrepared) {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch('/SaleOrder/UpdateKitchenItemStatus', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: `orderId=${orderId}&itemId=${itemId}&isPrepared=${isPrepared}`
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error("Failed to save item status:", data.message);
+                }
+            })
+            .catch(err => console.error("Error saving item status:", err));
+        }
 
         function calculateProgress(orderId) {
             const checkboxes = document.querySelectorAll(`.item-checkbox[data-order-id="${orderId}"]`);
@@ -267,7 +289,7 @@
             }
         }
 
-               function assignChefToOrder(orderId, chefId, callback) {
+        function assignChefToOrder(orderId, chefId, callback) {
             console.log(`Assigning chef ${chefId} to order ${orderId}`);
 
             // Get antiforgery token
@@ -301,7 +323,7 @@
             });
         }
 
-               function completeOrderAutomatically(orderId) {
+        function completeOrderAutomatically(orderId) {
             const statusMessage = document.getElementById(`statusMessage_${orderId}`);
             statusMessage.classList.remove('d-none', 'alert-success', 'alert-danger');
             statusMessage.classList.add('alert-info');
@@ -362,9 +384,8 @@
                 statusMessage.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Network error occurred.';
             });
         }
-
-
     </script>
+
     <!-------------------------------------------------- Notification Script--------------------------------------------------------->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
@@ -374,7 +395,6 @@
             .build();
 
         connection.on("ReceiveKitchenNotification", function (title, message) {
-
             // Play sound
             const audio = new Audio('/sounds/notification.mp3');
             audio.play();
@@ -387,6 +407,7 @@
 
         connection.start().catch(err => console.error(err));
     </script>
+
     <!-------------------------------------------------- Ajax  Script--------------------------------------------------------->
     <script>
         let existingOrderIds = new Set();
@@ -402,7 +423,6 @@
                 const orders = await response.json();
 
                 orders.forEach(order => {
-
                     // Agar already page pe hai to skip
                     if (existingOrderIds.has(order.orderId.toString()))
                         return;
@@ -427,28 +447,28 @@
             }
         }
 
-                function renderNewOrderCard(order) {
-
+        function renderNewOrderCard(order) {
             let itemsHtml = "";
 
-                    order.items.forEach(item => {
+            order.items.forEach(item => {
+                const checkboxId = `item_${order.orderId}_${item.itemId}`;
+                const checkedAttr = item.isPrepared ? "checked" : "";
 
-            const checkboxId = `item_${order.orderId}_${item.itemId}`;
-
-            itemsHtml += `
-                <div class="form-check mb-2">
-                    <input class="form-check-input item-checkbox p-2"
-                           type="checkbox"
-                           value="${item.itemId}"
-                           id="${checkboxId}"
-                           data-order-id="${order.orderId}">
-                    <label class="form-check-label"
-                           for="${checkboxId}">
-                        ${item.quantity} x ${item.itemName}
-                    </label>
-                </div>
-            `;
-        });
+                itemsHtml += `
+                    <div class="form-check mb-2">
+                        <input class="form-check-input item-checkbox p-2"
+                               type="checkbox"
+                               value="${item.itemId}"
+                               id="${checkboxId}"
+                               data-order-id="${order.orderId}"
+                               ${checkedAttr}>
+                        <label class="form-check-label"
+                               for="${checkboxId}">
+                            ${item.quantity} x ${item.itemName}
+                        </label>
+                    </div>
+                `;
+            });
 
             // 🔥 Generate Chef Options
             let chefOptions = `<option value="">Select Chef</option>`;
@@ -458,82 +478,81 @@
             });
 
             const cardHtml = `
-            <div class="col-md-6 col-lg-6 px-4 mt-3">
-                <div class="card mb-3 order-card"
-                     data-order-id="${order.orderId}"
-                     id="orderCard_${order.orderId}">
-                    <div class="card-body">
+                <div class="col-md-6 col-lg-6 px-4 mt-3">
+                    <div class="card mb-3 order-card"
+                         data-order-id="${order.orderId}"
+                         id="orderCard_${order.orderId}">
+                        <div class="card-body">
 
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div>
-                                <h5>Order #${order.orderNumber}</h5>
-                                <small>Date: ${order.orderDate}</small>
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5>Order #${order.orderNumber}</h5>
+                                    <small>Date: ${order.orderDate}</small>
+                                </div>
+                                <span class="badge bg-primary">${order.orderType}</span>
                             </div>
-                            <span class="badge bg-primary">${order.orderType}</span>
-                        </div>
 
-                        <!-- 🔥 Chef Dropdown Added -->
-                        <div class="mb-3">
-                            <label class="form-label">Assign Chef:</label>
-                            <select class="form-select chef-select"
-                                    id="chefSelect_${order.orderId}"
-                                    data-order-id="${order.orderId}">
-                                ${chefOptions}
-                            </select>
-                            <small class="text-muted" id="chefStatus_${order.orderId}"></small>
-                        </div>
-
-                        <div class="order-items mb-3">
-                            ${itemsHtml}
-                        </div>
-
-                        <div class="progress mb-3" style="height: 10px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                 id="progress_${order.orderId}"
-                                 style="width: 0%">
+                            <!-- 🔥 Chef Dropdown Added -->
+                            <div class="mb-3">
+                                <label class="form-label">Assign Chef:</label>
+                                <select class="form-select chef-select"
+                                        id="chefSelect_${order.orderId}"
+                                        data-order-id="${order.orderId}">
+                                    ${chefOptions}
+                                </select>
+                                <small class="text-muted" id="chefStatus_${order.orderId}"></small>
                             </div>
+
+                            <div class="order-items mb-3">
+                                ${itemsHtml}
+                            </div>
+
+                            <div class="progress mb-3" style="height: 10px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                     id="progress_${order.orderId}"
+                                     style="width: 0%">
+                                </div>
+                            </div>
+
+                            <small class="text-muted d-block mb-3 text-center">
+                                Progress: <span id="progress-text_${order.orderId}">0%</span>
+                            </small>
+
+                            <div class="status-message alert alert-success d-none text-center"
+                                 id="statusMessage_${order.orderId}">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Order is Ready and has been sent!
+                            </div>
+
                         </div>
-
-                        <small class="text-muted d-block mb-3 text-center">
-                            Progress: <span id="progress-text_${order.orderId}">0%</span>
-                        </small>
-
-                        <div class="status-message alert alert-success d-none text-center"
-                             id="statusMessage_${order.orderId}">
-                            <i class="fas fa-check-circle me-2"></i>
-                            Order is Ready and has been sent!
-                        </div>
-
                     </div>
                 </div>
-            </div>
             `;
 
             document.querySelector('.row').insertAdjacentHTML('afterbegin', cardHtml);
 
             // 🔥 AUTO SELECT FIRST CHEF FOR AJAX CARD
-setTimeout(() => {
+            setTimeout(() => {
+                const select = document.getElementById(`chefSelect_${order.orderId}`);
+                const firstChefOption = select.querySelector('option[value]:not([value=""])');
 
-    const select = document.getElementById(`chefSelect_${order.orderId}`);
-    const firstChefOption = select.querySelector('option[value]:not([value=""])');
+                if (firstChefOption) {
+                    const chefId = firstChefOption.value;
+                    select.value = chefId;
 
-    if (firstChefOption) {
-        const chefId = firstChefOption.value;
-        select.value = chefId;
+                    assignChefToOrder(order.orderId, chefId, function (success) {
+                        const chefStatus = document.getElementById(`chefStatus_${order.orderId}`);
+                        if (success) {
+                            chefStatus.innerHTML = '<span class="text-success">Chef assigned</span>';
+                        } else {
+                            chefStatus.innerHTML = '<span class="text-danger">Failed to assign chef</span>';
+                        }
+                    });
+                }
 
-        assignChefToOrder(order.orderId, chefId, function(success) {
-            const chefStatus = document.getElementById(`chefStatus_${order.orderId}`);
-            if (success) {
-                chefStatus.innerHTML = '<span class="text-success">Chef assigned</span>';
-            } else {
-                chefStatus.innerHTML = '<span class="text-danger">Failed to assign chef</span>';
-            }
-        });
-    }
-
-    updateProgress(order.orderId);
-
-}, 100);
+                // progress should reflect DB saved checked items (AJAX)
+                updateProgress(order.orderId);
+            }, 100);
         }
 
         // Check every 5 seconds

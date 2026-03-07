@@ -55,6 +55,7 @@
                                         <tr>
                                             <th>Order No</th>
                                             <th>Customer Name</th>
+                                            <th>Order Taker</th>
                                             <th>Order Type</th>
                                             <th>Order Status</th>
                                             <th>Payment Status</th>
@@ -66,7 +67,7 @@
                                         {
                                             foreach (var pay in Model)
                                             {
-                                                <tr>
+                                                <tr id="row-@pay.OrderId" >
                                                     <td>
                                                         <div class="d-flex align-items-center">
                                                             <div class="d-flex flex-column">
@@ -88,6 +89,7 @@
                                                             </div>
                                                         </div>
                                                     </td>
+                                                    <td>@pay.CreatedByUser.FullName</td>
                                                     <td>
                                                         @if (pay.OrderType == "DINE IN")
                                                         {
@@ -159,6 +161,23 @@
                                                                 <i class="feather-printer"></i>
                                                             </a>
                                                         </div>
+                                                        <div class="d-inline-flex gap-1">
+    <button type="button"
+            class="btn btn-sm btn-light js-delete"
+            data-id="@pay.OrderId"
+            title="Delete">
+        <i class="feather-trash"></i>
+    </button>
+
+    <form id="delete-form-@pay.OrderId"
+          asp-controller="SaleOrder"
+          asp-action="DeleteConfirmed"
+          method="post"
+          style="display:none;">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@pay.OrderId" />
+    </form>
+</div>
                                                     </td>                                                    
                                                 </tr>
                                             }
@@ -178,47 +197,50 @@
     <script>
         $(document).ready(function () {
 
-            var table = $('.dataTable').DataTable();
+                    var table = $('.dataTable').DataTable({
+            order: [[0, 'desc']] // ✅ Order No column descending
+        });
 
-            // $(document).on('click', '.js-delete', function (e) {
-            //     e.preventDefault();
+                    $(document).on('click', '.js-delete', function (e) {
+            e.preventDefault();
 
-            //     const id = $(this).data('id');
-            //     const form = $('#delete-form-' + id);
-            //     const token = form.find('input[name="__RequestVerificationToken"]').val();
+            const id = $(this).data('id');
+            const form = $('#delete-form-' + id);
+            const token = form.find('input[name="__RequestVerificationToken"]').val();
 
-            //     Swal.fire({
-            //         title: 'Are you sure?',
-            //         text: 'This payment method will be permanently deleted!',
-            //         icon: 'warning',
-            //         showCancelButton: true,
-            //         confirmButtonColor: '#d33',
-            //         cancelButtonColor: '#6c757d',
-            //         confirmButtonText: 'Yes, delete it!',
-            //         cancelButtonText: 'Cancel'
-            //     }).then((result) => {
-            //         if (result.isConfirmed) {
-            //             $.ajax({
-            //                 url: form.attr('action'),
-            //                 type: 'POST',
-            //                 data: { id: id, __RequestVerificationToken: token },
-            //                 success: function (res) {
-            //                     if (res.success) {
-            //                         table.row($('#row-' + id)).remove().draw(false);
-            //                         Swal.fire('Deleted!', res.message, 'success');
-            //                     } else {
-            //                         Swal.fire('Error', res.message, 'error');
-            //                     }
-            //                 },
-            //                 error: function () {
-            //                     Swal.fire('Error', 'Something went wrong', 'error');
-            //                 }
-            //             });
-            //         }
-            //     });
-            // });
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'This sale order and its items will be permanently deleted!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: form.attr('action'),
+                        type: 'POST',
+                        data: { id: id, __RequestVerificationToken: token },
+                        success: function (res) {
+                            if (res.success) {
+                                // ✅ remove row from datatable
+                                var table = $('.dataTable').DataTable();
+                                table.row($('#row-' + id)).remove().draw(false);
 
-            // Auto-hide success message
+                                Swal.fire('Deleted!', res.message, 'success');
+                            } else {
+                                Swal.fire('Error', res.message, 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Error', 'Something went wrong', 'error');
+                        }
+                    });
+                }
+            });
+        });
             setTimeout(() => $('.alert-success').fadeOut('slow'), 5000);
         });
     </script>
