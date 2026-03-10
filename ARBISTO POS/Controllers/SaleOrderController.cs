@@ -216,8 +216,16 @@ namespace ARBISTO_POS.Controllers
             }
         }
 
+        private async Task<bool> IsSingleTableMultiOrderEnabled()
+        {
+            var setting = await _context.AppSetttings.FirstOrDefaultAsync();
 
+            if (setting == null)
+                return false;
 
+            // Agar property string me hai: "Yes" / "No"
+            return string.Equals(setting.SingleTableMultiOrder, "Yes", StringComparison.OrdinalIgnoreCase);                
+        }
 
 
         [HttpGet]
@@ -231,34 +239,51 @@ namespace ARBISTO_POS.Controllers
             return Json(new { results = customers });
         }
         
-        // GET: Get all tables with status
+
         [HttpGet]
-        public IActionResult GetTables()
+        public async Task<IActionResult> GetTables()
         {
             try
             {
-                // Get active order statuses
+                // Active order statuses
                 var activeStatuses = new[] { "Preparing", "Ready", "Pending" };
 
-                // Get all tables
-                var allTables = _context.ServiceTables.ToList();
+                // App setting
+                bool isSingleTableMultiOrderEnabled = await IsSingleTableMultiOrderEnabled();
 
-                // Get tables that have active orders
-                var occupiedTableIds = _context.SaleOrders
+                // All tables
+                var allTables = await _context.ServiceTables.ToListAsync();
+
+                // Tables having active orders
+                var occupiedTableIds = await _context.SaleOrders
                     .Where(o => activeStatuses.Contains(o.OrderStatus) && o.TableId > 0)
                     .Select(o => o.TableId)
                     .Distinct()
-                    .ToList();
+                    .ToListAsync();
 
-                // Map tables with status
-                var tables = allTables.Select(table => new
+                // Response with selectable flag
+                var tables = allTables.Select(table =>
                 {
-                    id = table.Id,
-                    tableName = table.TabName,
-                    status = occupiedTableIds.Contains(table.Id) ? "Serving" : "Available"
+                    bool isServing = occupiedTableIds.Contains(table.Id);
+                    bool canSelect = !isServing || isSingleTableMultiOrderEnabled;
+
+                    return new
+                    {
+                        id = table.Id,
+                        tableName = table.TabName,
+                        status = isServing ? "Serving" : "Available",
+                        selectable = canSelect,
+                        statusMessage = isServing && isSingleTableMultiOrderEnabled
+                            ? "Serving, but you can also add this table"
+                            : (isServing ? "Serving" : "Available")
+                    };
                 }).ToList();
 
-                return Json(new { tables = tables });
+                return Json(new
+                {
+                    tables = tables,
+                    singleTableMultiOrderEnabled = isSingleTableMultiOrderEnabled
+                });
             }
             catch (Exception ex)
             {
@@ -329,7 +354,7 @@ namespace ARBISTO_POS.Controllers
             var orderItems = JsonConvert.DeserializeObject<List<SaleOrderItems>>(OrderItemsJson);
 
             // 🔹 Check Kitchen Printer Setting from Database
-            var printerSetting = await _context.AppSetttingPrinter.FirstOrDefaultAsync();
+            var printerSetting = await _context.AppSetttings.FirstOrDefaultAsync();
             bool isKitchenPrinterEnabled = printerSetting != null && printerSetting.KitchenPrinter == "Yes";
 
             // userid save

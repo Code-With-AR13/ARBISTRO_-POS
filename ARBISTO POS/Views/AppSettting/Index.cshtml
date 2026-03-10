@@ -1,5 +1,5 @@
 ﻿@using ARBISTO_POS.Models
-@model AppSetttingPrinter
+@model AppSettting
 
 @{
     ViewData["Title"] = "App Setting";
@@ -52,6 +52,14 @@
                                         <option value="No" data-icon="feather-x text-danger">No</option>
                                     </select>
                                     <small class="form-text text-muted">Allow printer in kitchen instead of screen. [Ex: Yes/No]</small>
+                                </div>
+                                <div class="mb-5">
+                                    <label class="form-label">Allow multiple orders on the same table while it is serving.</label>
+                                    <select asp-for="SingleTableMultiOrder" class="form-select" data-select2-selector="icon">
+                                        <option value="Yes" data-icon="feather-check text-success">Yes</option>
+                                        <option value="No" data-icon="feather-x text-danger">No</option>
+                                    </select>
+                                    <small class="form-text text-muted">If Yes, a serving table can be selected again for a new order. [Ex: Yes/No]</small>
                                 </div>
                             </div>
                         </div>

@@ -1107,65 +1107,84 @@
        TABLE SELECTION MODAL
     =============================== */
     document.getElementById('openTableModal').addEventListener('click', async function() {
-        try {
-            const response = await fetch('/SaleOrder/GetTables');
-            const data = await response.json();
+    try {
+        const response = await fetch('/SaleOrder/GetTables');
+        const data = await response.json();
 
-            const container = document.getElementById('tableListContainer');
-            container.innerHTML = '';
+        const container = document.getElementById('tableListContainer');
+        container.innerHTML = '';
 
-            if (data.tables.length === 0) {
-                container.innerHTML = `
-                    <div class="col-12 text-center text-muted">
-                        <i class="bi bi-x-circle fs-1 mb-2"></i>
-                        <div class="fw-semibold">No Tables Found</div>
-                        <small>Please add tables to the system.</small>
-                    </div>`;
-            } else {
-                data.tables.forEach(table => {
-                    const isAvailable = table.status === 'Available';
-                    const statusClass = isAvailable ? 'success' : 'danger';
-                    const statusText = table.status;
+        if (!data.tables || data.tables.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center text-muted">
+                    <i class="bi bi-x-circle fs-1 mb-2"></i>
+                    <div class="fw-semibold">No Tables Found</div>
+                    <small>Please add tables to the system.</small>
+                </div>`;
+        } else {
+            data.tables.forEach(table => {
+                const isAvailable = table.status === 'Available';
+                const isServing = table.status === 'Serving';
+                const isSelectable = table.selectable === true;
 
-                    const tableCard = document.createElement('div');
-                    tableCard.className = 'col-md-4 col-sm-6';
-                    tableCard.innerHTML = `
-                        <div class="card table-card ${isAvailable ? '' : 'opacity-75'}"
-                             data-table-id="${table.id}"
-                             data-table-name="${table.tableName}"
-                             style="cursor: ${isAvailable ? 'pointer' : 'not-allowed'};">
-                            <div class="card-body text-center">
-                                <i class="bi bi-table fs-1 mb-2"></i>
-                                <h5 class="card-title fw-bold">${table.tableName}</h5>                                    
-                                <span class="badge bg-${statusClass}">${statusText}</span>
+                let statusClass = 'success';
+                if (isServing && isSelectable) {
+                    statusClass = 'warning';
+                } else if (isServing && !isSelectable) {
+                    statusClass = 'danger';
+                }
+
+                const tableCard = document.createElement('div');
+                tableCard.className = 'col-md-4 col-sm-6';
+
+                tableCard.innerHTML = `
+                    <div class="card table-card ${isSelectable ? '' : 'opacity-75'}"
+                         data-table-id="${table.id}"
+                         data-table-name="${table.tableName}"
+                         style="cursor: ${isSelectable ? 'pointer' : 'not-allowed'}; border: 2px solid ${isServing ? '#ffc107' : '#198754'};">
+                        <div class="card-body text-center">
+                            <i class="bi bi-table fs-1 mb-2"></i>
+                            <h5 class="card-title fw-bold">${table.tableName}</h5>
+                            <span class="badge bg-${statusClass}">${table.status}</span>
+                            <div class="small mt-2 ${isSelectable ? 'text-dark' : 'text-muted'}">
+                                ${table.statusMessage || table.status}
                             </div>
-                        </div>`;
+                        </div>
+                    </div>`;
 
-                    if (isAvailable) {
-                        tableCard.querySelector('.table-card').addEventListener('click', function() {
-                            selectTable(table.id, table.tableName);
-                        });
-                    }
+                const card = tableCard.querySelector('.table-card');
 
-                    container.appendChild(tableCard);
-                });
+                if (isSelectable) {
+                    card.addEventListener('click', function() {
+                        selectTable(table.id, table.tableName, table.status);
+                    });
+                }
+
+                container.appendChild(tableCard);
+            });
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('tableSelectionModal'));
+        modal.show();
+
+    } catch (error) {
+        console.error('Error fetching tables:', error);
+        toastr.error('Failed to load tables. Please try again.', 'Error');
+    }
+});
+
+        function selectTable(tableId, tableName, tableStatus = 'Available') {
+            document.getElementById('TableIdHidden').value = tableId;
+
+            if (tableStatus === 'Serving') {
+                document.getElementById('selectedTableText').innerText = `${tableName} (Serving)`;
+            } else {
+                document.getElementById('selectedTableText').innerText = tableName;
             }
 
-            const modal = new bootstrap.Modal(document.getElementById('tableSelectionModal'));
-            modal.show();
-
-        } catch (error) {
-            console.error('Error fetching tables:', error);
-            alert('Failed to load tables. Please try again.');
-        }
-    });
-
-    function selectTable(tableId, tableName) {
-        document.getElementById('TableIdHidden').value = tableId;
-        document.getElementById('selectedTableText').innerText = tableName;
-        const modal = bootstrap.Modal.getInstance(document.getElementById('tableSelectionModal'));
-        modal.hide();
-    }
+            const modal = bootstrap.Modal.getInstance(document.getElementById('tableSelectionModal'));
+            if (modal) modal.hide();
+        }    
 
     /* ===============================
        CUSTOMER ADDRESS LOGIC

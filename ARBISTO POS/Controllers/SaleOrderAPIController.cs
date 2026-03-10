@@ -27,42 +27,108 @@ namespace ARBISTO_POS.ApiControllers
             _hubContext = hubContext;
         }
 
-        // ============================
-        // GET: api/SaleOrderApi - List all orders
-        // ============================
-        [AllowAnonymous]
-        [HttpGet]
-        public async Task<IActionResult> GetAllOrders()
-        {
-            var orders = await _context.SaleOrders
-                .Include(o => o.Customer)
-                .Include(o => o.OrderItems)
-                .Select(o => new
-                {
-                    o.OrderId,
-                    o.OrderNumber,
-                    o.OrderDate,
-                    o.OrderType,
-                    o.OrderStatus,
-                    Customer = o.Customer != null ? new { o.Customer.Id, o.Customer.Name } : null,
-                    o.SubTotal,
-                    o.TaxAmount,
-                    o.DiscountAmount,
-                    o.GrandTotal,
-                    o.PaymentStatus,
-                    OrderItems = o.OrderItems.Select(i => new
-                    {
-                        i.ItemId,
-                        i.ItemName,
-                        i.Price,
-                        i.Quantity,
-                        i.Total
-                    }).ToList()
-                })
-                .ToListAsync();
+        //// ============================
+        //// GET: api/SaleOrderApi - List all orders
+        //// ============================
+        //[AllowAnonymous]
+        //[HttpGet]
+        //public async Task<IActionResult> GetAllOrders()
+        //{
+        //    var orders = await _context.SaleOrders
+        //        .Include(o => o.Customer)
+        //        .Include(o => o.OrderItems)
+        //        .Select(o => new
+        //        {
+        //            o.OrderId,
+        //            o.OrderNumber,
+        //            o.OrderDate,
+        //            o.OrderType,
+        //            o.OrderStatus,
+        //            Customer = o.Customer != null ? new { o.Customer.Id, o.Customer.Name } : null,
+        //            o.SubTotal,
+        //            o.TaxAmount,
+        //            o.DiscountAmount,
+        //            o.GrandTotal,
+        //            o.PaymentStatus,
+        //            OrderItems = o.OrderItems.Select(i => new
+        //            {
+        //                i.ItemId,
+        //                i.ItemName,
+        //                i.Price,
+        //                i.Quantity,
+        //                i.Total
+        //            }).ToList()
+        //        })
+        //        .ToListAsync();
 
-            return Ok(orders);
+        //    return Ok(orders);
+        //}
+        // ============================
+        // GET: api/SaleOrderApi/user-orders/{userId}
+        // ============================
+
+        [HttpGet("user-orders/{userId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetOrdersByUser(int userId)
+        {
+            try
+            {
+                var orders = await _context.SaleOrders
+                    .Include(o => o.Customer)
+                    .Include(o => o.OrderItems)
+                    .Include(o => o.CreatedByUser)
+                    .Where(o => o.CreatedByUserId == userId)
+                    .OrderByDescending(o => o.OrderId)
+                    .ThenByDescending(o => o.OrderDate)
+                    .Select(o => new
+                    {
+                        orderId = o.OrderId,
+                        orderNumber = o.OrderNumber,
+                        orderDate = o.OrderDate,
+                        orderType = o.OrderType,
+                        orderStatus = o.OrderStatus,
+                        tableId = o.TableId,
+                        paymentStatus = o.PaymentStatus,
+                        subTotal = o.SubTotal,
+                        taxAmount = o.TaxAmount,
+                        discountAmount = o.DiscountAmount,
+                        grandTotal = o.GrandTotal,
+                        customerId = o.CustomerId,
+                        createdByUserId = o.CreatedByUserId,
+
+                        itemsCount = o.OrderItems.Count,
+
+                        orderItems = o.OrderItems.Select(i => new
+                        {
+                            orderItemId = i.OrderItemId,
+                            itemId = i.ItemId,
+                            itemName = i.ItemName,
+                            itemImage = i.ItemImage,
+                            price = i.Price,
+                            quantity = i.Quantity,
+                            total = i.Total,
+                            isPrepared = i.IsPrepared
+                        })
+                    })
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    totalOrders = orders.Count,
+                    orders = orders
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
+
         // ============================
         // GET: api/SaleOrderApi/categories - Get all categories
         // ============================
@@ -265,33 +331,65 @@ namespace ARBISTO_POS.ApiControllers
         // ============================
         [AllowAnonymous]
         [HttpGet("tables")]
-        public IActionResult GetTables()
+        public async Task<IActionResult> GetTables()
         {
             try
             {
                 var activeStatuses = new[] { "Preparing", "Ready", "Pending" };
 
-                var allTables = _context.ServiceTables.ToList();
+                bool isSingleTableMultiOrderEnabled = await IsSingleTableMultiOrderEnabled();
 
-                var occupiedTableIds = _context.SaleOrders
+                var allTables = await _context.ServiceTables.ToListAsync();
+
+                var occupiedTableIds = await _context.SaleOrders
                     .Where(o => activeStatuses.Contains(o.OrderStatus) && o.TableId > 0)
                     .Select(o => o.TableId)
                     .Distinct()
-                    .ToList();
+                    .ToListAsync();
 
-                var tables = allTables.Select(table => new
+                var tables = allTables.Select(table =>
                 {
-                    id = table.Id,
-                    tableName = table.TabName,
-                    status = occupiedTableIds.Contains(table.Id) ? "Serving" : "Available"
+                    bool isServing = occupiedTableIds.Contains(table.Id);
+                    bool selectable = !isServing || isSingleTableMultiOrderEnabled;
+
+                    return new
+                    {
+                        id = table.Id,
+                        tableName = table.TabName,
+                        status = isServing ? "Serving" : "Available",
+                        selectable = selectable,
+                        statusMessage = isServing && isSingleTableMultiOrderEnabled
+                            ? "Serving, but you can also add this table"
+                            : (isServing ? "Serving" : "Available")
+                    };
                 }).ToList();
 
-                return Ok(new { tables });
+                return Ok(new
+                {
+                    success = true,
+                    singleTableMultiOrderEnabled = isSingleTableMultiOrderEnabled,
+                    tables = tables
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    error = ex.Message
+                });
             }
+        }
+
+        private async Task<bool> IsSingleTableMultiOrderEnabled()
+        {
+            var setting = await _context.AppSetttings.FirstOrDefaultAsync();
+
+            if (setting == null)
+                return false;
+
+            return string.Equals(setting.SingleTableMultiOrder, "Yes", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(setting.SingleTableMultiOrder, "True", StringComparison.OrdinalIgnoreCase);
         }
 
         // ============================
@@ -603,102 +701,210 @@ namespace ARBISTO_POS.ApiControllers
         public string ItemName { get; set; } = string.Empty;
     }
 
+        // ============================
+        // GET: api/SaleOrderApi/table/{tableId}/edit-order
+        // ✅ Load existing order by TableId
+        // ============================
+        [HttpGet("{orderId}/edit")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetOrderForEditByOrderId(int orderId)
+        {
+            try
+            {
+                var order = await _context.SaleOrders
+                    .Include(o => o.OrderItems)
+                    .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
+                if (order == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"No order found for OrderId {orderId}"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        orderId = order.OrderId,
+                        orderNumber = order.OrderNumber,
+                        orderDate = order.OrderDate,
+                        orderType = order.OrderType,
+                        orderStatus = order.OrderStatus,
+                        tableId = order.TableId,
+                        customerId = order.CustomerId,
+                        pickUpId = order.PickUpId,
+                        delivaryAddress = order.DelivaryAddress,
+                        subTotal = order.SubTotal,
+                        taxAmount = order.TaxAmount,
+                        discountAmount = order.DiscountAmount,
+                        grandTotal = order.GrandTotal,
+                        notes = order.Notes,
+                        orderItems = order.OrderItems.Select(i => new
+                        {
+                            orderItemId = i.OrderItemId,
+                            itemId = i.ItemId,
+                            itemName = i.ItemName,
+                            itemImage = i.ItemImage,
+                            price = i.Price,
+                            quantity = i.Quantity,
+                            total = i.Total,
+                            isPrepared = i.IsPrepared
+                        }).ToList()
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
         // ============================
-        // PUT: api/SaleOrderApi/{id}/edit
-        // ✅ Only Order + Items edit (NO payment fields touched)
+        // PUT: api/SaleOrderApi/table/{tableId}/edit
+        // ✅ Edit existing order by TableId
+        // ✅ After edit OrderStatus => Preparing
+        // ✅ Payment fields untouched
         // ============================
-        [HttpPut("{id}/edit")]
-        [AllowAnonymous] // (later you can secure it)
-        public async Task<IActionResult> EditOrderOnly(int id, [FromBody] CreateOrderRequest request)
+        [HttpPut("{orderId}/edit")]
+        [AllowAnonymous]
+        public async Task<IActionResult> EditOrderByOrderId(int orderId, [FromBody] CreateOrderRequest request)
         {
             try
             {
                 if (request == null)
                     return BadRequest(new { success = false, message = "Invalid request." });
 
-                // ✅ Load order with items (payment not needed here)
                 var order = await _context.SaleOrders
                     .Include(o => o.OrderItems)
-                    .FirstOrDefaultAsync(o => o.OrderId == id);
+                    .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
                 if (order == null)
-                    return NotFound(new { success = false, message = "Order not found." });
+                    return NotFound(new { success = false, message = $"No order found for OrderId {orderId}" });
 
-                // ============================================================
-                // ✅ IMPORTANT RULE:
-                // Only update editable order fields.
-                // DO NOT touch: PaymentId, PaymentStatus, OrderStatus (unless you want), Paid flags etc.
-                // ============================================================
-
+                // ============================
+                // Update order header only
+                // ============================
                 order.OrderType = request.OrderType;
-                order.CustomerId = request.CustomerId;             // keep nullable behavior as in create
+                order.CustomerId = request.CustomerId;
                 order.TableId = request.TableId;
                 order.PickUpId = request.PickUpId;
                 order.DelivaryAddress = request.DelivaryAddress;
-
                 order.SubTotal = request.SubTotal;
-                order.TaxAmount = request.TaxAmount ?? order.TaxAmount;           // safe default
+                order.TaxAmount = request.TaxAmount ?? order.TaxAmount;
                 order.DiscountAmount = request.DiscountAmount ?? order.DiscountAmount;
                 order.GrandTotal = request.GrandTotal ?? order.GrandTotal;
-
                 order.Notes = request.Notes;
 
-                // ============================
-                // ✅ Replace items (Edit Items)
-                // ============================
+                // After edit order goes back to preparing
+                order.OrderStatus = "Preparing";
 
-                // Remove existing items
-                if (order.OrderItems != null && order.OrderItems.Any())
-                    _context.SaleOrderItems.RemoveRange(order.OrderItems);
+                var existingItems = order.OrderItems?.ToList() ?? new List<SaleOrderItems>();
+                var requestItems = request.OrderItems?.ToList() ?? new List<OrderItemDto>();
 
-                // Add new items
-                if (request.OrderItems != null && request.OrderItems.Any())
+                // ============================
+                // Update existing items / Add new items
+                // ============================
+                foreach (var reqItem in requestItems)
                 {
-                    foreach (var item in request.OrderItems)
+                    if ((reqItem.Quantity ?? 0) <= 0)
+                        return BadRequest(new { success = false, message = $"Invalid quantity for ItemId {reqItem.ItemId}" });
+
+                    if ((reqItem.Price ?? 0) <= 0)
+                        return BadRequest(new { success = false, message = $"Invalid price for ItemId {reqItem.ItemId}" });
+
+                    // Better approach:
+                    // old items should come with OrderItemId (or SaleOrderItemId) from frontend
+                    SaleOrderItems? existingItem = null;
+
+                    if (reqItem.OrderItemId > 0)
                     {
-                        // Basic validation (optional but recommended)
-                        if ((item.Quantity ?? 0) <= 0)
-                            return BadRequest(new { success = false, message = $"Invalid quantity for ItemId {item.ItemId}" });
+                        existingItem = existingItems.FirstOrDefault(x => x.OrderItemId == reqItem.OrderItemId);
+                    }
+                    else
+                    {
+                        existingItem = existingItems.FirstOrDefault(x => x.ItemId == reqItem.ItemId);
+                    }
 
-                        if ((item.Price ?? 0) <= 0)
-                            return BadRequest(new { success = false, message = $"Invalid price for ItemId {item.ItemId}" });
-
+                    if (existingItem != null)
+                    {
+                        // Update existing row
+                        // KEEP IsPrepared as it is
+                        existingItem.ItemName = reqItem.ItemName;
+                        existingItem.ItemImage = reqItem.ItemImage;
+                        existingItem.Price = reqItem.Price ?? 0;
+                        existingItem.Quantity = reqItem.Quantity ?? 0;
+                        existingItem.Total = (reqItem.Price ?? 0) * (reqItem.Quantity ?? 0);
+                        existingItem.CustomerId = request.CustomerId;
+                    }
+                    else
+                    {
+                        // Add new item
                         _context.SaleOrderItems.Add(new SaleOrderItems
                         {
                             OrderId = order.OrderId,
-                            ItemId = item.ItemId,
-                            ItemName = item.ItemName,
-                            ItemImage = item.ItemImage,
-                            Price = item.Price ?? 0,
-                            Quantity = item.Quantity ?? 0,
-                            Total = (item.Price ?? 0) * (item.Quantity ?? 0),
-                            CustomerId = request.CustomerId
+                            ItemId = reqItem.ItemId,
+                            ItemName = reqItem.ItemName,
+                            ItemImage = reqItem.ItemImage,
+                            Price = reqItem.Price ?? 0,
+                            Quantity = reqItem.Quantity ?? 0,
+                            Total = (reqItem.Price ?? 0) * (reqItem.Quantity ?? 0),
+                            CustomerId = request.CustomerId,
+                            IsPrepared = false
                         });
                     }
                 }
-                else
+
+                // ============================
+                // Remove deleted items
+                // ============================
+                var requestOrderItemIds = requestItems
+                    .Where(x => x.OrderItemId > 0)
+                    .Select(x => x.OrderItemId)
+                    .ToList();
+
+                var requestNewItemIds = requestItems
+                    .Where(x => x.OrderItemId <= 0)
+                    .Select(x => x.ItemId)
+                    .ToList();
+
+                var itemsToRemove = existingItems
+                    .Where(x =>
+                        !requestOrderItemIds.Contains(x.OrderItemId) &&
+                        !requestNewItemIds.Contains(x.ItemId))
+                    .ToList();
+
+                if (itemsToRemove.Any())
                 {
-                    // If you want to disallow empty items on edit, uncomment:
-                    // return BadRequest(new { success = false, message = "Order must contain at least one item." });
+                    _context.SaleOrderItems.RemoveRange(itemsToRemove);
                 }
 
-                // ✅ Save only order & items changes
                 await _context.SaveChangesAsync();
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Order updated successfully (payment untouched).",
-                    orderId = order.OrderId
+                    message = "Order updated successfully. Existing item preparation status preserved, new items set to unprepared.",
+                    orderId = order.OrderId,
+                    tableId = order.TableId,
+                    orderStatus = order.OrderStatus
                 });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
-
         // ============================
         // POST: api/SaleOrderApi/{id}/confirm - Confirm order (Kitchen)
         // ============================
@@ -1051,7 +1257,7 @@ namespace ARBISTO_POS.ApiControllers
 
             return Ok(order);
         }
-                      
+         
 
         // ============================
         // DTOs
@@ -1082,9 +1288,10 @@ namespace ARBISTO_POS.ApiControllers
             public List<OrderItemDto> OrderItems { get; set; } = new();
             public int? CreatedByUserId { get; set; }
         }
-
+         
         public class OrderItemDto
         {
+            public int OrderItemId { get; set; }   // old item ke liye ayega, new item ke liye 0
             public int ItemId { get; set; }
             public string? ItemName { get; set; } = default!;
             public string? ItemImage { get; set; }

@@ -17,31 +17,32 @@ namespace ARBISTO_POS.Controllers
 
         public IActionResult Index()
         {
-            var setting = _context.AppSetttingPrinter.FirstOrDefault();
+            var setting = _context.AppSetttings.FirstOrDefault();
             if (setting == null)
             {
-                setting = new AppSetttingPrinter();
+                setting = new AppSettting();
             }
             return View(setting);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Index(AppSetttingPrinter model)
+        public IActionResult Index(AppSettting model)
         {
             try
             {
                 if (ModelState.IsValid)
                 {
-                    var existingSetting = _context.AppSetttingPrinter.FirstOrDefault();
+                    var existingSetting = _context.AppSetttings.FirstOrDefault();
 
                     if (existingSetting == null)
                     {
-                        _context.AppSetttingPrinter.Add(model);
+                        _context.AppSetttings.Add(model);
                     }
                     else
                     {
                         existingSetting.KitchenPrinter = model.KitchenPrinter;
+                        existingSetting.SingleTableMultiOrder = model.SingleTableMultiOrder;
                     }
 
                     _context.SaveChanges();
