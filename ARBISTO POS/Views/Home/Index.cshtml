@@ -127,71 +127,164 @@
 
 @section Scripts {
     <script>
-               $(document).ready(function () {
+        let paymentChart = null;
+        let leadsChart = null;
 
-            // ✅ LOAD DASHBOARD
-            $.ajax({
-                url: '/Home/GetDashboardData',
-                type: 'GET',
-                success: function (data) {
+        $(document).ready(function () {
 
-                    // Counters
-                    $('#totalOrders').text(data.totalOrders);
-                    $('#totalOrdersAll').text(data.totalOrdersAll);
+            loadDashboard();
+            loadTable();
 
-                    $('#totalPaid').text(data.totalPaid);
-                    $('#totalUnpaid').text(data.totalUnpaid);
+            // ======================
+            // 🔥 LOAD DASHBOARD
+            // ======================
+            function loadDashboard() {
 
-                    $('#totalExpense').text(data.totalExpense);
-
-                    // Progress
-                    $('#paidProgress').css('width', data.paidPercent + '%');
-                    $('#unpaidProgress').css('width', data.unpaidPercent + '%');
-
-                    // ✅ DESTROY OLD CHARTS (IMPORTANT)
-                    $('#payment-records-chart').empty();
-                    $('#leads-overview-donut').empty();
-
-                    // ✅ LINE CHART
-                    var options = {
-                        chart: { type: 'line', height: 300 },
-                        series: [{
-                            name: 'Payments',
-                            data: data.chartPayments
-                        }],
-                        xaxis: {
-                            categories: data.chartDates
-                        }
-                    };
-
-                    new ApexCharts(document.querySelector("#payment-records-chart"), options).render();
-
-                    // ✅ DONUT CHART
-                    var donut = {
-                        chart: { type: 'donut' },
-                        series: data.leadsData,
-                        labels: data.leadsLabels
-                    };
-
-                    new ApexCharts(document.querySelector("#leads-overview-donut"), donut).render();
-                }
-            });
-
-            // ✅ DATATABLE FIX
-            $('#latestLeadsTable').DataTable({
-                destroy: true, // important
-                ajax: {
-                    url: '/Home/GetLatestLeads',
+                $.ajax({
+                    url: '/Home/GetDashboardData',
                     type: 'GET',
-                    dataSrc: 'data' // must match controller
-                },
-                columns: [
-                    { data: 'name' },
-                    { data: 'phone' },
-                    { data: 'status' },
-                    { data: 'date' }
-                ]
-            });
+                    success: function (data) {
+
+                        // ======================
+                        // COUNTERS
+                        // ======================
+                        $('#totalOrders').text(data.totalOrders);
+                        $('#totalOrdersAll').text(data.totalOrdersAll);
+
+                        $('#totalPaid').text(data.totalPaid);
+                        $('#totalUnpaid').text(data.totalUnpaid);
+
+                        $('#totalExpense').text(data.totalExpense);
+
+                        // ======================
+                        // PROGRESS
+                        // ======================
+                        $('#paidProgress').css('width', data.paidPercent + '%');
+                        $('#unpaidProgress').css('width', data.unpaidPercent + '%');
+
+                        // ======================
+                        // 🔥 DESTROY OLD CHARTS
+                        // ======================
+                        if (paymentChart !== null) {
+                            paymentChart.destroy();
+                            $('#payment-records-chart').empty();
+                        }
+
+                        if (leadsChart !== null) {
+                            leadsChart.destroy();
+                            $('#leads-overview-donut').empty();
+                        }
+
+                        // ======================
+                        // 📊 LINE CHART (FINAL PERFECT)
+                        // ======================
+
+                        // Default labels if no data
+                        let defaultDates = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+                        let hasLineData = data.chartPayments && data.chartPayments.length > 0;
+
+                        let chartData = hasLineData
+                            ? data.chartPayments.map(x => Number(x))
+                            : []; // ❌ empty = no line
+
+                        let chartDates = (data.chartDates && data.chartDates.length > 0)
+                            ? data.chartDates
+                            : defaultDates;
+
+                        var options = {
+                            chart: {
+                                type: 'line',
+                                height: 300,
+                                toolbar: { show: false }
+                            },
+                            series: [{
+                                name: 'Payments',
+                                data: chartData
+                            }],
+                            xaxis: {
+                                categories: chartDates
+                            },
+                            stroke: {
+                                curve: 'smooth',
+                                width: hasLineData ? 3 : 0 // ✅ hide line if no data
+                            },
+                            markers: {
+                                size: hasLineData ? 5 : 0 // ✅ hide dots
+                            },
+                            dataLabels: {
+                                enabled: false
+                            }
+                        };
+
+                        paymentChart = new ApexCharts(
+                            document.querySelector("#payment-records-chart"),
+                            options
+                        );
+
+                        paymentChart.render();
+
+                        // ======================
+                        // 🍩 DONUT CHART (FINAL PERFECT)
+                        // ======================
+
+                        let hasDonutData = data.leadsData && data.leadsData.length > 0;
+
+                        let donutSeries = hasDonutData
+                            ? data.leadsData.map(x => Number(x))
+                            : [0]; // stable fallback
+
+                        let donutLabels = hasDonutData
+                            ? data.leadsLabels
+                            : ["No Data"];
+
+                        var donutOptions = {
+                            chart: {
+                                type: 'donut'
+                            },
+                            series: donutSeries,
+                            labels: donutLabels,
+                            stroke: {
+                                width: 1
+                            }
+                        };
+
+                        leadsChart = new ApexCharts(
+                            document.querySelector("#leads-overview-donut"),
+                            donutOptions
+                        );
+
+                        leadsChart.render();
+                    },
+                    error: function () {
+                        console.log("Dashboard data load failed");
+                    }
+                });
+            }
+
+            // ======================
+            // 🔥 DATATABLE
+            // ======================
+            function loadTable() {
+
+                if ($.fn.DataTable.isDataTable('#latestLeadsTable')) {
+                    $('#latestLeadsTable').DataTable().destroy();
+                }
+
+                $('#latestLeadsTable').DataTable({
+                    ajax: {
+                        url: '/Home/GetLatestLeads',
+                        type: 'GET',
+                        dataSrc: 'data'
+                    },
+                    columns: [
+                        { data: 'name' },
+                        { data: 'phone' },
+                        { data: 'status' },
+                        { data: 'date' }
+                    ]
+                });
+            }
 
         });
     </script>

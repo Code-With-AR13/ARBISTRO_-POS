@@ -47,9 +47,10 @@ namespace ARBISTO_POS.Controllers
             var unpaidPercent = totalOrders == 0 ? 0 : (unpaidOrders * 100 / totalOrders);
 
             // ===========================
-            // 📊 LINE CHART (LAST 7 DAYS)
+            // 📊 LINE CHART (FINAL FIX)
             // ===========================
-            var last7Days = await _context.SaleOrders
+
+            var dbChartData = await _context.SaleOrders
                 .Where(x => x.PaymentStatus == "Paid")
                 .GroupBy(x => x.OrderDate.Date)
                 .Select(g => new
@@ -57,31 +58,52 @@ namespace ARBISTO_POS.Controllers
                     Date = g.Key,
                     Total = g.Sum(x => x.GrandTotal)
                 })
-                .OrderByDescending(x => x.Date)
-                .Take(7)
-                .OrderBy(x => x.Date) // correct order for chart
                 .ToListAsync();
 
-            var chartDates = last7Days
-                .Select(x => x.Date.ToString("dd MMM"))
-                .ToArray();
+            var chartDates = new List<string>();
+            var chartPayments = new List<decimal>();
 
-            var chartPayments = last7Days
-                .Select(x => x.Total)
-                .ToArray();
+            // 👉 ✅ IF NO DATA → RETURN EMPTY (IMPORTANT FIX)
+            if (dbChartData.Any())
+            {
+                var last7Days = Enumerable.Range(0, 7)
+                    .Select(i => DateTime.Today.AddDays(-i))
+                    .OrderBy(d => d)
+                    .ToList();
+
+                foreach (var day in last7Days)
+                {
+                    var match = dbChartData.FirstOrDefault(x => x.Date == day.Date);
+
+                    chartDates.Add(day.ToString("dd MMM"));
+                    chartPayments.Add(match != null ? match.Total : 0);
+                }
+            }
 
             // ===========================
-            // 🍩 DONUT CHART (DYNAMIC)
+            // 🍩 DONUT CHART (FINAL FIX)
             // ===========================
-            var leadsData = new[] { paidOrders, unpaidOrders };
-            var leadsLabels = new[] { "Paid", "Unpaid" };
+
+            List<int> leadsData;
+            List<string> leadsLabels;
+
+            // 👉 ✅ IF NO DATA → EMPTY (STOP RANDOM BEHAVIOR)
+            if (paidOrders == 0 && unpaidOrders == 0)
+            {
+                leadsData = new List<int>();
+                leadsLabels = new List<string>();
+            }
+            else
+            {
+                leadsData = new List<int> { paidOrders, unpaidOrders };
+                leadsLabels = new List<string> { "Paid", "Unpaid" };
+            }
 
             // ===========================
             // FINAL RESPONSE
             // ===========================
             return Json(new
             {
-                // Counters
                 totalOrders,
                 totalOrdersAll = totalOrders,
 
@@ -90,13 +112,12 @@ namespace ARBISTO_POS.Controllers
 
                 totalExpense,
 
-                // Progress
                 ordersPercent = 100,
                 paidPercent,
                 unpaidPercent,
-                expensePercent = 50, // can improve later
+                expensePercent = 50,
 
-                // Charts
+                // ✅ FIXED CHART DATA
                 chartDates,
                 chartPayments,
                 leadsData,
@@ -105,7 +126,7 @@ namespace ARBISTO_POS.Controllers
         }
 
         // ===========================
-        // 🔥 DATATABLE API (LATEST LEADS)
+        // 🔥 DATATABLE API
         // ===========================
         [HttpGet]
         public async Task<IActionResult> GetLatestLeads()
@@ -123,7 +144,6 @@ namespace ARBISTO_POS.Controllers
                 })
                 .ToListAsync();
 
-            // ✅ MUST wrap in "data" for DataTable
             return Json(new { data = latestData });
         }
     }
