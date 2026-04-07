@@ -28,7 +28,7 @@ namespace ARBISTO_POS.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDashboardData()
         {
-            // ✅ COUNTS
+            // COUNTS
             var totalOrders = await _context.SaleOrders.CountAsync();
 
             var paidOrders = await _context.SaleOrders
@@ -42,13 +42,18 @@ namespace ARBISTO_POS.Controllers
             var totalExpense = await _context.Expenses
                 .SumAsync(x => (decimal?)x.ExpenseAmount) ?? 0;
 
-            // ✅ PERCENTAGES
+            // PERCENTAGES
             var paidPercent = totalOrders == 0 ? 0 : (paidOrders * 100 / totalOrders);
             var unpaidPercent = totalOrders == 0 ? 0 : (unpaidOrders * 100 / totalOrders);
 
             // ===========================
-            // 📊 LINE CHART (FINAL FIX)
+            // 📊 LINE CHART (ALWAYS 7 DAYS)
             // ===========================
+
+            var last7Days = Enumerable.Range(0, 7)
+                .Select(i => DateTime.Today.AddDays(-i))
+                .OrderBy(d => d)
+                .ToList();
 
             var dbChartData = await _context.SaleOrders
                 .Where(x => x.PaymentStatus == "Paid")
@@ -63,45 +68,25 @@ namespace ARBISTO_POS.Controllers
             var chartDates = new List<string>();
             var chartPayments = new List<decimal>();
 
-            // 👉 ✅ IF NO DATA → RETURN EMPTY (IMPORTANT FIX)
-            if (dbChartData.Any())
+            foreach (var day in last7Days)
             {
-                var last7Days = Enumerable.Range(0, 7)
-                    .Select(i => DateTime.Today.AddDays(-i))
-                    .OrderBy(d => d)
-                    .ToList();
+                var match = dbChartData.FirstOrDefault(x => x.Date == day.Date);
 
-                foreach (var day in last7Days)
-                {
-                    var match = dbChartData.FirstOrDefault(x => x.Date == day.Date);
-
-                    chartDates.Add(day.ToString("dd MMM"));
-                    chartPayments.Add(match != null ? match.Total : 0);
-                }
+                chartDates.Add(day.ToString("dd MMM"));
+                chartPayments.Add(match != null ? match.Total : 0);
             }
 
             // ===========================
-            // 🍩 DONUT CHART (FINAL FIX)
+            // 🍩 DONUT CHART (NEVER EMPTY)
             // ===========================
 
-            List<int> leadsData;
-            List<string> leadsLabels;
-
-            // 👉 ✅ IF NO DATA → EMPTY (STOP RANDOM BEHAVIOR)
-            if (paidOrders == 0 && unpaidOrders == 0)
-            {
-                leadsData = new List<int>();
-                leadsLabels = new List<string>();
-            }
-            else
-            {
-                leadsData = new List<int> { paidOrders, unpaidOrders };
-                leadsLabels = new List<string> { "Paid", "Unpaid" };
-            }
+            var leadsData = new List<int> { paidOrders, unpaidOrders };
+            var leadsLabels = new List<string> { "Paid", "Unpaid" };
 
             // ===========================
             // FINAL RESPONSE
             // ===========================
+
             return Json(new
             {
                 totalOrders,
@@ -117,9 +102,9 @@ namespace ARBISTO_POS.Controllers
                 unpaidPercent,
                 expensePercent = 50,
 
-                // ✅ FIXED CHART DATA
                 chartDates,
                 chartPayments,
+
                 leadsData,
                 leadsLabels
             });
