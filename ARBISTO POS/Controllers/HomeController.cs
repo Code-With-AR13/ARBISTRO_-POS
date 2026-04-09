@@ -1,6 +1,5 @@
 using ARBISTO_POS.Attributes;
 using ARBISTO_POS.Data;
-using ARBISTO_POS.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,7 +15,9 @@ namespace ARBISTO_POS.Controllers
             _context = context;
         }
 
-        // Dashboard View
+        // ===========================
+        // 📄 DASHBOARD VIEW
+        // ===========================
         public IActionResult Index()
         {
             return View();
@@ -28,28 +29,55 @@ namespace ARBISTO_POS.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDashboardData()
         {
-            // COUNTS
+            // ===========================
+            // 📊 TOTAL ORDERS
+            // ===========================
             var totalOrders = await _context.SaleOrders.CountAsync();
 
-            var paidOrders = await _context.SaleOrders
+            // ===========================
+            // 💰 TOTAL PAID / UNPAID (AMOUNT)
+            // ===========================
+            var totalPaid = await _context.SaleOrders
                 .Where(x => x.PaymentStatus == "Paid")
-                .CountAsync();
+                .SumAsync(x => (decimal?)x.GrandTotal) ?? 0;
 
-            var unpaidOrders = await _context.SaleOrders
+            var totalUnpaid = await _context.SaleOrders
                 .Where(x => x.PaymentStatus == "Unpaid")
-                .CountAsync();
+                .SumAsync(x => (decimal?)x.GrandTotal) ?? 0;
 
+            // ===========================
+            // 📉 TOTAL EXPENSE
+            // ===========================
             var totalExpense = await _context.Expenses
                 .SumAsync(x => (decimal?)x.ExpenseAmount) ?? 0;
 
-            // PERCENTAGES
-            var paidPercent = totalOrders == 0 ? 0 : (paidOrders * 100 / totalOrders);
-            var unpaidPercent = totalOrders == 0 ? 0 : (unpaidOrders * 100 / totalOrders);
+            // ===========================
+            // 📊 TOTAL AMOUNT
+            // ===========================
+            var totalAmount = totalPaid + totalUnpaid;
 
             // ===========================
-            // 📊 LINE CHART (ALWAYS 7 DAYS)
+            // 📊 PERCENTAGES (PAID / UNPAID)
+            // ===========================
+            var paidPercent = totalAmount == 0 ? 0 : (int)((totalPaid * 100) / totalAmount);
+            var unpaidPercent = totalAmount == 0 ? 0 : (int)((totalUnpaid * 100) / totalAmount);
+
+            // ===========================
+            // 📊 EXTRA PERCENTAGES (FOR CARDS)
             // ===========================
 
+            // Orders → full if exists
+            var ordersPercent = totalOrders > 0 ? 100 : 0;
+
+            // Expense → compared with total revenue
+            var expensePercent = totalAmount == 0 ? 0 : (int)((totalExpense * 100) / totalAmount);
+
+            if (expensePercent > 100)
+                expensePercent = 100;
+
+            // ===========================
+            // 📊 LINE CHART (LAST 7 DAYS)
+            // ===========================
             var last7Days = Enumerable.Range(0, 7)
                 .Select(i => DateTime.Today.AddDays(-i))
                 .OrderBy(d => d)
@@ -77,41 +105,45 @@ namespace ARBISTO_POS.Controllers
             }
 
             // ===========================
-            // 🍩 DONUT CHART (NEVER EMPTY)
+            // 🍩 DONUT CHART (COUNT)
             // ===========================
+            var paidOrdersCount = await _context.SaleOrders
+                .Where(x => x.PaymentStatus == "Paid")
+                .CountAsync();
 
-            var leadsData = new List<int> { paidOrders, unpaidOrders };
-            var leadsLabels = new List<string> { "Paid", "Unpaid" };
+            var unpaidOrdersCount = await _context.SaleOrders
+                .Where(x => x.PaymentStatus == "Unpaid")
+                .CountAsync();
 
             // ===========================
-            // FINAL RESPONSE
+            // ✅ FINAL RESPONSE
             // ===========================
-
             return Json(new
             {
                 totalOrders,
                 totalOrdersAll = totalOrders,
 
-                totalPaid = paidOrders,
-                totalUnpaid = unpaidOrders,
-
+                totalPaid,
+                totalUnpaid,
                 totalExpense,
 
-                ordersPercent = 100,
                 paidPercent,
                 unpaidPercent,
-                expensePercent = 50,
+
+                // 🔥 IMPORTANT (FOR PROGRESS BARS)
+                ordersPercent,
+                expensePercent,
 
                 chartDates,
                 chartPayments,
 
-                leadsData,
-                leadsLabels
+                leadsData = new List<int> { paidOrdersCount, unpaidOrdersCount },
+                leadsLabels = new List<string> { "Paid", "Unpaid" }
             });
         }
 
         // ===========================
-        // 🔥 DATATABLE API
+        // 📋 DATATABLE API
         // ===========================
         [HttpGet]
         public async Task<IActionResult> GetLatestLeads()
