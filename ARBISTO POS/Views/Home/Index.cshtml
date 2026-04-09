@@ -15,9 +15,7 @@
                                 <i class="feather-shopping-cart"></i>
                             </div>
                             <div>
-                                <div class="fs-4 fw-bold text-dark">
-                                    <span id="totalOrders">0</span>/<span id="totalOrdersAll">0</span>
-                                </div>
+                                <div class="fs-4 fw-bold text-dark" id="ordersText">0</div>
                                 <h3 class="fs-13 fw-semibold">Total Orders</h3>
                             </div>
                         </div>
@@ -35,10 +33,19 @@
         <div class="col-xxl-3 col-md-6">
             <div class="card stretch stretch-full">
                 <div class="card-body">
-                    <div class="fs-4 fw-bold text-dark">
-                        <span id="totalPaid">0</span>/<span id="totalPaidAll">0</span>
+                    <div class="d-flex align-items-start justify-content-between mb-4">
+                        <div class="d-flex gap-4 align-items-center">
+                            <div class="avatar-text avatar-lg bg-warning-subtle">
+                                <i class="feather-dollar-sign"></i>
+                            </div>
+                            <div>
+                                <div class="fs-4 fw-bold text-dark" id="paidText">0</div>
+                                <h3 class="fs-13 fw-semibold">Total Paid</h3>
+                            </div>
+                        </div>
+                        <i class="feather-more-vertical"></i>
                     </div>
-                    <h3 class="fs-13 fw-semibold">Total Paid</h3>
+
                     <div class="progress mt-2 ht-3">
                         <div id="paidProgress" class="progress-bar bg-warning" style="width: 0%"></div>
                     </div>
@@ -50,10 +57,19 @@
         <div class="col-xxl-3 col-md-6">
             <div class="card stretch stretch-full">
                 <div class="card-body">
-                    <div class="fs-4 fw-bold text-dark">
-                        <span id="totalUnpaid">0</span>/<span id="totalUnpaidAll">0</span>
+                    <div class="d-flex align-items-start justify-content-between mb-4">
+                        <div class="d-flex gap-4 align-items-center">
+                            <div class="avatar-text avatar-lg bg-success-subtle">
+                                <i class="feather-credit-card"></i>
+                            </div>
+                            <div>
+                                <div class="fs-4 fw-bold text-dark" id="unpaidText">0</div>
+                                <h3 class="fs-13 fw-semibold">Total Unpaid</h3>
+                            </div>
+                        </div>
+                        <i class="feather-more-vertical"></i>
                     </div>
-                    <h3 class="fs-13 fw-semibold">Total Unpaid</h3>
+
                     <div class="progress mt-2 ht-3">
                         <div id="unpaidProgress" class="progress-bar bg-success" style="width: 0%"></div>
                     </div>
@@ -65,10 +81,21 @@
         <div class="col-xxl-3 col-md-6">
             <div class="card stretch stretch-full">
                 <div class="card-body">
-                    <div class="fs-4 fw-bold text-dark">
-                        <span id="totalExpense">0</span> PKR
+                    <div class="d-flex align-items-start justify-content-between mb-4">
+                        <div class="d-flex gap-4 align-items-center">
+                            <div class="avatar-text avatar-lg bg-danger-subtle">
+                                <i class="feather-pie-chart"></i>
+                            </div>
+                            <div>
+                                <div class="fs-4 fw-bold text-dark">
+                                    <span id="totalExpense">0</span> PKR
+                                </div>
+                                <h3 class="fs-13 fw-semibold">Total Expense</h3>
+                            </div>
+                        </div>
+                        <i class="feather-more-vertical"></i>
                     </div>
-                    <h3 class="fs-13 fw-semibold">Total Expense</h3>
+
                     <div class="progress mt-2 ht-3">
                         <div id="expenseProgress" class="progress-bar bg-danger" style="width: 0%"></div>
                     </div>
@@ -127,149 +154,148 @@
 
 @section Scripts {
 
-<script>
-    let paymentChart = null;
-    let leadsChart = null;
+    <script>
+        let paymentChart = null;
+        let leadsChart = null;
+        let dashboardLoaded = false; // 🔥 important
 
-    $(document).ready(function () {
+        $(document).ready(function () {
 
-        loadDashboard();
-        loadTable();
+            // Hide containers initially
+            $("#payment-records-chart").hide();
+            $("#leads-overview-donut").hide();
 
-        function loadDashboard() {
+            loadDashboard();
+            loadTable();
 
-            $.ajax({
-                url: '/Home/GetDashboardData',
-                type: 'GET',
-                success: function (data) {
+            function loadDashboard() {
 
-                    // COUNTERS
-                    $('#totalOrders').text(data.totalOrders);
-                    $('#totalOrdersAll').text(data.totalOrdersAll);
+                // 🔥 STOP reloading on resize or multiple calls
+                if (dashboardLoaded) return;
 
-                    $('#totalPaid').text(data.totalPaid);
-                    $('#totalUnpaid').text(data.totalUnpaid);
+                $.ajax({
+                    url: '/Home/GetDashboardData',
+                    type: 'GET',
+                    success: function (data) {
 
-                    $('#totalExpense').text(data.totalExpense);
+                        dashboardLoaded = true; // 🔥 mark loaded
 
-                    // PROGRESS
-                    $('#paidProgress').css('width', data.paidPercent + '%');
-                    $('#unpaidProgress').css('width', data.unpaidPercent + '%');
+                        // COUNTERS
+                        $('#totalOrders').text(data.totalOrders);
+                        $('#totalOrdersAll').text(data.totalOrdersAll);
 
-                    // ======================
-                    // 🔥 DESTROY OLD CHARTS
-                    // ======================
-                    if (paymentChart !== null) {
-                        paymentChart.destroy();
-                    }
+                        $('#totalPaid').text(data.totalPaid);
+                        $('#totalUnpaid').text(data.totalUnpaid);
 
-                    if (leadsChart !== null) {
-                        leadsChart.destroy();
-                    }
+                        $('#totalExpense').text(data.totalExpense);
 
-                    // ======================
-                    // 📊 PAYMENT CHART (REAL DYNAMIC FIX)
-                    // ======================
+                        // PROGRESS
+                        $('#paidProgress').css('width', data.paidPercent + '%');
+                        $('#unpaidProgress').css('width', data.unpaidPercent + '%');
 
-                    let hasData = data.chartPayments && data.chartPayments.some(x => Number(x) > 0);
+                        // CLEAR completely
+                        $("#payment-records-chart").html("");
+                        $("#leads-overview-donut").html("");
 
-                    let chartData = hasData
-                        ? data.chartPayments.map(x => Number(x))
-                        : [];
-
-                    let chartDates = hasData
-                        ? data.chartDates
-                        : [];
-
-                    var options = {
-                        chart: {
-                            type: 'line',
-                            height: 300,
-                            toolbar: { show: false }
-                        },
-                        series: [{
-                            name: 'Payments',
-                            data: chartData
-                        }],
-                        xaxis: {
-                            categories: chartDates
-                        },
-                        stroke: {
-                            curve: 'smooth',
-                            width: hasData ? 3 : 0 // hide line if no data
-                        },
-                        markers: {
-                            size: hasData ? 5 : 0 // hide dots
-                        },
-                        dataLabels: {
-                            enabled: false
-                        },
-                        noData: {
-                            text: "No Payment Data Available"
+                        // DESTROY (safety)
+                        if (paymentChart) {
+                            paymentChart.destroy();
+                            paymentChart = null;
                         }
-                    };
 
-                    paymentChart = new ApexCharts(
-                        document.querySelector("#payment-records-chart"),
-                        options
-                    );
-
-                    paymentChart.render();
-
-                    // ======================
-                    // 🍩 DONUT CHART (ALREADY PERFECT)
-                    // ======================
-                    let donutSeries = [
-                        Number(data.totalPaid),
-                        Number(data.totalUnpaid)
-                    ];
-
-                    var donutOptions = {
-                        chart: {
-                            type: 'donut'
-                        },
-                        series: donutSeries,
-                        labels: ["Paid", "Unpaid"],
-                        stroke: {
-                            width: 1
+                        if (leadsChart) {
+                            leadsChart.destroy();
+                            leadsChart = null;
                         }
-                    };
 
-                    leadsChart = new ApexCharts(
-                        document.querySelector("#leads-overview-donut"),
-                        donutOptions
-                    );
+                        // ======================
+                        // 📊 PAYMENT CHART
+                        // ======================
+                        let chartData = data.chartPayments.map(x => Number(x));
+                        let chartDates = data.chartDates;
 
-                    leadsChart.render();
-                },
-                error: function () {
-                    console.log("Dashboard data load failed");
-                }
-            });
-        }
+                        paymentChart = new ApexCharts(
+                            document.querySelector("#payment-records-chart"),
+                            {
+                                chart: {
+                                    type: 'line',
+                                    height: 300,
+                                    toolbar: { show: false },
+                                    animations: {
+                                        enabled: true
+                                    }
+                                },
+                                series: [{
+                                    name: 'Payments',
+                                    data: chartData
+                                }],
+                                xaxis: {
+                                    categories: chartDates
+                                },
+                                stroke: {
+                                    curve: 'smooth',
+                                    width: 3
+                                },
+                                markers: {
+                                    size: 5
+                                },
+                                dataLabels: {
+                                    enabled: false
+                                }
+                            }
+                        );
 
-        function loadTable() {
+                        paymentChart.render();
 
-            if ($.fn.DataTable.isDataTable('#latestLeadsTable')) {
-                $('#latestLeadsTable').DataTable().destroy();
+                        // ======================
+                        // 🍩 DONUT CHART
+                        // ======================
+                        leadsChart = new ApexCharts(
+                            document.querySelector("#leads-overview-donut"),
+                            {
+                                chart: {
+                                    type: 'donut',
+                                    height: 300
+                                },
+                                series: [
+                                    Number(data.totalPaid),
+                                    Number(data.totalUnpaid)
+                                ],
+                                labels: ["Paid", "Unpaid"]
+                            }
+                        );
+
+                        leadsChart.render();
+
+                        // 🔥 SHOW AFTER RENDER
+                        $("#payment-records-chart").fadeIn();
+                        $("#leads-overview-donut").fadeIn();
+                    }
+                });
             }
 
-            $('#latestLeadsTable').DataTable({
-                ajax: {
-                    url: '/Home/GetLatestLeads',
-                    type: 'GET',
-                    dataSrc: 'data'
-                },
-                columns: [
-                    { data: 'name' },
-                    { data: 'phone' },
-                    { data: 'status' },
-                    { data: 'date' }
-                ]
-            });
-        }
+            function loadTable() {
 
-    });
-</script>
+                if ($.fn.DataTable.isDataTable('#latestLeadsTable')) {
+                    $('#latestLeadsTable').DataTable().destroy();
+                }
+
+                $('#latestLeadsTable').DataTable({
+                    ajax: {
+                        url: '/Home/GetLatestLeads',
+                        type: 'GET',
+                        dataSrc: 'data'
+                    },
+                    columns: [
+                        { data: 'name' },
+                        { data: 'phone' },
+                        { data: 'status' },
+                        { data: 'date' }
+                    ]
+                });
+            }
+
+        });
+    </script>
 }
     
