@@ -157,20 +157,28 @@
     <script>
         let paymentChart = null;
         let leadsChart = null;
-        let dashboardLoaded = false; // 🔥 important
+        let dashboardLoaded = false;
 
         $(document).ready(function () {
 
-            // Hide containers initially
-            $("#payment-records-chart").hide();
-            $("#leads-overview-donut").hide();
+            // 🔥 REMOVE TEMPLATE CHARTS IMMEDIATELY
+            $("#payment-records-chart").html("").find("*").remove();
+            $("#leads-overview-donut").html("").find("*").remove();
+
+            // 🔥 BLOCK TEMPLATE CHART ANIMATION / AUTO LOAD
+            window.Apex = {
+                chart: {
+                    animations: {
+                        enabled: false
+                    }
+                }
+            };
 
             loadDashboard();
             loadTable();
 
             function loadDashboard() {
 
-                // 🔥 STOP reloading on resize or multiple calls
                 if (dashboardLoaded) return;
 
                 $.ajax({
@@ -178,26 +186,18 @@
                     type: 'GET',
                     success: function (data) {
 
-                        dashboardLoaded = true; // 🔥 mark loaded
+                        dashboardLoaded = true;
 
-                        // COUNTERS
                         $('#totalOrders').text(data.totalOrders);
                         $('#totalOrdersAll').text(data.totalOrdersAll);
-
                         $('#totalPaid').text(data.totalPaid);
                         $('#totalUnpaid').text(data.totalUnpaid);
-
                         $('#totalExpense').text(data.totalExpense);
 
-                        // PROGRESS
                         $('#paidProgress').css('width', data.paidPercent + '%');
                         $('#unpaidProgress').css('width', data.unpaidPercent + '%');
 
-                        // CLEAR completely
-                        $("#payment-records-chart").html("");
-                        $("#leads-overview-donut").html("");
-
-                        // DESTROY (safety)
+                        // DESTROY SAFELY
                         if (paymentChart) {
                             paymentChart.destroy();
                             paymentChart = null;
@@ -208,9 +208,6 @@
                             leadsChart = null;
                         }
 
-                        // ======================
-                        // 📊 PAYMENT CHART
-                        // ======================
                         let chartData = data.chartPayments.map(x => Number(x));
                         let chartDates = data.chartDates;
 
@@ -219,11 +216,7 @@
                             {
                                 chart: {
                                     type: 'line',
-                                    height: 300,
-                                    toolbar: { show: false },
-                                    animations: {
-                                        enabled: true
-                                    }
+                                    height: 300
                                 },
                                 series: [{
                                     name: 'Payments',
@@ -231,25 +224,10 @@
                                 }],
                                 xaxis: {
                                     categories: chartDates
-                                },
-                                stroke: {
-                                    curve: 'smooth',
-                                    width: 3
-                                },
-                                markers: {
-                                    size: 5
-                                },
-                                dataLabels: {
-                                    enabled: false
                                 }
                             }
                         );
 
-                        paymentChart.render();
-
-                        // ======================
-                        // 🍩 DONUT CHART
-                        // ======================
                         leadsChart = new ApexCharts(
                             document.querySelector("#leads-overview-donut"),
                             {
@@ -265,11 +243,11 @@
                             }
                         );
 
-                        leadsChart.render();
-
-                        // 🔥 SHOW AFTER RENDER
-                        $("#payment-records-chart").fadeIn();
-                        $("#leads-overview-donut").fadeIn();
+                        // 🔥 DELAY RENDER TO OVERRIDE TEMPLATE
+                        setTimeout(function () {
+                            paymentChart.render();
+                            leadsChart.render();
+                        }, 200);
                     }
                 });
             }
