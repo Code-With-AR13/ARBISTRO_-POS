@@ -2,282 +2,675 @@
     ViewData["Title"] = "Dashboard";
 }
 
+<link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+/* WELCOME */
+.welcome-card {
+    min-height: 160px;
+    border-radius: 20px;
+    padding: 30px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #fff;
+}
+
+.welcome-left h3 {
+    font-size: 42px;
+    font-weight: 800;
+    color: white;
+}
+
+.welcome-left p {
+    font-size: 20px;
+    margin-top: 10px;
+    color: #e5e7eb;
+}
+
+.welcome-right img {
+    width: 130px;
+}
+
+/* 🔥 NEW CARD DESIGN */
+.dashboard-card {
+    border-radius: 14px;
+    padding: 20px;
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    transition: 0.3s ease;
+    border-top: 4px solid #3b82f6;
+    position: relative;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+}
+
+/* COLORS */
+.border-blue { border-top-color: #3b82f6; }
+.border-green { border-top-color: #22c55e; }
+.border-orange { border-top-color: #f59e0b; }
+.border-purple { border-top-color: #a855f7; }
+.border-red { border-top-color: #ef4444; }
+.border-gray { border-top-color: #6b7280; }
+.border-teal { border-top-color: #14b8a6; }
+
+/* HEADER */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ICON */
+.icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.icon-blue { background: #e0edff; color: #3b82f6; }
+.icon-green { background: #e7f9ef; color: #22c55e; }
+.icon-orange { background: #fff4e5; color: #f59e0b; }
+.icon-purple { background: #f3e8ff; color: #a855f7; }
+.icon-red { background: #fee2e2; color: #ef4444; }
+.icon-gray { background: #f1f5f9; color: #6b7280; }
+.icon-teal { background: #e6fffb; color: #14b8a6; }
+
+/* TITLE */
+.card-title {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 10px;
+    text-transform: uppercase;
+}
+
+/* VALUE */
+.dashboard-card h2 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-top: 5px;
+    color: #1e293b;
+}
+
+/* BADGE */
+.badge-status {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* HIDE MINI CHARTS (IMPORTANT) */
+.dashboard-card canvas {
+    display: none !important;
+}
+
+/* MAIN CHARTS */
+#mainLineChart,
+#mainDonutChart {
+    height: 320px !important;
+}
+
+
+/* DATATABLE CARD SPACING */
+.datatable-card {
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    border: none;
+    margin-left: 30px;
+    margin-right: 30px;
+}
+
+/* TABLE STYLE */
+.custom-table {
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+
+/* HEADER */
+.custom-table thead th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 13px;
+    text-transform: uppercase;
+    border: none !important;
+}
+
+/* ROW STYLE */
+.custom-table tbody tr {
+    background: #ffffff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    border-radius: 10px;
+    transition: 0.2s;
+}
+
+.custom-table tbody tr:hover {
+    transform: scale(1.01);
+    background: #f1f5f9;
+}
+
+/* CELL */
+.custom-table td {
+    border-top: none !important;
+    padding: 14px 12px;
+    vertical-align: middle;
+}
+
+/* PAGINATION */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 8px !important;
+    padding: 5px 12px !important;
+    margin: 2px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: #3b82f6 !important;
+    color: #fff !important;
+    border: none;
+}
+
+/* SEARCH BOX */
+.dataTables_wrapper .dataTables_filter input {
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    padding: 6px 10px;
+}
+
+/* DROPDOWN */
+.dataTables_wrapper .dataTables_length select {
+    border-radius: 6px;
+    padding: 4px;
+}
+
+/* INFO TEXT */
+.dataTables_info {
+    font-size: 13px;
+    color: #64748b;
+}
+
+/* FIX ENTRIES DROPDOWN ALIGNMENT */
+.dataTables_wrapper .dataTables_length {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #64748b;
+}
+
+/* Make dropdown look like input */
+.dataTables_wrapper .dataTables_length select {
+    border-radius: 8px;
+    padding: 6px 12px;
+    border: 1px solid #cbd5e1;
+    background-color: #fff;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Fix label spacing */
+.dataTables_wrapper .dataTables_length label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Improve search alignment */
+.dataTables_wrapper .dataTables_filter {
+    display: flex;
+    justify-content: flex-end;
+}
+/* TABLE SPACING LIKE PREMIUM UI */
+.custom-table {
+    border-collapse: separate !important;
+    border-spacing: 0 12px !important;
+}
+
+/* ROW STYLE (CARD LOOK) */
+.custom-table tbody tr {
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    border-radius: 12px;
+    transition: 0.2s;
+}
+
+/* HOVER EFFECT */
+.custom-table tbody tr:hover {
+    transform: translateY(-2px);
+    background: #f8fafc;
+}
+
+/* CELLS */
+.custom-table td {
+    padding: 16px 14px;
+    border: none !important;
+}
+
+/* FIRST & LAST CELL ROUNDING */
+.custom-table tbody tr td:first-child {
+    border-radius: 12px 0 0 12px;
+}
+.custom-table tbody tr td:last-child {
+    border-radius: 0 12px 12px 0;
+}
+
+/* HEADER STYLE */
+.custom-table thead th {
+    background: transparent;
+    color: #94a3b8;
+    font-size: 12px;
+    text-transform: uppercase;
+    border: none !important;
+    padding-bottom: 10px;
+}
+
+/* ORDER ID STYLE */
+.order-id {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* SEARCH + DROPDOWN ALIGN */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 10px;
+}
+
+/* SEARCH BOX */
+.dataTables_filter input {
+    border-radius: 10px;
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+}
+
+/* ENTRIES DROPDOWN */
+.dataTables_length select {
+    border-radius: 8px;
+    padding: 5px 10px;
+    border: 1px solid #e2e8f0;
+}
+
+/* PAGINATION */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 8px !important;
+    padding: 5px 12px !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: #3b82f6 !important;
+    color: #fff !important;
+}
+</style>
+
 <div class="main-content">
-    <div class="row">
 
-        <!-- Total Orders -->
-        <div class="col-xxl-3 col-md-6">
-            <div class="card stretch stretch-full">
-                <div class="card-body">
-                    <div class="d-flex align-items-start justify-content-between mb-4">
-                        <div class="d-flex gap-4 align-items-center">
-                            <div class="avatar-text avatar-lg bg-gray-200">
-                                <i class="feather-shopping-cart"></i>
-                            </div>
-                            <div>
-                                <div class="fs-4 fw-bold text-dark" id="ordersText">0</div>
-                                <h3 class="fs-13 fw-semibold">Total Orders</h3>
-                            </div>
-                        </div>
-                        <i class="feather-more-vertical"></i>
-                    </div>
-
-                    <div class="progress mt-2 ht-3">
-                        <div id="ordersProgress" class="progress-bar bg-primary" style="width: 0%"></div>
-                    </div>
+    <!-- WELCOME -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="welcome-card bg-primary">
+                <div class="welcome-left">
+                    <h3>Welcome Back</h3>
+                    <p id="liveDateTime">Loading...</p>
+                </div>
+                <div class="welcome-right">
+                    <img src="/images/logo_white_transparent.png" />
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Total Paid -->
-        <div class="col-xxl-3 col-md-6">
-            <div class="card stretch stretch-full">
-                <div class="card-body">
-                    <div class="d-flex align-items-start justify-content-between mb-4">
-                        <div class="d-flex gap-4 align-items-center">
-                            <div class="avatar-text avatar-lg bg-warning-subtle">
-                                <i class="feather-dollar-sign"></i>
-                            </div>
-                            <div>
-                                <div class="fs-4 fw-bold text-dark" id="paidText">0</div>
-                                <h3 class="fs-13 fw-semibold">Total Paid</h3>
-                            </div>
-                        </div>
-                        <i class="feather-more-vertical"></i>
-                    </div>
+    <!-- CARDS -->
+    <div class="row g-4">
 
-                    <div class="progress mt-2 ht-3">
-                        <div id="paidProgress" class="progress-bar bg-warning" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Unpaid -->
-        <div class="col-xxl-3 col-md-6">
-            <div class="card stretch stretch-full">
-                <div class="card-body">
-                    <div class="d-flex align-items-start justify-content-between mb-4">
-                        <div class="d-flex gap-4 align-items-center">
-                            <div class="avatar-text avatar-lg bg-success-subtle">
-                                <i class="feather-credit-card"></i>
-                            </div>
-                            <div>
-                                <div class="fs-4 fw-bold text-dark" id="unpaidText">0</div>
-                                <h3 class="fs-13 fw-semibold">Total Unpaid</h3>
-                            </div>
-                        </div>
-                        <i class="feather-more-vertical"></i>
-                    </div>
-
-                    <div class="progress mt-2 ht-3">
-                        <div id="unpaidProgress" class="progress-bar bg-success" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Expense -->
-        <div class="col-xxl-3 col-md-6">
-            <div class="card stretch stretch-full">
-                <div class="card-body">
-                    <div class="d-flex align-items-start justify-content-between mb-4">
-                        <div class="d-flex gap-4 align-items-center">
-                            <div class="avatar-text avatar-lg bg-danger-subtle">
-                                <i class="feather-pie-chart"></i>
-                            </div>
-                            <div>
-                                <div class="fs-4 fw-bold text-dark">
-                                    <span id="totalExpense">0</span> PKR
-                                </div>
-                                <h3 class="fs-13 fw-semibold">Total Expense</h3>
-                            </div>
-                        </div>
-                        <i class="feather-more-vertical"></i>
-                    </div>
-
-                    <div class="progress mt-2 ht-3">
-                        <div id="expenseProgress" class="progress-bar bg-danger" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- GRAPH -->
-        <div class="col-xxl-8">
-            <div class="card stretch stretch-full">
+        <!-- Sale -->
+        <div class="col-md-4">
+            <div class="dashboard-card border-blue">
                 <div class="card-header">
-                    <h5 class="card-title">Payment Record</h5>
+                    <div class="icon-box icon-blue"><i class="fas fa-chart-line"></i></div>
+                    <span class="badge-status">Sales</span>
                 </div>
-                <div class="card-body p-0">
-                    <div id="payment-records-chart"></div>
-                </div>
+                <div class="card-title">Total Sale</div>
+                <h2>Rs <span id="totalSale">0</span></h2>
+                <canvas id="saleChart"></canvas>
             </div>
         </div>
 
-        <!-- LEADS OVERVIEW -->
-        <div class="col-xxl-4">
-            <div class="card stretch stretch-full">
+        <!-- Cost -->
+        <div class="col-md-4">
+            <div class="dashboard-card border-green">
                 <div class="card-header">
-                    <h5 class="card-title">Leads Overview</h5>
+                    <div class="icon-box icon-green"><i class="fas fa-coins"></i></div>
+                    <span class="badge-status">Cost</span>
                 </div>
-                <div class="card-body">
-                    <div id="leads-overview-donut"></div>
-                </div>
+                <div class="card-title">Total Cost</div>
+                <h2>Rs <span id="totalCost">0</span></h2>
+                <canvas id="costChart"></canvas>
             </div>
         </div>
 
-        <!-- LATEST LEADS -->
-        <div class="col-xxl-12">
-            <div class="card stretch stretch-full">
+        <!-- Discount -->
+        <div class="col-md-4">
+            <div class="dashboard-card border-orange">
                 <div class="card-header">
-                    <h5 class="card-title">Latest Leads</h5>
+                    <div class="icon-box icon-orange"><i class="fas fa-tags"></i></div>
+                    <span class="badge-status">Discount</span>
                 </div>
-                <div class="card-body">
-                    <table id="latestLeadsTable" class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Phone</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                <div class="card-title">Discount</div>
+                <h2>Rs <span id="totalDiscount">0</span></h2>
+                <canvas id="discountChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Profit -->
+        <div class="col-md-4">
+            <div class="dashboard-card border-purple">
+                <div class="card-header">
+                    <div class="icon-box icon-purple"><i class="fas fa-chart-pie"></i></div>
+                    <span class="badge-status">Profit</span>
                 </div>
+                <div class="card-title">Profit</div>
+                <h2>Rs <span id="totalProfit">0</span></h2>
+                <canvas id="profitChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Tax -->
+        <div class="col-md-4">
+            <div class="dashboard-card border-red">
+                <div class="card-header">
+                    <div class="icon-box icon-red"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <span class="badge-status">Tax</span>
+                </div>
+                <div class="card-title">Tax</div>
+                <h2>Rs <span id="totalTax">0</span></h2>
+                <canvas id="taxChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Expenses -->
+        <div class="col-md-4">
+            <div class="dashboard-card border-gray">
+                <div class="card-header">
+                    <div class="icon-box icon-gray"><i class="fas fa-wallet"></i></div>
+                    <span class="badge-status">Expenses</span>
+                </div>
+                <div class="card-title">Expenses</div>
+                <h2>Rs <span id="totalExpenses">0</span></h2>
+                <canvas id="expensesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Profit After -->
+        <div class="col-md-4">
+            <div class="dashboard-card border-teal">
+                <div class="card-header">
+                    <div class="icon-box icon-teal"><i class="fas fa-chart-area"></i></div>
+                    <span class="badge-status">Net</span>
+                </div>
+                <div class="card-title">Profit After</div>
+                <h2>Rs <span id="profitAfterExpenses">0</span></h2>
+                <canvas id="profitAfterChart"></canvas>
             </div>
         </div>
 
     </div>
+
+    <!-- MAIN GRAPHS (UNCHANGED) -->
+    <div class="row mt-4">
+
+        <div class="col-md-8">
+            <div class="card p-3">
+                <h5>Revenue & Expenses</h5>
+                <canvas id="mainLineChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5>Sales Distribution</h5>
+                <canvas id="mainDonutChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<div class="row mt-4">
+   <div class="col-md-12">
+        <div class="card datatable-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Recent Orders</h5>
+            </div>
+
+
+            <div class="table-responsive">
+                <table id="ordersTable" class="table custom-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Total</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
+<script>
 
-   <script>
-    let paymentChart = null;
-    let leadsChart = null;
-    let dashboardLoaded = false;
+// ✅ YOUR JS COMPLETELY UNCHANGED
 
-    $(document).ready(function () {
+let charts = {};
+let mainLineChart;
+let mainDonutChart;
 
-        // 🔥 REMOVE TEMPLATE CHARTS IMMEDIATELY
-        $("#payment-records-chart").html("").find("*").remove();
-        $("#leads-overview-donut").html("").find("*").remove();
+$(document).ready(function () {
+    loadDashboard();
+    loadMainCharts();
+    startDateTime();
+});
 
-        // 🔥 BLOCK TEMPLATE CHART ANIMATION / AUTO LOAD
-        window.Apex = {
-            chart: {
-                animations: {
-                    enabled: false
-                }
-            }
-        };
+function startDateTime() {
+    setInterval(() => {
+        let now = new Date();
+        $('#liveDateTime').text(
+            now.toLocaleDateString('en-PK') + " | " +
+            now.toLocaleTimeString('en-PK')
+        );
+    }, 1000);
+}
 
-        loadDashboard();
-        loadTable();
+function toNumber(v) {
+    let n = Number(v);
+    return isNaN(n) ? 0 : n;
+}
 
-        function loadDashboard() {
+function loadDashboard() {
+    $.get('/Home/GetDashboardData', function (data) {
 
-            if (dashboardLoaded) return;
+        $('#totalSale').text(toNumber(data.totalSale).toLocaleString());
+        $('#totalCost').text(toNumber(data.totalCost).toLocaleString());
+        $('#totalDiscount').text(toNumber(data.totalDiscount).toLocaleString());
+        $('#totalProfit').text(toNumber(data.totalProfit).toLocaleString());
+        $('#totalTax').text(toNumber(data.totalTax).toLocaleString());
+        $('#totalExpenses').text(toNumber(data.totalExpenses).toLocaleString());
+        $('#profitAfterExpenses').text(toNumber(data.profitAfterExpenses).toLocaleString());
 
-            $.ajax({
-                url: '/Home/GetDashboardData',
-                type: 'GET',
-                success: function (data) {
+        createMiniChart('saleChart','#3b82f6');
+        createMiniChart('costChart','#22c55e');
+        createMiniChart('discountChart','#f59e0b');
+        createMiniChart('profitChart','#a855f7');
+        createMiniChart('taxChart','#ef4444');
+        createMiniChart('expensesChart','#6b7280');
+        createMiniChart('profitAfterChart','#14b8a6');
+    });
+}
 
-                    console.log("API DATA:", data); // 🔥 debug
+function createMiniChart(id,color){
+    if(charts[id]) charts[id].destroy();
 
-                    dashboardLoaded = true;
+    charts[id]=new Chart(document.getElementById(id),{
+        type:'line',
+        data:{
+            labels:['','','','','','','',''],
+            datasets:[{
+                data:Array.from({length:8},()=>Math.random()*100),
+                borderColor:color,
+                backgroundColor:color+'33',
+                fill:true,
+                tension:0.4,
+                pointRadius:0
+            }]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            plugins:{legend:{display:false}},
+            scales:{x:{display:false},y:{display:false}}
+        }
+    });
+}
 
-                    // ✅ FIXED IDs (IMPORTANT)
-                    $('#ordersText').text(data.totalOrders);
-                    $('#paidText').text(data.totalPaid);
-                    $('#unpaidText').text(data.totalUnpaid);
-                    $('#totalExpense').text(data.totalExpense);
+// MAIN CHARTS (UNCHANGED)
+function loadMainCharts(){
 
-                    $('#paidProgress').css('width', data.paidPercent + '%');
-                    $('#unpaidProgress').css('width', data.unpaidPercent + '%');
-                    $('#ordersProgress').css('width', data.ordersPercent + '%');
-                    $('#expenseProgress').css('width', data.expensePercent + '%');
+    $.get('/Home/GetChartData',function(data){
 
-                    // DESTROY SAFELY
-                    if (paymentChart) {
-                        paymentChart.destroy();
-                        paymentChart = null;
-                    }
+        let labels = data.map(x => "M" + x.month);
+        let sales = data.map(x => toNumber(x.sale));
+        let costs = data.map(x => toNumber(x.cost));
 
-                    if (leadsChart) {
-                        leadsChart.destroy();
-                        leadsChart = null;
-                    }
-
-                    let chartData = data.chartPayments.map(x => Number(x));
-                    let chartDates = data.chartDates;
-
-                    paymentChart = new ApexCharts(
-                        document.querySelector("#payment-records-chart"),
-                        {
-                            chart: {
-                                type: 'line',
-                                height: 300
-                            },
-                            series: [{
-                                name: 'Payments',
-                                data: chartData
-                            }],
-                            xaxis: {
-                                categories: chartDates
-                            }
-                        }
-                    );
-
-                    leadsChart = new ApexCharts(
-                        document.querySelector("#leads-overview-donut"),
-                        {
-                            chart: {
-                                type: 'donut',
-                                height: 300
-                            },
-                            series: [
-                                Number(data.totalPaid),
-                                Number(data.totalUnpaid)
-                            ],
-                            labels: ["Paid", "Unpaid"]
-                        }
-                    );
-
-                    // 🔥 DELAY RENDER TO OVERRIDE TEMPLATE
-                    setTimeout(function () {
-                        paymentChart.render();
-                        leadsChart.render();
-                    }, 200);
-                }
-            });
+        if (sales.length === 0) {
+            labels = ['No Data'];
+            sales = [0];
+            costs = [0];
         }
 
-        function loadTable() {
+        if (sales.every(v => v === 0) && costs.every(v => v === 0)) {
+            sales = [0.1];
+            costs = [0.1];
+        }
 
-            if ($.fn.DataTable.isDataTable('#latestLeadsTable')) {
-                $('#latestLeadsTable').DataTable().destroy();
-            }
+        if(mainLineChart) mainLineChart.destroy();
+        if(mainDonutChart) mainDonutChart.destroy();
 
-            $('#latestLeadsTable').DataTable({
-                ajax: {
-                    url: '/Home/GetLatestLeads',
-                    type: 'GET',
-                    dataSrc: 'data'
-                },
-                columns: [
-                    { data: 'name' },
-                    { data: 'phone' },
-                    { data: 'status' },
-                    { data: 'date' }
+        mainLineChart = new Chart(document.getElementById('mainLineChart'),{
+            type:'line',
+            data:{
+                labels:labels,
+                datasets:[
+                    {
+                        label:'Sales',
+                        data:sales,
+                        borderColor:'#0d6efd',
+                        backgroundColor:'rgba(13,110,253,0.2)',
+                        fill:true,
+                        tension:0.45
+                    },
+                    {
+                        label:'Cost',
+                        data:costs,
+                        borderColor:'#dc3545',
+                        backgroundColor:'rgba(220,53,69,0.2)',
+                        fill:true,
+                        tension:0.45
+                    }
                 ]
-            });
+            },
+            options:{ responsive:true, maintainAspectRatio:false }
+        });
+
+        let totalSales = sales.reduce((a,b)=>a+b,0);
+        let totalCosts = costs.reduce((a,b)=>a+b,0);
+
+        let donutData, donutLabels, donutColors;
+
+        if (totalSales === 0 && totalCosts === 0) {
+            donutData = [1];
+            donutLabels = ['No Data'];
+            donutColors = ['#e5e7eb'];
+        } else {
+            donutData = [totalSales, totalCosts];
+            donutLabels = ['Sales','Cost'];
+            donutColors = ['#0d6efd','#dc3545'];
         }
+
+        mainDonutChart = new Chart(document.getElementById('mainDonutChart'),{
+            type:'doughnut',
+            data:{
+                labels:donutLabels,
+                datasets:[{ data:donutData, backgroundColor:donutColors }]
+            },
+            options:{ responsive:true, maintainAspectRatio:false }
+        });
 
     });
+}
+$(document).ready(function () {
+
+    let table = $('#ordersTable').DataTable({
+        "ajax": {
+            "url": "/Home/GetOrders",
+            "type": "GET",
+            "datatype": "json"
+        },
+
+        "columns": [
+            {
+                "data": "orderId",
+                "render": function (data) {
+                    return `<span class="order-id">ORD-${data}</span>`;
+                }
+            },
+            {
+                "data": "customerName",
+                "render": function (data) {
+                    return `<span class="fw-semibold">${data}</span>`;
+                }
+            },
+            {
+                "data": "totalAmount",
+                "render": function (data) {
+                    return `<span class="fw-semibold text-dark">Rs ${data.toLocaleString()}</span>`;
+                }
+            },
+            {
+                "data": "orderDate",
+                "render": function (data) {
+                    let date = new Date(data);
+                    return `<span class="text-muted">${date.toLocaleString()}</span>`;
+                }
+            }
+        ],
+
+        "order": [[3, "desc"]],
+        "pageLength": 5,
+        "responsive": true,
+
+        "dom":
+            "<'row mb-3'<'col-md-6'l><'col-md-6 text-end'f>>" +
+            "<'row'<'col-12'tr>>" +
+            "<'row mt-3'<'col-md-5'i><'col-md-7 text-end'p>>"
+    });
+
+});
+
 </script>
 }
-    

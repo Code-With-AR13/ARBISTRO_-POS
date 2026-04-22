@@ -23,6 +23,22 @@ namespace ARBISTO_POS.Controllers
             return View(methods);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var data = await _context.PaymentMethods
+                .Select(p => new
+                {
+                    id = p.Id,
+                    payName = p.PayName,
+                    payDescription = p.PayDescription,
+                    createdDate = p.CreatedDate.ToString("yyyy-MM-dd")
+                })
+                .ToListAsync();
+
+            return Json(data);
+        }
+
         // ================= CREATE =================
         public IActionResult Create()
         {

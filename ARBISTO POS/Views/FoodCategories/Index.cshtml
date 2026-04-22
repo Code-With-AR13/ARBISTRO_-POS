@@ -31,7 +31,7 @@
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <i class="feather-check-circle me-2"></i>
                 <strong>Success!</strong> @TempData["SuccessMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
 
@@ -44,6 +44,7 @@
                                 <i class="feather-list me-2"></i>All Categories
                             </h5>
                         </div>
+
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle dataTable">
@@ -55,84 +56,12 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @if (Model != null && Model.Any())
-                                        {
-                                            @foreach (var category in Model)
-                                            {
-                                                <tr id="row-@category.Id">
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="me-3">
-                                                                @if (!string.IsNullOrEmpty(category.CateImage))
-                                                                {
-                                                                    <img src="@category.CateImage"
-                                                                         alt="@category.CateName"
-                                                                         class="rounded-circle border"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;"
-                                                                         onerror="this.src='/assets/images/upload.jpg'">
-                                                                }
-                                                                else
-                                                                {
-                                                                    <img src="~/assets/images/upload.jpg"
-                                                                         alt="No Image"
-                                                                         class="rounded-circle border"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;">
-                                                                }
-                                                            </div>
-                                                            <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">@category.CateName</span>
-                                                                <small class="text-muted">ID: @category.Id</small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        @if (!string.IsNullOrEmpty(category.Description))
-                                                        {
-                                                            @(category.Description.Length > 80
-                                                                                                            ? category.Description.Substring(0, 80) + "..."
-                                                                                                            : category.Description)
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="text-muted fst-italic">No description</span>
-                                                        }
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <div class="d-inline-flex gap-1">
-                                                            <a asp-controller="FoodCategories"
-                                                               asp-action="Edit"
-                                                               asp-route-id="@category.Id"
-                                                               class="btn btn-sm btn-light"
-                                                               title="Edit">
-                                                                <i class="feather-edit-3"></i>
-                                                            </a>
-
-                                                            <!-- ✅ PERFECT DELETE FORM -->
-                                                            <form method="post"
-                                                                  asp-controller="FoodCategories"
-                                                                  asp-action="DeleteConfirmed"
-                                                                  asp-route-id="@category.Id"
-                                                                  class="d-inline"
-                                                                  id="delete-form-@category.Id">
-                                                                @Html.AntiForgeryToken()
-
-                                                                <button type="button"
-                                                                        class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@category.Id"
-                                                                        title="Delete">
-                                                                    <i class="feather-trash-2"></i>
-                                                                </button>
-                                                            </form>
-
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
+                                        <!-- AJAX DATA -->
                                     </tbody>
                                 </table>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -143,18 +72,77 @@
 <script>
     $(document).ready(function () {
 
-        var table = $('.dataTable').DataTable();
+        var table = $('.dataTable').DataTable({
+            "ajax": {
+                "url": "/FoodCategories/GetAll",
+                "type": "GET",
+                "datatype": "json"
+            },
+            "columns": [
+                {
+                    "data": null,
+                    "render": function (category) {
 
-            setTimeout(function () {
-        $('.alert-success, .alert-danger').fadeOut('slow');
-    }, 5000);
+                        let img = category.cateImage
+                            ? `<img src="${category.cateImage}" class="rounded-circle border" style="width:80px;height:80px;object-fit:cover;" onerror="this.src='/assets/images/upload.jpg'">`
+                            : `<img src="/assets/images/upload.jpg" class="rounded-circle border" style="width:80px;height:80px;object-fit:cover;">`;
+
+                        return `
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">${img}</div>
+                            <div class="d-flex flex-column">
+                                <span class="fw-semibold">${category.cateName}</span>
+                                <small class="text-muted">ID: ${category.id}</small>
+                            </div>
+                        </div>`;
+                    }
+                },
+                {
+                    "data": "description",
+                    "render": function (data) {
+                        if (!data) return '<span class="text-muted fst-italic">No description</span>';
+                        return data.length > 80 ? data.substring(0, 80) + "..." : data;
+                    }
+                },
+                {
+                    "data": null,
+                    "orderable": false,
+                    "className": "text-center",
+                    "render": function (category) {
+                        return `
+                        <div class="d-inline-flex gap-1">
+                            <a href="/FoodCategories/Edit/${category.id}" class="btn btn-sm btn-light" title="Edit">
+                                <i class="feather-edit-3"></i>
+                            </a>
+
+                            <form method="post"
+                                  action="/FoodCategories/DeleteConfirmed/${category.id}"
+                                  class="d-inline"
+                                  id="delete-form-${category.id}">
+                                <input name="__RequestVerificationToken" type="hidden" value="">
+                                <button type="button"
+                                        class="btn btn-sm btn-light js-delete"
+                                        data-id="${category.id}"
+                                        title="Delete">
+                                    <i class="feather-trash-2"></i>
+                                </button>
+                            </form>
+                        </div>`;
+                    }
+                }
+            ]
+        });
+
+        setTimeout(function () {
+            $('.alert-success, .alert-danger').fadeOut('slow');
+        }, 5000);
 
         $(document).on('click', '.js-delete', function (e) {
             e.preventDefault();
 
             var id = $(this).data('id');
             var form = $('#delete-form-' + id);
-            var token = form.find('input[name="__RequestVerificationToken"]').val();
+            var token = $('input[name="__RequestVerificationToken"]').first().val();
 
             Swal.fire({
                 title: 'Are you sure?',
@@ -179,14 +167,8 @@
                         success: function (res) {
 
                             if (res.success) {
-
-                                table
-                                    .row($('#row-' + id))
-                                    .remove()
-                                    .draw(false);
-
+                                table.ajax.reload();
                                 Swal.fire('Deleted!', res.message, 'success');
-
                             } else {
                                 Swal.fire('Error', res.message, 'error');
                             }
@@ -200,5 +182,3 @@
         });
     });
 </script>
-
-

@@ -19,6 +19,29 @@ namespace ARBISTO_POS.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
+        // ================= AJAX ENDPOINT =================
+        [HttpGet]
+        public async Task<IActionResult> GetEmployees()
+        {
+            var data = await _context.Employees
+                .Select(e => new
+                {
+                    id = e.Id,
+                    fullName = e.FullName,
+                    gender = e.Gender,
+                    phoneNumber = e.PhoneNumber,
+                    shift = e.Shift,
+                    empRole = e.EmpRole,
+                    salary = e.Salary,
+                    isActive = e.IsActive,
+                    discription = e.Discription,
+                    empImage = e.EmpImage
+                })
+                .ToListAsync();
+
+            return Json(data);
+        }
+
         // ================= INDEX =================
         public async Task<IActionResult> Index()
         {
@@ -100,7 +123,6 @@ namespace ARBISTO_POS.Controllers
                 if (employee == null)
                     return Json(new { success = false, message = "Employee not found!" });
 
-                // Delete image
                 if (!string.IsNullOrEmpty(employee.EmpImage))
                 {
                     var imagePath = Path.Combine(
@@ -113,7 +135,7 @@ namespace ARBISTO_POS.Controllers
                 }
 
                 _context.Employees.Remove(employee);
-                await _context.SaveChangesAsync();                
+                await _context.SaveChangesAsync();
 
                 return Json(new { success = true });
             }
@@ -122,7 +144,6 @@ namespace ARBISTO_POS.Controllers
                 return Json(new { success = false, message = "Error deleting employee!" });
             }
         }
-
 
         // ================= IMAGE HANDLING =================
         private async Task SaveImage(Employees employee)
@@ -153,7 +174,6 @@ namespace ARBISTO_POS.Controllers
         {
             if (employee.ImageFile != null && employee.ImageFile.Length > 0)
             {
-                // Delete old image
                 if (!string.IsNullOrEmpty(employee.EmpImage))
                 {
                     var oldImagePath = Path.Combine(_webHostEnvironment.WebRootPath, employee.EmpImage.TrimStart('/'));

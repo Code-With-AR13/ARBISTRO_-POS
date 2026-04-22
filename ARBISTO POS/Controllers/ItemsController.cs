@@ -30,6 +30,43 @@ namespace ARBISTO_POS.Controllers
             return View(items);
         }
 
+        // ✅ =========================
+        // 🔥 NEW AJAX METHOD (ADDED)
+        // =========================
+        [HttpGet]
+        public async Task<IActionResult> GetItems()
+        {
+            var items = await _context.Items
+                .Include(i => i.FoodCategory)
+                .Include(i => i.ItemIngredients)
+                    .ThenInclude(ii => ii.Ingredient)
+                .Select(i => new
+                {
+                    itemId = i.ItemId,
+                    itemName = i.ItemName,
+                    itemDiscription = i.ItemDiscription,
+                    cateImage = i.CateImage,
+                    itemCost = i.ItemCost,
+                    itemPrice = i.ItemPrice,
+
+                    foodCategory = new
+                    {
+                        cateName = i.FoodCategory.CateName
+                    },
+
+                    itemIngredients = i.ItemIngredients.Select(ii => new
+                    {
+                        ingredient = new
+                        {
+                            name = ii.Ingredient.Name
+                        }
+                    })
+                })
+                .ToListAsync();
+
+            return Json(items);
+        }
+
         public IActionResult Create()
         {
             return View(new Items());
@@ -97,7 +134,6 @@ namespace ARBISTO_POS.Controllers
                     return View(item);
                 }
 
-                // ✅ Toastr Error for Insufficient Quantity
                 if (ingredient.AvailableQuantity < consumptionQty)
                 {
                     TempData["ErrorMessage"] = $"Insufficient quantity for {ingredient.Name}! Available: {ingredient.AvailableQuantity}, Required: {consumptionQty}";
@@ -149,7 +185,6 @@ namespace ARBISTO_POS.Controllers
                 return NotFound();
             }
 
-            // Restore old quantities
             foreach (var oldIng in existingItem.ItemIngredients)
             {
                 var ingredient = await _context.Ingredients.FindAsync(oldIng.IngredientId);
@@ -197,7 +232,6 @@ namespace ARBISTO_POS.Controllers
                     return View(item);
                 }
 
-                // ✅ Toastr Error for Insufficient Quantity
                 if (ingredient.AvailableQuantity < consumptionQty)
                 {
                     TempData["ErrorMessage"] = $"Insufficient quantity for {ingredient.Name}! Available: {ingredient.AvailableQuantity}, Required: {consumptionQty}";

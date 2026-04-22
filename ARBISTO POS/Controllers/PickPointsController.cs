@@ -23,6 +23,26 @@ namespace ARBISTO_POS.Controllers
             return View(points);
         }
 
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var data = await _context.PickPoints
+                .Select(p => new
+                {
+                    id = p.Id,
+                    picTittle = p.PicTittle,
+                    personName = p.PersonName,
+                    phoneNo = p.PhoneNo,
+                    address = p.Address,
+                    picDescription = p.PicDescription,
+                    createdDate = p.CreatedDate.ToString("yyyy-MM-dd")
+                })
+                .ToListAsync();
+
+            return Json(data);
+        }
+
         // ================= CREATE =================
         public IActionResult Create()
         {

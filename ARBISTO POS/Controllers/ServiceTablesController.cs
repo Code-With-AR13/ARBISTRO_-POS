@@ -30,6 +30,24 @@ namespace ARBISTO_POS.Controllers
             return View(tables);
         }
 
+        // ================= AJAX GET ALL =================
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            var data = _context.ServiceTables
+                .Select(x => new
+                {
+                    id = x.Id,
+                    tabName = x.TabName,
+                    tabDescription = x.TabDescription,
+                    tabImage = x.TabImage,
+                    createdDate = x.CreatedDate.ToString("yyyy-MM-dd HH:mm")
+                })
+                .ToList();
+
+            return Json(new { data });
+        }
+
         // ================= CREATE =================
         public IActionResult Create()
         {
@@ -40,8 +58,8 @@ namespace ARBISTO_POS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ServiceTables table)
         {
-              // ✅ SET CURRENT DATETIME HERE
-             table.CreatedDate = DateTime.UtcNow;
+            // ✅ SET CURRENT DATETIME HERE
+            table.CreatedDate = DateTime.UtcNow;
 
             if (await _context.ServiceTables.AnyAsync(t =>
                 t.TabName.Trim().ToLower() == table.TabName.Trim().ToLower()))
@@ -127,8 +145,6 @@ namespace ARBISTO_POS.Controllers
                 return Json(new { success = false, message = "Error deleting service table!" });
             }
         }
-
-
 
         // ================= IMAGE SAVE =================
         private async Task SaveImage(ServiceTables table)

@@ -29,14 +29,13 @@
             </div>
         </div>
 
-       @* Success message (optional, same style) *@
-                    @if (TempData["ToastrSuccess"] != null)
-                    {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="feather-check-circle me-2"></i>@TempData["ToastrSuccess"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    }
+        @if (TempData["ToastrSuccess"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="feather-check-circle me-2"></i>@TempData["ToastrSuccess"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
 
         <div class="main-content">
             <div class="row">
@@ -50,130 +49,17 @@
 
                         <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle dataTable">
-                                    <thead class="table-light">                                        
+                                <table class="table table-hover align-middle dataTable" id="rolesTable">
+                                    <thead class="table-light">
                                         <tr>
                                             <th>User Role</th>
                                             <th>Active</th>
                                             <th>Permissions</th>
                                             <th class="text-center" style="width:120px;">Actions</th>
-                                        </tr>                                        
+                                        </tr>
                                     </thead>
                                     <tbody>
-                                        @if (Model != null && Model.Any())
-                                        {
-                                            foreach (var pay in Model)
-                                            {
-                                                <tr id="row-@pay.Id">
-                                                    <td>
-                                                        <div class="d-flex flex-column">
-                                                            <span class="fw-semibold">@pay.Name</span>
-                                                            <small class="text-muted">Created At: @pay.CreatedAt</small>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        @if (pay.IsActive)
-                                                        {
-                                                            <span class="badge bg-success">Active</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-secondary">Inactive</span>
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        @{
-                                                            var permNames = pay.UserRolePermissions?
-                                                            .Select(rp => rp.UserPermission.Name)
-                                                            .Take(5)
-                                                            ?? Enumerable.Empty<string>();
-
-                                                            var permText = string.Join(", ", permNames);
-                                                        }
-
-                                                        @if (!string.IsNullOrEmpty(permText))
-                                                        {
-                                                            <span>@permText</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="text-muted fst-italic">No permissions</span>
-                                                        }
-
-                                                        @if ((pay.UserRolePermissions?.Count ?? 0) > 5)
-                                                        {
-                                                            <span>...</span>
-                                                        }
-                                                    </td>                                                                                                        
-                                                    @* <td class="text-center">                                                        
-                                                        @if (pay.Name == "Admin")
-                                                        {
-                                                            <div class="d-inline-flex gap-1">
-                                                                <a                                                                    
-                                                                   class="btn btn-sm btn-light"
-                                                                   disabled
-                                                                   title="Edit Role">
-                                                                    <i class="feather-edit-3"></i>
-                                                                </a>
-                                                            </div>
-                                                        }
-                                                        else
-                                                        {
-                                                            <div class="d-inline-flex gap-1">
-                                                                <a asp-controller="UserRole"
-                                                                   asp-action="Manage"
-                                                                   asp-route-id="@pay.Id"
-                                                                   class="btn btn-sm btn-light"
-                                                                   title="Edit Role">
-                                                                    <i class="feather-edit-3"></i>
-                                                                </a>
-                                                            </div>
-
-                                                        }
-                                                    </td>                                                     *@
-                                                    <td class="text-center">
-                                                        @if (pay.Name == "Admin")
-                                                        {
-                                                            <div class="d-inline-flex gap-1">
-                                                                <button class="btn btn-sm btn-light" disabled title="Admin role cannot be edited">
-                                                                    <i class="feather-edit-3"></i>
-                                                                </button>
-                                                                <button class="btn btn-sm btn-light" disabled title="Admin role cannot be deleted">
-                                                                    <i class="feather-trash-2"></i>
-                                                                </button>
-                                                            </div>
-                                                        }
-                                                        else
-                                                        {
-                                                            <div class="d-inline-flex gap-1">
-                                                                <a asp-controller="UserRole"
-                                                                   asp-action="Manage"
-                                                                   asp-route-id="@pay.Id"
-                                                                   class="btn btn-sm btn-light"
-                                                                   title="Edit Role">
-                                                                    <i class="feather-edit-3"></i>
-                                                                </a>
-
-                                                                <form id="delete-form-@pay.Id"
-                                                                      asp-controller="UserRole"
-                                                                      asp-action="Delete"
-                                                                      method="post"
-                                                                      class="d-none">
-                                                                    @Html.AntiForgeryToken()
-                                                                    <input type="hidden" name="id" value="@pay.Id" />
-                                                                </form>
-
-                                                                <button class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@pay.Id"
-                                                                        title="Delete Role">
-                                                                    <i class="feather-trash-2"></i>
-                                                                </button>
-                                                            </div>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
+                                        @* AJAX will load data here *@
                                     </tbody>
                                 </table>
                             </div>
@@ -189,16 +75,96 @@
     <script>
         $(document).ready(function () {
 
-            // DataTable initialize
-            var table = $('.dataTable').DataTable();
+            var table = $('#rolesTable').DataTable({
+                "processing": true,
+                "serverSide": false,
+                "ajax": {
+                    "url": "/UserRole/GetAll", // ⚠️ Create this action in controller
+                    "type": "GET",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    {
+                        "data": null,
+                        "render": function (data) {
+                            return `
+                                <div class="d-flex flex-column">
+                                    <span class="fw-semibold">${data.name}</span>
+                                    <small class="text-muted">Created At: ${data.createdAt}</small>
+                                </div>`;
+                        }
+                    },
+                    {
+                        "data": "isActive",
+                        "render": function (data) {
+                            return data
+                                ? '<span class="badge bg-success">Active</span>'
+                                : '<span class="badge bg-secondary">Inactive</span>';
+                        }
+                    },
+                    {
+                        "data": "permissions",
+                        "render": function (data) {
+                            if (!data || data.length === 0)
+                                return '<span class="text-muted fst-italic">No permissions</span>';
 
-            // Delete button click (AJAX)
+                            let text = data.slice(0, 5).join(", ");
+                            if (data.length > 5) text += "...";
+
+                            return `<span>${text}</span>`;
+                        }
+                    },
+                    {
+                        "data": null,
+                        "orderable": false,
+                        "className": "text-center",
+                        "render": function (data) {
+
+                            if (data.name === "Admin") {
+                                return `
+                                    <div class="d-inline-flex gap-1">
+                                        <button class="btn btn-sm btn-light" disabled>
+                                            <i class="feather-edit-3"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light" disabled>
+                                            <i class="feather-trash-2"></i>
+                                        </button>
+                                    </div>`;
+                            }
+
+                            return `
+                                <div class="d-inline-flex gap-1">
+                                    <a href="/UserRole/Manage/${data.id}"
+                                       class="btn btn-sm btn-light">
+                                        <i class="feather-edit-3"></i>
+                                    </a>
+
+                                    <form id="delete-form-${data.id}"
+                                          action="/UserRole/Delete"
+                                          method="post"
+                                          class="d-none">
+                                        <input name="__RequestVerificationToken"
+                                               value="${$('input[name="__RequestVerificationToken"]').val()}" />
+                                        <input type="hidden" name="id" value="${data.id}" />
+                                    </form>
+
+                                    <button class="btn btn-sm btn-light js-delete"
+                                            data-id="${data.id}">
+                                        <i class="feather-trash-2"></i>
+                                    </button>
+                                </div>`;
+                        }
+                    }
+                ]
+            });
+
+            // DELETE (same as your old code)
             $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
                 const id = $(this).data('id');
                 const form = $('#delete-form-' + id);
-                const token = form.find('input[name="__RequestVerificationToken"]').val();
+                const token = $('input[name="__RequestVerificationToken"]').val();
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -207,8 +173,7 @@
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, delete it!',
-                    cancelButtonText: 'Cancel'
+                    confirmButtonText: 'Yes, delete it!'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
@@ -217,23 +182,17 @@
                             data: { id: id, __RequestVerificationToken: token },
                             success: function (res) {
                                 if (res.success) {
-                                    // Row ko DataTable se remove karo aur redraw
-                                    table.row($('#row-' + id)).remove().draw(false);
-
+                                    table.ajax.reload(); // ✅ reload via AJAX
                                     Swal.fire('Deleted!', res.message, 'success');
                                 } else {
                                     Swal.fire('Error', res.message, 'error');
                                 }
-                            },
-                            error: function () {
-                                Swal.fire('Error', 'Something went wrong', 'error');
                             }
                         });
                     }
                 });
             });
 
-            // Auto-hide success message
             setTimeout(() => $('.alert-success').fadeOut('slow'), 5000);
         });
     </script>

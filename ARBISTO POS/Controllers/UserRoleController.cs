@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace ARBISTO_POS.Controllers
-{    
-    [Permission("Manage User Roles")]  // sirf jo role manage kar sakta hai
+{
+    [Permission("Manage User Roles")]
     public class UserRoleController : Controller
     {
         private readonly ApplicationDbContext _db;
@@ -26,6 +26,28 @@ namespace ARBISTO_POS.Controllers
                 .ToListAsync();
 
             return View(roles);
+        }
+
+        // ✅ AJAX METHOD ADDED HERE
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var roles = await _db.UserRoles
+                .Include(r => r.UserRolePermissions)
+                .ThenInclude(rp => rp.UserPermission)
+                .Select(r => new
+                {
+                    id = r.Id,
+                    name = r.Name,
+                    isActive = r.IsActive,
+                    createdAt = r.CreatedAt.ToString("yyyy-MM-dd"),
+                    permissions = r.UserRolePermissions
+                        .Select(p => p.UserPermission.Name)
+                        .ToList()
+                })
+                .ToListAsync();
+
+            return Json(roles);
         }
 
         // Create + Edit
@@ -101,10 +123,6 @@ namespace ARBISTO_POS.Controllers
                 var oldPerms = _db.UserRolePermissions
                     .Where(rp => rp.RoleId == role.Id);
                 _db.UserRolePermissions.RemoveRange(oldPerms);
-
-                //var userRol = _db.AppUsers
-                //    .Where(rp => rp.RoleId == role.Id);
-                //_db.AppUsers.RemoveRange(userRol);
             }
 
             if (model.SelectedPermissions != null)
@@ -118,6 +136,7 @@ namespace ARBISTO_POS.Controllers
                     });
                 }
             }
+
             // users mapping (RoleId update)
             if (model.UsersRole != null)
             {
@@ -155,7 +174,6 @@ namespace ARBISTO_POS.Controllers
                 return Json(new { success = false, message = "Admin role cannot be deleted." });
             }
 
-            // Check: kya koi user is role ko use kar raha hai?
             var usersWithThisRole = await _db.AppUsers
                 .Where(u => u.RoleId == id)
                 .CountAsync();
@@ -169,80 +187,11 @@ namespace ARBISTO_POS.Controllers
                 });
             }
 
-            // Ab safe hai delete karna
             _db.UserRolePermissions.RemoveRange(role.UserRolePermissions);
             _db.UserRoles.Remove(role);
             await _db.SaveChangesAsync();
 
             return Json(new { success = true, message = "Role deleted successfully." });
         }
-
-
-
-
-        //// TEMP: Seed permissions
-        //public async Task<IActionResult> SeedPermissions()
-        //{
-        //    if (await _db.UserPermissions.AnyAsync())
-        //    {
-        //        return Content("Permissions already exist.");
-        //    }
-
-        //    var permissions = new List<UserPermission>
-        //{
-        //    // Portal area
-        //    new UserPermission { Name = "Access Dashboard", Category = "Main Area" },
-        //    new UserPermission { Name = "Manage Sales/Payments", Category = "Main Area" },
-        //    new UserPermission { Name = "Manage POS", Category = "Main Area" },
-        //    new UserPermission { Name = "Manage Kitchen", Category = "Main Area" },    
-
-        //    // Food area
-        //    new UserPermission { Name = "Manage Category", Category = "Inventory" },
-        //    new UserPermission { Name = "Manage  Items", Category = "Inventory" },
-        //    new UserPermission { Name = "Manage Modifiers", Category = "Inventory" },
-        //    new UserPermission { Name = "Manage Ingredients", Category = "Inventory" },
-
-        //    // Expense area
-        //    new UserPermission { Name = "Manage Expense Types", Category = "Expense Area" },
-        //    new UserPermission { Name = "Manage Expenses", Category = "Expense Area" },
-
-        //    // Users area
-        //    new UserPermission { Name = "Manage Users", Category = "Team Area" },
-        //    new UserPermission { Name = "Manage User Roles", Category = "Team Area" },
-        //    new UserPermission { Name = "Manage Customers", Category = "Team Area" },
-        //    new UserPermission { Name = "Manage Employees", Category = "Team Area" },
-
-
-        //    // Reports area
-        //    new UserPermission { Name = "Overall Report", Category = "Reports Area" },
-        //    new UserPermission { Name = "Tax Report", Category = "Reports Area" },
-        //    new UserPermission { Name = "Expense Report", Category = "Reports Area" },
-        //    new UserPermission { Name = "Stock Reports", Category = "Reports Area" },
-
-        //    // Advance area
-        //    new UserPermission { Name = "Import And Exports", Category = "Advance Area" },
-        //    new UserPermission { Name = "Manage Service Tables", Category = "Advance Area" },
-        //    new UserPermission { Name = "Manage Payment Methods", Category = "Advance Area" },
-        //    new UserPermission { Name = "Manage Pickup Points", Category = "Advance Area" },
-        //    new UserPermission { Name = "Database Backup", Category = "Advance Area" }, 
-
-
-        //    // Configuration area
-        //    new UserPermission { Name = "General Configuration", Category = "Configuration area" },
-        //    new UserPermission { Name = "Appearance Configuration", Category = "Configuration area" },
-        //    new UserPermission { Name = "Localization Configuration", Category = "Configuration area" },
-        //    new UserPermission { Name = "Ordering Meal Configuration", Category = "Configuration area" },
-        //    new UserPermission { Name = "Currency Configuration", Category = "Configuration area" },
-        //    new UserPermission { Name = "Authentication Configuration", Category = "Configuration area" },
-        //    new UserPermission { Name = "Captcha Configuration", Category = "Configuration area" },
-        //    new UserPermission { Name = "Captive Configuration", Category = "Configuration area" },
-        //    new UserPermission { Name = "Printer Configuration", Category = "Configuration area" }
-        //};
-
-        //    _db.UserPermissions.AddRange(permissions);
-        //    await _db.SaveChangesAsync();
-
-        //    return Content("Permissions seeded.");
-        //}
     }
 }

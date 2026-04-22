@@ -90,6 +90,27 @@ namespace ARBISTO_POS.Controllers
             return View(ingredient);
         }
 
+
+        [HttpGet]
+        public async Task<IActionResult> GetIngredientsList()
+        {
+            var ingredients = await _context.Ingredients
+                .Select(i => new
+                {
+                    id = i.Id,
+                    name = i.Name,
+                    cateImage = i.CateImage,
+                    cost = i.Cost,
+                    price = i.Price,
+                    unit = i.Unit,
+                    availableQuantity = i.AvailableQuantity,
+                    quantityAlert = i.QuantityAlert
+                })
+                .ToListAsync();
+
+            return Json(ingredients);
+        }
+
         // GET: Ingredients/Edit/{id}
         public async Task<IActionResult> Edit(int? id)
         {

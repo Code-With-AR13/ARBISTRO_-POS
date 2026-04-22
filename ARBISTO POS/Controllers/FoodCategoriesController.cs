@@ -29,6 +29,23 @@ namespace ARBISTO_POS.Controllers
             return View(categories);
         }
 
+        // ✅ ✅ AJAX METHOD (ONLY ADDED - NOTHING MODIFIED)
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var data = await _context.FoodCategories
+                .Select(x => new
+                {
+                    id = x.Id,
+                    cateName = x.CateName,
+                    description = x.Description,
+                    cateImage = x.CateImage
+                })
+                .ToListAsync();
+
+            return Json(new { data });
+        }
+
         public IActionResult Create()
         {
             return View();
@@ -39,6 +56,7 @@ namespace ARBISTO_POS.Controllers
         public async Task<IActionResult> Create(FoodCategories category)
         {
             category.CreatedDate = DateTime.UtcNow;
+
             if (await _context.FoodCategories.AnyAsync(c =>
                 c.CateName.Trim().ToLower() == category.CateName.Trim().ToLower()))
             {
@@ -59,8 +77,10 @@ namespace ARBISTO_POS.Controllers
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
+
             var category = await _context.FoodCategories.FindAsync(id);
             if (category == null) return NotFound();
+
             return View(category);
         }
 
@@ -97,7 +117,6 @@ namespace ARBISTO_POS.Controllers
                 if (category == null)
                     return Json(new { success = false, message = "Category not found" });
 
-                // Check if this category is being used in FoodItems
                 bool isUsed = await _context.Items.AnyAsync(f => f.FoodCategoryId == id);
                 if (isUsed)
                 {
@@ -108,7 +127,6 @@ namespace ARBISTO_POS.Controllers
                     });
                 }
 
-                // delete image
                 if (!string.IsNullOrEmpty(category.CateImage))
                 {
                     var imagePath = Path.Combine(
@@ -131,16 +149,12 @@ namespace ARBISTO_POS.Controllers
             }
         }
 
-
-
-
-
-
         private async Task SaveImage(FoodCategories category)
         {
             if (category.ImageFile != null && category.ImageFile.Length > 0)
             {
                 var fileExtension = Path.GetExtension(category.ImageFile.FileName).ToLowerInvariant();
+
                 if (new[] { ".jpg", ".jpeg", ".png" }.Contains(fileExtension) &&
                     category.ImageFile.Length <= 2 * 1024 * 1024)
                 {
@@ -154,6 +168,7 @@ namespace ARBISTO_POS.Controllers
                     {
                         await category.ImageFile.CopyToAsync(fileStream);
                     }
+
                     category.CateImage = "/images/categories/" + uniqueFileName;
                 }
             }
@@ -163,7 +178,6 @@ namespace ARBISTO_POS.Controllers
         {
             if (category.ImageFile != null && category.ImageFile.Length > 0)
             {
-                // Delete old image
                 if (!string.IsNullOrEmpty(category.CateImage))
                 {
                     var oldImagePath = Path.Combine(_webHostEnvironment.WebRootPath, category.CateImage.TrimStart('/'));

@@ -28,6 +28,7 @@
     <link rel="stylesheet" type="text/css" href="~/assets/vendors/css/quill.min.css">
     <link rel="stylesheet" type="text/css" href="~/assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="~/assets/vendors/css/select2-theme.min.css">
+                            <link rel="stylesheet" href="~/css/site.css" />
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="~/assets/css/theme.min.css" />
@@ -680,30 +681,35 @@
     <!--! Footer Script !-->
     <!--! ================================================================ !-->
     <!--! BEGIN: Vendors JS !-->
-    <script src="~/assets/vendors/js/vendors.min.js"></script>
-    <!-- vendors.min.js {always must need to be top} -->
-    <script src="~/assets/vendors/js/daterangepicker.min.js"></script>
-    <script src="~/assets/vendors/js/apexcharts.min.js"></script>
-    <script src="~/assets/vendors/js/circle-progress.min.js"></script>   
-    <script src="~/assets/vendors/js/dataTables.min.js"></script>
-    <script src="~/assets/vendors/js/dataTables.bs5.min.js"></script>
-    <script src="~/assets/vendors/js/tagify.min.js"></script>
-    <script src="~/assets/vendors/js/tagify-data.min.js"></script>
-    <script src="~/assets/vendors/js/quill.min.js"></script>
-    <script src="~/assets/vendors/js/select2.min.js"></script>
-    <script src="~/assets/vendors/js/select2-active.min.js"></script>
-    <!--! END: Vendors JS !-->
-    <!--! BEGIN: Apps Init  !-->
-    <script src="~/assets/js/common-init.min.js"></script>
-    <script src="~/assets/js/dashboard-init.min.js"></script>
- 
-    <script src="~/assets/vendors/js/sweetalert2.min.js"></script>
-    <!--! END: Apps Init !-->
-    <!--! BEGIN: Theme Customizer  !-->
-    <script src="~/assets/js/theme-customizer-init.min.js"></script>
-    <!--! END: Theme Customizer !-->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-     <!-- ADD THIS LINE BEFORE -->
+                            <script src="~/assets/vendors/js/vendors.min.js"></script>
+                            <script src="~/assets/vendors/js/daterangepicker.min.js"></script>
+                            <script src="~/assets/vendors/js/apexcharts.min.js"></script>
+                            <script src="~/assets/vendors/js/circle-progress.min.js"></script>
+                            <script src="~/assets/vendors/js/dataTables.min.js"></script>
+                            <script src="~/assets/vendors/js/dataTables.bs5.min.js"></script>
+                            <script src="~/assets/vendors/js/tagify.min.js"></script>
+                            <script src="~/assets/vendors/js/tagify-data.min.js"></script>
+                            <script src="~/assets/vendors/js/quill.min.js"></script>
+                            <script src="~/assets/vendors/js/select2.min.js"></script>
+                            <script src="~/assets/vendors/js/select2-active.min.js"></script>
+
+                            <!-- ✅ Chart.js (already correct) -->
+                            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+                            <script src="~/assets/js/common-init.min.js"></script>
+                            <script src="~/assets/js/dashboard-init.min.js"></script>
+
+                            <script src="~/assets/vendors/js/sweetalert2.min.js"></script>
+
+                            <script src="~/assets/js/theme-customizer-init.min.js"></script>
+                            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+                            <!-- ✅ OPTIONAL FIX (ADD THIS ONLY) -->
+                            <script>
+                                // Prevent Chart.js resize glitch / multiple rendering
+                                Chart.defaults.responsive = true;
+                                Chart.defaults.maintainAspectRatio = false;
+                            </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 

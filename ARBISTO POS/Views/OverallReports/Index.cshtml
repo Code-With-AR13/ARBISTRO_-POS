@@ -24,9 +24,8 @@
 
         <div class="main-content">
 
-            <!-- 6 Summary Cards (hamesha show) -->
+            <!-- 6 Summary Cards -->
             <div class="row mb-4">
-                <!-- 1. Total Sale Amount -->
                 <div class="col-md-4 col-lg-2 mb-3">
                     <div class="card h-100">
                         <div class="card-body text-center">
@@ -37,7 +36,6 @@
                     </div>
                 </div>
 
-                <!-- 2. Total Cost Amount -->
                 <div class="col-md-4 col-lg-2 mb-3">
                     <div class="card h-100">
                         <div class="card-body text-center">
@@ -48,7 +46,6 @@
                     </div>
                 </div>
 
-                <!-- 3. Total Discount Amount -->
                 <div class="col-md-4 col-lg-2 mb-3">
                     <div class="card h-100">
                         <div class="card-body text-center">
@@ -59,7 +56,6 @@
                     </div>
                 </div>
 
-                <!-- 4. Total Profit Amount -->
                 <div class="col-md-4 col-lg-2 mb-3">
                     <div class="card h-100">
                         <div class="card-body text-center">
@@ -70,7 +66,6 @@
                     </div>
                 </div>
 
-                <!-- 5. Total Tax Amount -->
                 <div class="col-md-4 col-lg-2 mb-3">
                     <div class="card h-100">
                         <div class="card-body text-center">
@@ -81,7 +76,6 @@
                     </div>
                 </div>
 
-                <!-- 6. Total Payable Amount -->
                 <div class="col-md-4 col-lg-2 mb-3">
                     <div class="card h-100">
                         <div class="card-body text-center">
@@ -99,13 +93,12 @@
                     <div class="card" style="border-radius:10px;border:1px solid #2f7e9d40;">
                         <div class="card-body">
 
+                            <!-- FILTER FORM (UNCHANGED) -->
                             <form method="get" class="row g-3 align-items-end mb-4">
 
                                 <div class="col-md-3">
-                                    <label class="form-label fw-semibold" style="font-size:13px;">
-                                        Order Type
-                                    </label>
-                                    <select name="orderType" class="form-control">
+                                    <label class="form-label fw-semibold" style="font-size:13px;">Order Type</label>
+                                    <select name="orderType" id="orderType" class="form-control">
                                         <option value="">All</option>
                                         @foreach (var t in Model.OrderTypes)
                                         {
@@ -117,10 +110,8 @@
                                 </div>
 
                                 <div class="col-md-3">
-                                    <label class="form-label fw-semibold" style="font-size:13px;">
-                                        Chef
-                                    </label>
-                                    <select name="chefId" class="form-control">
+                                    <label class="form-label fw-semibold" style="font-size:13px;">Chef</label>
+                                    <select name="chefId" id="chefId" class="form-control">
                                         <option value="">All</option>
                                         @foreach (var c in Model.Chefs)
                                         {
@@ -132,78 +123,53 @@
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold" style="font-size:13px;">
-                                        Date Range
-                                    </label>
+                                    <label class="form-label fw-semibold" style="font-size:13px;">Date Range</label>
                                     <div class="d-flex gap-2">
-                                        <input type="date" name="fromDate"
+                                        <input type="date" id="fromDate" name="fromDate"
                                                value="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
                                                class="form-control" />
-                                        <input type="date" name="toDate"
+                                        <input type="date" id="toDate" name="toDate"
                                                value="@(Model.ToDate?.ToString("yyyy-MM-dd"))"
                                                class="form-control" />
                                     </div>
                                 </div>
 
                                 <div class="col-md-2">
-                                    <button type="submit" class="btn w-100 btn-primary fs-6">
+                                    <button type="button" id="btnGenerate" class="btn w-100 btn-primary fs-6">
                                         Generate
                                     </button>
                                 </div>
 
                             </form>
 
-                            <!-- Table result -->
-                            @if (!Model.Items.Any())
-                            {
-                                <div style="border:1px dashed #cfd8dc;border-radius:8px;min-height:300px;"
-                                     class="d-flex align-items-center justify-content-center">
-                                    <div class="text-center text-muted">
-                                        <i class="feather-info mb-3" style="font-size:32px;"></i>
-                                        <p class="mb-0">Please select filters and click Generate to view data.</p>
-                                    </div>
+                            <!-- TABLE -->
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover dataTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th>Date</th>
+                                            <th>Type</th>
+                                            <th>Customer</th>
+                                            <th>Chef</th>
+                                            <th class="text-end">SubTotal</th>
+                                            <th class="text-end">Tax</th>
+                                            <th class="text-end">Discount</th>
+                                            <th class="text-end">Grand Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+
+                            <!-- EMPTY STATE -->
+                            <div id="emptyState" style="border:1px dashed #cfd8dc;border-radius:8px;min-height:300px;"
+                                 class="d-flex align-items-center justify-content-center mt-3">
+                                <div class="text-center text-muted">
+                                    <i class="feather-info mb-3" style="font-size:32px;"></i>
+                                    <p class="mb-0">Please select filters and click Generate to view data.</p>
                                 </div>
-                            }
-                            else
-                            {
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover dataTable">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Order #</th>
-                                                <th>Date</th>
-                                                <th>Type</th>
-                                                <th>Customer</th>
-                                                <th>Chef</th>
-                                                @* <th>Status</th> *@
-                                                <th class="text-end">SubTotal</th>
-                                                <th class="text-end">Tax</th>
-                                                <th class="text-end">Discount</th>
-                                                <th class="text-end">Grand Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var item in Model.Items)
-                                            {
-                                                <tr>
-                                                    <td>@item.OrderNumber</td>
-                                                    <td>@item.OrderDate.ToString("dd MMM yyyy")</td>
-                                                    <td>@item.OrderType</td>
-                                                    <td>@item.CustomerName</td>
-                                                    <td>@item.ChefName</td>
-                                                    @* <td>
-                                                        <span class="badge bg-secondary">@item.OrderStatus</span>
-                                                    </td> *@
-                                                    <td class="text-end">@item.SubTotal.ToString("N0")</td>
-                                                    <td class="text-end">@item.TaxAmount.ToString("N0")</td>
-                                                    <td class="text-end">@item.DiscountAmount.ToString("N0")</td>
-                                                    <td class="text-end fw-bold">@item.GrandTotal.ToString("N0")</td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            }
+                            </div>
 
                         </div>
                     </div>
@@ -216,8 +182,65 @@
 
 @section Scripts {
     <script>
-        $(function () {
-            $('.dataTable').DataTable();
+        let table;
+
+        $(document).ready(function () {
+
+            table = $('.dataTable').DataTable({
+                "processing": true,
+                "serverSide": false,
+                "searching": false,
+                "paging": true,
+                "info": true,
+                "ajax": {
+                    "url": "/OverallReports/GetOverallReportAjax",
+                    "type": "GET",
+                    "data": function (d) {
+                        d.orderType = $('#orderType').val();
+                        d.chefId = $('#chefId').val();
+                        d.fromDate = $('#fromDate').val();
+                        d.toDate = $('#toDate').val();
+                    }
+                },
+                "columns": [
+                    { "data": "orderNumber" },
+                    {
+                        "data": "orderDate",
+                        "render": function (data) {
+                            return moment(data).format("DD MMM YYYY");
+                        }
+                    },
+                    { "data": "orderType" },
+                    { "data": "customerName" },
+                    { "data": "chefName" },
+                    {
+                        "data": "subTotal",
+                        "className": "text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 0)
+                    },
+                    {
+                        "data": "taxAmount",
+                        "className": "text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 0)
+                    },
+                    {
+                        "data": "discountAmount",
+                        "className": "text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 0)
+                    },
+                    {
+                        "data": "grandTotal",
+                        "className": "text-end fw-bold",
+                        "render": $.fn.dataTable.render.number(',', '.', 0)
+                    }
+                ]
+            });
+
+            $('#btnGenerate').click(function () {
+                $('#emptyState').hide();
+                table.ajax.reload();
+            });
+
         });
     </script>
 }

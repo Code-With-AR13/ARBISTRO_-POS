@@ -32,7 +32,7 @@
                                 <div class="me-3">
                                     <div class="d-flex align-items-center justify-content-center"
                                          style="width:48px;height:48px;border-radius:12px;
-                                                background:linear-gradient(135deg,#ff9b6a,#ff7c6a);color:#fff;">
+                                        background:linear-gradient(135deg,#ff9b6a,#ff7c6a);color:#fff;">
                                         <i class="feather-dollar-sign"></i>
                                     </div>
                                 </div>
@@ -44,9 +44,8 @@
                             </div>
 
                             <div class="d-flex align-items-center justify-content-between">
-                                <!-- Naira symbol correctly -->
                                 <div class="fw-bold" style="font-size:22px;">
-                                   Rs @Model.TotalExpense.ToString("")
+                                    Rs @Model.TotalExpense.ToString("")
                                 </div>
                                 <span class="text-muted" style="font-size:13px;">Amount</span>
                             </div>
@@ -64,13 +63,13 @@
                         <div class="card-body">
 
                             <!-- Filters row -->
-                            <form method="get" class="row g-3 align-items-end mb-4">
+                            <form method="get" class="row g-3 align-items-end mb-4" id="filterForm">
 
                                 <div class="col-md-4">
                                     <label class="form-label fw-semibold" style="font-size:13px;">
                                         Expense Category
                                     </label>
-                                    <select name="expenseTypeId" class="form-control">
+                                    <select name="expenseTypeId" id="expenseTypeId" class="form-control">
                                         <option value="">All</option>
                                         @foreach (var t in Model.ExpenseTypes)
                                         {
@@ -87,10 +86,12 @@
                                     </label>
                                     <div class="d-flex gap-2">
                                         <input type="date"
+                                               id="fromDate"
                                                name="fromDate"
                                                value="@(Model.FromDate?.ToString("yyyy-MM-dd"))"
                                                class="form-control" />
                                         <input type="date"
+                                               id="toDate"
                                                name="toDate"
                                                value="@(Model.ToDate?.ToString("yyyy-MM-dd"))"
                                                class="form-control" />
@@ -106,45 +107,28 @@
 
                             </form>
 
-                            <!-- Result box (dashed border) -->
+                            <!-- Result box -->
                             <div style="border:1px dashed #cfd8dc;border-radius:8px;min-height:220px;"
                                  class="d-flex align-items-center justify-content-center">
 
-                                @if (!Model.Items.Any())
-                                {
-                                    <div class="text-center text-muted">
-                                        <i class="feather-file-text mb-3" style="font-size:32px;"></i>
-                                        <p class="mb-0">No data found for the selected criteria.</p>
+                                <div class="w-100 p-3">
+                                    <div class="table-responsive">
+                                        <table class="table dataTable table-sm mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Expense Name</th>
+                                                    <th>Expense Type</th>
+                                                    <th class="text-end">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- AJAX DATA -->
+                                            </tbody>
+                                        </table>
                                     </div>
-                                }
-                                else
-                                {
-                                    <div class="w-100 p-3">
-                                        <div class="table-responsive">
-                                            <table class="table dataTable table-sm mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th>Date</th>
-                                                        <th>Expense Name</th>
-                                                        <th>Expense Type</th>
-                                                        <th class="text-end">Amount</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach (var item in Model.Items)
-                                                    {
-                                                        <tr>
-                                                            <td>@item.CreatedDate.ToString("dd MMM yyyy")</td>
-                                                            <td>@item.ExpenseName</td>
-                                                            <td>@item.ExpenseTypeName</td>
-                                                            <td class="text-end">@item.ExpenseAmount.ToString("N0")</td>
-                                                        </tr>
-                                                    }
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                }
+                                </div>
+
                             </div>
 
                         </div>
@@ -155,11 +139,38 @@
         </div>
     </div>
 </main>
+
 @section Scripts {
     <script>
         $(document).ready(function () {
 
-            var table = $('.dataTable').DataTable();
+                   var table = $('.dataTable').DataTable({
+            "ajax": {
+                "url": "/ExpenseReports/GetReportData",
+                "type": "GET",
+                "data": function (d) {
+                    d.expenseTypeId = $('#expenseTypeId').val() || null;
+                    d.fromDate = $('#fromDate').val() || null;
+                    d.toDate = $('#toDate').val() || null;
+                },
+                "error": function (xhr) {
+                    console.log("ERROR:", xhr.responseText);
+                }
+            },
+            "columns": [
+                { "data": "createdDate" },
+                { "data": "expenseName" },
+                { "data": "expenseTypeName" },
+                {
+                    "data": "expenseAmount",
+                    "className": "text-end",
+                    "render": function (data) {
+                        return data.toLocaleString();
+                    }
+                }
+            ]
+        });
+
         });
     </script>
 }

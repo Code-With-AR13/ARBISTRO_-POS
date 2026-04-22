@@ -5,7 +5,7 @@
 
 <main class="nxl-container-fluid">
     <div class="nxl-content">
-        <!-- header ... same as yours ... -->
+
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
@@ -15,7 +15,7 @@
                     <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
                     <li class="breadcrumb-item active">@ViewData["Title"]</li>
                 </ul>
-            </div>           
+            </div>
         </div>
 
         <div class="main-content">
@@ -27,6 +27,7 @@
                                 <i class="feather-list me-2"></i>Stock Alerts
                             </h5>
                         </div>
+
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle dataTable">
@@ -40,30 +41,12 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @if (Model != null && Model.Any())
-                                        {
-                                            @foreach (var item in Model)
-                                            {
-                                                <tr id="row-@item.Id">
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">@item.Name</span>
-                                                                <small class="text-muted">Created At: @item.CreatedDate</small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>@item.Cost</td>
-                                                    <td>@item.Price</td>
-                                                    <td>@item.AvailableQuantity</td>
-                                                    <td>@item.QuantityAlert</td>
-                                                </tr>
-                                            }
-                                        }
+                                        <!-- AJAX DATA -->
                                     </tbody>
                                 </table>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -74,8 +57,35 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            var table = $('.dataTable').DataTable();
+
+            var table = $('.dataTable').DataTable({
+                "ajax": {
+                    "url": "/StockAlert/GetStockAlerts",
+                    "type": "GET",
+                    "datatype": "json"
+                },
+                "columns": [
+                    {
+                        "data": null,
+                        "render": function (data) {
+                            return `
+                                <div class="d-flex align-items-center">
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-semibold">${data.name}</span>
+                                        <small class="text-muted">Created At: ${data.createdDate}</small>
+                                    </div>
+                                </div>`;
+                        }
+                    },
+                    { "data": "cost" },
+                    { "data": "price" },
+                    { "data": "availableQuantity" },
+                    { "data": "quantityAlert" }
+                ]
+            });
+
             $('[title]').tooltip();
+
         });
     </script>
 }

@@ -17,7 +17,9 @@ namespace ARBISTO_POS.Controllers
             _context = context;
         }
 
-        // Index: List all expenses with their ExpenseType
+        // =========================
+        // 📄 INDEX
+        // =========================
         public async Task<IActionResult> Index()
         {
             var expenses = await _context.Expenses
@@ -28,21 +30,49 @@ namespace ARBISTO_POS.Controllers
             return View(expenses);
         }
 
-        // ===== CREATE =====
+        // =========================
+        // 🔥 AJAX: GET ALL (DATATABLE)
+        // =========================
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var data = await _context.Expenses
+                .Include(e => e.ExpenseType)
+                .OrderByDescending(e => e.CreatedDate)
+                .Select(e => new
+                {
+                    id = e.Id,
+                    expenseName = e.ExpenseName,
+                    expenseAmount = e.ExpenseAmount,
+                    expDescription = e.ExpDescription,
+                    createdDate = e.CreatedDate.ToString("yyyy-MM-dd HH:mm"),
+                    expenseType = new
+                    {
+                        expenseName = e.ExpenseType != null ? e.ExpenseType.ExpenseName : ""
+                    }
+                })
+                .ToListAsync();
 
-        // GET: Expense/Create
+            return Json(new { data });
+        }
+
+        // =========================
+        // ➕ CREATE
+        // =========================
+
+        // GET
         public async Task<IActionResult> Create()
         {
             await LoadExpenseTypesAsync();
             return View(new Expenses());
         }
 
-        // POST: Expense/Create
+        // POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Expenses model)
         {
-            ModelState.Remove("ExpenseType"); // nav prop
+            ModelState.Remove("ExpenseType");
 
             if (!ModelState.IsValid)
             {
@@ -59,9 +89,11 @@ namespace ARBISTO_POS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ===== EDIT =====
+        // =========================
+        // ✏️ EDIT
+        // =========================
 
-        // GET: Expense/Edit/5
+        // GET
         public async Task<IActionResult> Edit(int id)
         {
             var expense = await _context.Expenses
@@ -75,7 +107,7 @@ namespace ARBISTO_POS.Controllers
             return View(expense);
         }
 
-        // POST: Expense/Edit/5
+        // POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Expenses model)
@@ -108,8 +140,9 @@ namespace ARBISTO_POS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ===== DELETE (AJAX) =====
-
+        // =========================
+        // ❌ DELETE (AJAX)
+        // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
@@ -133,13 +166,18 @@ namespace ARBISTO_POS.Controllers
             }
         }
 
-        // ===== helper: dropdown fill =====
+        // =========================
+        // 🔽 DROPDOWN HELPER
+        // =========================
         private async Task LoadExpenseTypesAsync(int? selectedId = null)
         {
             var types = await _context.ExpenseTypes.ToListAsync();
             ViewBag.ExpenseTypes = new SelectList(types, "Id", "ExpenseName", selectedId);
         }
 
+        // =========================
+        // 🔍 SEARCH DROPDOWN (AJAX)
+        // =========================
         [HttpGet]
         public async Task<IActionResult> GetExpenseTypes(string search)
         {
@@ -157,6 +195,5 @@ namespace ARBISTO_POS.Controllers
 
             return Json(new { results });
         }
-
     }
 }

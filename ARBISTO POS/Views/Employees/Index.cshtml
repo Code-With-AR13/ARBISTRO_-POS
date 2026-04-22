@@ -5,7 +5,7 @@
 
 <main class="nxl-container-fluid">
     <div class="nxl-content">
-        <!-- Page Header -->
+
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
@@ -25,6 +25,7 @@
                 </div>
             </div>
         </div>
+
         <div id="ajax-alert-placeholder"></div>
 
         @if (TempData["SuccessMessage"] != null)
@@ -32,7 +33,7 @@
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <i class="feather-check-circle me-2"></i>
                 <strong>Success!</strong> @TempData["SuccessMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
 
@@ -45,9 +46,12 @@
                                 <i class="feather-list me-2"></i>All Employees
                             </h5>
                         </div>
+
                         <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle dataTable">
+
+                                <!-- ✅ Added ID -->
+                                <table id="employeeTable" class="table table-hover align-middle dataTable">
                                     <thead class="table-light">
                                         <tr>
                                             <th>Employee</th>
@@ -61,107 +65,21 @@
                                             <th class="text-center" style="width: 120px;">Actions</th>
                                         </tr>
                                     </thead>
+
+                                    <!-- ❌ Removed foreach -->
                                     <tbody>
-                                        @if (Model != null && Model.Any())
-                                        {
-                                            @foreach (var employee in Model)
-                                            {
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="me-3">
-                                                                @if (!string.IsNullOrEmpty(employee.EmpImage))
-                                                                {
-                                                                    <img src="@employee.EmpImage"
-                                                                         alt="@employee.FullName"
-                                                                         class="rounded-circle border"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;"
-                                                                         onerror="this.src='/assets/images/upload.jpg'">
-                                                                }
-                                                                else
-                                                                {
-                                                                    <img src="~/assets/images/upload.jpg"
-                                                                         alt="No Image"
-                                                                         class="rounded-circle border"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;">
-                                                                }
-                                                            </div>
-                                                            <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">@employee.FullName</span>
-                                                                <small class="text-muted">ID: @employee.Id</small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-bold">@employee.Gender</td>
-                                                    <td>@employee.PhoneNumber</td>
-                                                    <td>@employee.Shift</td>
-                                                    <td>@employee.EmpRole</td>
-                                                    <td>@employee.Salary</td>
-                                                    <td>
-                                                        @if (employee.IsActive)
-                                                        {
-                                                            <span class="text-success fw-bold ">
-                                                                Active
-                                                            </span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="text-danger fw-bold ">
-                                                                Inactive
-                                                            </span>
-                                                        }
-                                                    </td>
-
-                                                    <td>
-                                                        @if (!string.IsNullOrEmpty(employee.Discription))
-                                                        {
-                                                            @(employee.Discription.Length > 80
-                                                                                                            ? employee.Discription.Substring(0, 80) + "..."
-                                                                                                            : employee.Discription)
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="text-muted fst-italic">No description</span>
-                                                        }
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <div class="d-inline-flex gap-1">
-                                                            <a asp-controller="Employees"
-                                                               asp-action="Edit"
-                                                               asp-route-id="@employee.Id"
-                                                               class="btn btn-sm btn-light"
-                                                               title="Edit">
-                                                                <i class="feather-edit-3"></i>
-                                                            </a>
-
-                                                            <form method="post"
-                                                                  asp-controller="Employees"
-                                                                  asp-action="DeleteConfirmed"
-                                                                  asp-route-id="@employee.Id"
-                                                                  class="d-inline"
-                                                                  id="delete-form-@employee.Id">
-                                                                @Html.AntiForgeryToken()
-                                                                <button type="button"
-                                                                        class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@employee.Id"
-                                                                        title="Delete">
-                                                                    <i class="feather-trash-2"></i>
-                                                                </button>
-                                                            </form>
-
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
+                                        <!-- AJAX DATA -->
                                     </tbody>
                                 </table>
+
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </main>
 
@@ -169,12 +87,15 @@
     <script>
         $(document).ready(function () {
 
-            var table = $('.dataTable').DataTable();
+            var table = $('#employeeTable').DataTable();
+
+            loadEmployees(); // ✅ AJAX call
 
             setTimeout(function () {
                 $('.alert-success, .alert-danger').fadeOut('slow');
             }, 5000);
 
+            // ✅ DELETE (UNCHANGED)
             $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
@@ -203,16 +124,10 @@
                             success: function (res) {
                                 if (res.success) {
 
-                                    // ✅ Remove row from DataTable
                                     var row = form.closest('tr');
                                     table.row(row).remove().draw();
 
-                                    // ✅ Success message (same page)
-                                    Swal.fire(
-                                        'Deleted!',
-                                        'Employee deleted successfully.',
-                                        'success'
-                                    );
+                                    Swal.fire('Deleted!', 'Employee deleted successfully.', 'success');
                                 } else {
                                     Swal.fire('Error!', res.message, 'error');
                                 }
@@ -226,5 +141,96 @@
             });
 
         });
+
+        // ✅ AJAX FUNCTION
+        function loadEmployees() {
+
+            $.ajax({
+                url: '/Employees/GetEmployees', // 👈 create this in controller
+                type: 'GET',
+                success: function (data) {
+
+                    let rows = '';
+
+                    if (data.length === 0) {
+                        rows = '<tr><td colspan="9" class="text-center">No Data Found</td></tr>';
+                    } else {
+
+                        data.forEach(emp => {
+
+                            let image = emp.empImage
+                                ? emp.empImage
+                                : '/assets/images/upload.jpg';
+
+                            let status = emp.isActive
+                                ? '<span class="text-success fw-bold">Active</span>'
+                                : '<span class="text-danger fw-bold">Inactive</span>';
+
+                            let description = emp.discription
+                                ? (emp.discription.length > 80
+                                    ? emp.discription.substring(0, 80) + "..."
+                                    : emp.discription)
+                                : '<span class="text-muted fst-italic">No description</span>';
+
+                            rows += `
+                            <tr id="row-${emp.id}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <img src="${image}"
+                                                 class="rounded-circle border"
+                                                 style="width:80px;height:80px;object-fit:cover;">
+                                        </div>
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-semibold">${emp.fullName}</span>
+                                            <small class="text-muted">ID: ${emp.id}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>${emp.gender || ''}</td>
+                                <td>${emp.phoneNumber || ''}</td>
+                                <td>${emp.shift || ''}</td>
+                                <td>${emp.empRole || ''}</td>
+                                <td>${emp.salary || ''}</td>
+                                <td>${status}</td>
+                                <td>${description}</td>
+                                <td class="text-center">
+                                    <div class="d-inline-flex gap-1">
+
+                                        <a href="/Employees/Edit/${emp.id}"
+                                           class="btn btn-sm btn-light">
+                                           <i class="feather-edit-3"></i>
+                                        </a>
+
+                                        <form method="post"
+                                              action="/Employees/DeleteConfirmed/${emp.id}"
+                                              class="d-inline"
+                                              id="delete-form-${emp.id}">
+
+                                            <input name="__RequestVerificationToken"
+                                                   type="hidden"
+                                                   value="${$('input[name="__RequestVerificationToken"]').first().val()}">
+
+                                            <button type="button"
+                                                    class="btn btn-sm btn-light js-delete"
+                                                    data-id="${emp.id}">
+                                                <i class="feather-trash-2"></i>
+                                            </button>
+                                        </form>
+
+                                    </div>
+                                </td>
+                            </tr>
+                            `;
+                        });
+                    }
+
+                    $('#employeeTable tbody').html(rows);
+                },
+                error: function () {
+                    alert('Failed to load employees');
+                }
+            });
+        }
     </script>
 }

@@ -24,6 +24,24 @@ namespace ARBISTO_POS.Controllers
             return View(methods);
         }
 
+        // ================= 🔥 AJAX GET ALL =================
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var data = await _context.ExpenseTypes
+                .OrderByDescending(x => x.CreatedDate)
+                .Select(x => new
+                {
+                    id = x.Id,
+                    expenseName = x.ExpenseName,
+                    expDescription = x.ExpDescription,
+                    createdDate = x.CreatedDate.ToString("yyyy-MM-dd HH:mm")
+                })
+                .ToListAsync();
+
+            return Json(new { data });
+        }
+
         // ================= CREATE =================
         public IActionResult Create()
         {
@@ -34,7 +52,6 @@ namespace ARBISTO_POS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ExpenseType model)
         {
-            // Duplicate name check
             if (await _context.ExpenseTypes.AnyAsync(p =>
                 p.ExpenseName.Trim().ToLower() == model.ExpenseName.Trim().ToLower()))
             {
@@ -71,7 +88,6 @@ namespace ARBISTO_POS.Controllers
         {
             if (id != model.Id) return NotFound();
 
-            // Duplicate name check (exclude current)
             if (await _context.ExpenseTypes.AnyAsync(p =>
                 p.Id != id &&
                 p.ExpenseName.Trim().ToLower() == model.ExpenseName.Trim().ToLower()))
@@ -91,6 +107,7 @@ namespace ARBISTO_POS.Controllers
             return View(model);
         }
 
+        // ================= DELETE =================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -111,6 +128,5 @@ namespace ARBISTO_POS.Controllers
                 return Json(new { success = false, message = "Error deleting Expense Type!" });
             }
         }
-
     }
 }

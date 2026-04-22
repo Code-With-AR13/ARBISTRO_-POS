@@ -59,62 +59,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @if (Model != null && Model.Any())
-                                        {
-                                            foreach (var pay in Model)
-                                            {
-                                                <tr id="row-@pay.Id">
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">@pay.ExpenseName</span>
-                                                                <small class="text-muted">Created At: @pay.CreatedDate</small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    <td>
-                                                        @if (!string.IsNullOrEmpty(pay.ExpDescription))
-                                                        {
-                                                            @(pay.ExpDescription.Length > 80
-                                                                                                            ? pay.ExpDescription.Substring(0, 80) + "..."
-                                                                                                            : pay.ExpDescription)
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="text-muted fst-italic">No description</span>
-                                                        }
-                                                    </td>
-
-                                                    <td class="text-center">
-                                                        <div class="d-inline-flex gap-1">
-                                                            <a asp-controller="Expensetype"
-                                                               asp-action="Edit"
-                                                               asp-route-id="@pay.Id"
-                                                               class="btn btn-sm btn-light"
-                                                               title="Edit">
-                                                                <i class="feather-edit-3"></i>
-                                                            </a>
-
-                                                            <form id="delete-form-@pay.Id"
-                                                                  asp-controller="Expensetype"
-                                                                  asp-action="DeleteConfirmed"
-                                                                  asp-route-id="@pay.Id"
-                                                                  method="post"
-                                                                  class="d-inline">
-                                                                @Html.AntiForgeryToken()
-                                                                <button type="button"
-                                                                        class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@pay.Id"
-                                                                        title="Delete">
-                                                                    <i class="feather-trash-2"></i>
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
+                                        <!-- AJAX DATA -->
                                     </tbody>
                                 </table>
                             </div>
@@ -130,14 +75,64 @@
     <script>
         $(document).ready(function () {
 
-            var table = $('.dataTable').DataTable();
+            var table = $('.dataTable').DataTable({
+                "ajax": {
+                    "url": "/ExpenseType/GetAll",
+                    "type": "GET",
+                    "datatype": "json"
+                },
+                "columns": [
+                    {
+                        "data": null,
+                        "render": function (data) {
+                            return `
+                                <div class="d-flex align-items-center">
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-semibold">${data.expenseName}</span>
+                                        <small class="text-muted">Created At: ${data.createdDate}</small>
+                                    </div>
+                                </div>`;
+                        }
+                    },
+                    {
+                        "data": "expDescription",
+                        "render": function (data) {
+                            if (!data) {
+                                return '<span class="text-muted fst-italic">No description</span>';
+                            }
+                            return data.length > 80 ? data.substring(0, 80) + "..." : data;
+                        }
+                    },
+                    {
+                        "data": null,
+                        "orderable": false,
+                        "className": "text-center",
+                        "render": function (data) {
+                            return `
+                                <div class="d-inline-flex gap-1">
+                                    <a href="/ExpenseType/Edit/${data.id}" class="btn btn-sm btn-light" title="Edit">
+                                        <i class="feather-edit-3"></i>
+                                    </a>
+
+                                    <form id="delete-form-${data.id}" action="/ExpenseType/DeleteConfirmed/${data.id}" method="post" class="d-inline">
+                                        <input name="__RequestVerificationToken" type="hidden" value="">
+                                        <button type="button" class="btn btn-sm btn-light js-delete" data-id="${data.id}" title="Delete">
+                                            <i class="feather-trash-2"></i>
+                                        </button>
+                                    </form>
+                                </div>`;
+                        }
+                    }
+                ]
+            });
 
             $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
                 const id = $(this).data('id');
                 const form = $('#delete-form-' + id);
-                const token = form.find('input[name="__RequestVerificationToken"]').val();
+
+                const token = $('input[name="__RequestVerificationToken"]').first().val();
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -156,7 +151,7 @@
                             data: { id: id, __RequestVerificationToken: token },
                             success: function (res) {
                                 if (res.success) {
-                                    table.row($('#row-' + id)).remove().draw(false);
+                                    table.ajax.reload();
                                     Swal.fire('Deleted!', res.message, 'success');
                                 } else {
                                     Swal.fire('Error', res.message, 'error');
@@ -175,4 +170,3 @@
         });
     </script>
 }
-

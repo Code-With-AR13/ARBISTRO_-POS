@@ -3,8 +3,10 @@
 @{
     ViewData["Title"] = "Modifiers";
 }
+
 <main class="nxl-container-fluid">
     <div class="nxl-content">
+
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
@@ -16,6 +18,7 @@
                     <li class="breadcrumb-item active">@ViewData["Title"]</li>
                 </ul>
             </div>
+
             <div class="page-header-right ms-auto">
                 <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
                     <a asp-controller="Modifier" asp-action="Create" class="btn btn-primary">
@@ -31,7 +34,7 @@
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <i class="feather-check-circle me-2"></i>
                 <strong>Success!</strong> @TempData["SuccessMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
 
@@ -39,17 +42,21 @@
             <div class="row">
                 <div class="col-lg-12">
                     <div class="card stretch stretch-full">
+
                         <div class="card-header">
                             <h5 class="card-title mb-0">
                                 <i class="feather-shopping-bag me-2"></i>All Modifier
                             </h5>
                         </div>
+
                         <div class="card-body p-0">
                             <div class="table-responsive">
+
+                                <!-- TABLE -->
                                 <table class="table table-hover align-middle dataTable">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Modifier</th>                                            
+                                            <th>Modifier</th>
                                             <th>Ingredient</th>
                                             <th>Discription</th>
                                             <th>Cost</th>
@@ -57,94 +64,20 @@
                                             <th class="text-center" style="width: 120px;">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        @if (Model != null && Model.Any())
-                                        {
-                                            @foreach (var item in Model)
-                                            {
-                                                <tr id="row-@item.ItemId">
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="me-3">
-                                                                @if (!string.IsNullOrEmpty(item.ModeImage))
-                                                                {
-                                                                    <img src="@item.ModeImage"
-                                                                         alt="@item.ModeName"
-                                                                         class="rounded-circle border"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;"
-                                                                         onerror="this.src='/assets/images/upload.jpg'">
-                                                                }
-                                                                else
-                                                                {
-                                                                    <img src="~/assets/images/upload.jpg"
-                                                                         alt="No Image"
-                                                                         class="rounded-circle border"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;">
-                                                                }
-                                                            </div>
-                                                            <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">@item.ModeName</span>
-                                                                @if (!string.IsNullOrEmpty(item.ModeDiscription))
-                                                                {
-                                                                    <span class="text-muted small">@item.ModeDiscription.Substring(0, Math.Min(50, item.ModeDiscription.Length))@(item.ModeDiscription.Length > 50 ? "..." : "")</span>
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                    </td>                                                   
-                                                    <td>
-                                                        @if (item.ModifierIngredients != null && item.ModifierIngredients.Any())
-                                                        {
-                                                @string.Join(", ", item.ModifierIngredients
-                                                                                                .Select(ii => ii.Ingredient.Name))
-                                                                                                }
 
-                                                    </td>
-                                                    <td>
-                                                        <span>@item.ModeDiscription</span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="text-muted">@item.ItemCost.00</span>
-                                                    </td>
-                                                    <td>
-                                                        <strong>@item.ItemPrice.00</strong>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <div class="d-inline-flex gap-1">
-                                                            <a asp-action="Edit"
-                                                               asp-route-id="@item.ItemId"
-                                                               class="btn btn-sm btn-light"
-                                                               title="Edit">
-                                                                <i class="feather-edit-3"></i>
-                                                            </a>
+                                    <!-- ❌ REMOVE FOREACH -->
+                                    <tbody></tbody>
 
-                                                            <!-- unique id per form -->
-                                                            <form id="delete-form-@item.ItemId"
-                                                                  asp-controller="Modifier"
-                                                                  asp-action="Delete"
-                                                                  asp-route-id="@item.ItemId"
-                                                                  method="post"
-                                                                  class="d-inline">
-                                                                @Html.AntiForgeryToken()
-                                                                <button type="button"
-                                                                        class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@item.ItemId"
-                                                                        title="Delete">
-                                                                    <i class="feather feather-trash-2"></i>
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
-                                    </tbody>
                                 </table>
+
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </main>
 
@@ -152,9 +85,98 @@
     <script>
         $(document).ready(function () {
 
-            var table = $('.dataTable').DataTable();
+            var table = $('.dataTable').DataTable({
+                
+                serverSide: false,
+                ajax: {
+                    url: '/Modifier/GetModifiers', // 👈 create this API
+                    type: 'GET',
+                    dataSrc: ''
+                },
 
+                columns: [
+
+                    {
+                        data: null,
+                        render: function (data) {
+
+                            let image = data.modeImage
+                                ? `<img src="${data.modeImage}" class="rounded-circle border" style="width:80px;height:80px;object-fit:cover;" onerror="this.src='/assets/images/upload.jpg'">`
+                                : `<img src="/assets/images/upload.jpg" class="rounded-circle border" style="width:80px;height:80px;">`;
+
+                            let desc = data.modeDiscription
+                                ? data.modeDiscription.substring(0, 50) + (data.modeDiscription.length > 50 ? '...' : '')
+                                : '';
+
+                            return `
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">${image}</div>
+                                <div class="d-flex flex-column">
+                                    <span class="fw-semibold">${data.modeName}</span>
+                                    <span class="text-muted small">${desc}</span>
+                                </div>
+                            </div>`;
+                        }
+                    },
+
+                    {
+                        data: 'modifierIngredients',
+                        render: function (data) {
+                            if (!data) return '';
+                            return data.map(x => x.ingredient.name).join(', ');
+                        }
+                    },
+
+                    {
+                        data: 'modeDiscription',
+                        render: function (data) {
+                            return `<span>${data ?? ''}</span>`;
+                        }
+                    },
+
+                    {
+                        data: 'itemCost',
+                        render: function (data) {
+                            return `<span class="text-muted">${data}.00</span>`;
+                        }
+                    },
+
+                    {
+                        data: 'itemPrice',
+                        render: function (data) {
+                            return `<strong>${data}.00</strong>`;
+                        }
+                    },
+
+                    {
+                        data: 'itemId',
+                        orderable: false,
+                        className: "text-center",
+                        render: function (id) {
+
+                            return `
+                            <div class="d-inline-flex gap-1">
+
+                                <a href="/Modifier/Edit/${id}" class="btn btn-sm btn-light">
+                                    <i class="feather-edit-3"></i>
+                                </a>
+
+                                <form id="delete-form-${id}" method="post" action="/Modifier/Delete/${id}" class="d-inline">
+                                    <input name="__RequestVerificationToken" type="hidden" value="${$('input[name="__RequestVerificationToken"]').val()}"/>
+                                    <button type="button" class="btn btn-sm btn-light js-delete" data-id="${id}">
+                                        <i class="feather feather-trash-2"></i>
+                                    </button>
+                                </form>
+
+                            </div>`;
+                        }
+                    }
+                ]
+            });
+
+            // DELETE (UNCHANGED)
             $(document).on('click', '.js-delete', function (e) {
+
                 e.preventDefault();
 
                 const id = $(this).data('id');
@@ -171,14 +193,17 @@
                     confirmButtonText: 'Yes, delete it!',
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
+
                     if (result.isConfirmed) {
+
                         $.ajax({
                             url: form.attr('action'),
                             type: 'POST',
                             data: { id: id, __RequestVerificationToken: token },
                             success: function (res) {
+
                                 if (res.success) {
-                                    table.row($('#row-' + id)).remove().draw(false);
+                                    table.ajax.reload(); // ✅ reload instead of remove
                                     Swal.fire('Deleted!', res.message, 'success');
                                 } else {
                                     Swal.fire('Error', res.message, 'error');
@@ -194,7 +219,7 @@
 
             // Auto-hide alerts
             setTimeout(() => $('.alert-success').fadeOut('slow'), 5000);
+
         });
     </script>
 }
-

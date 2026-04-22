@@ -106,6 +106,29 @@ namespace ARBISTO_POS.Controllers
 
             return Json(orders);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var data = await _context.SaleOrders
+                .Include(x => x.Customer)
+                .Include(x => x.CreatedByUser)
+                .Select(x => new
+                {
+                    orderId = x.OrderId,
+                    orderNumber = x.OrderNumber,
+                    orderDate = x.OrderDate.ToString("yyyy-MM-dd HH:mm"),
+                    customerName = x.Customer.Name,
+                    phoneNo = x.Customer.PhoneNo,
+                    createdBy = x.CreatedByUser.FullName,
+                    orderType = x.OrderType,
+                    orderStatus = x.OrderStatus,
+                    paymentStatus = x.PaymentStatus
+                })
+                .ToListAsync();
+
+            return Json(data);
+        }
         // ============================
         // KITCHEN INVOICE (AUTO PRINT)
         // ============================

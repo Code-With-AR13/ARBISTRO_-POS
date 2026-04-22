@@ -19,6 +19,27 @@ namespace ARBISTO_POS.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
+        // =========================
+        // ✅ AJAX DATA ENDPOINT
+        // =========================
+        [HttpGet]
+        public async Task<IActionResult> GetCustomers()
+        {
+            var data = await _context.Customers
+                .Select(c => new
+                {
+                    id = c.Id,
+                    name = c.Name,
+                    email = c.Email,
+                    phoneNo = c.PhoneNo,
+                    address = c.Address,
+                    cusImage = c.CusImage
+                })
+                .ToListAsync();
+
+            return Json(data);
+        }
+
         // GET: Customers
         public async Task<IActionResult> Index()
         {
@@ -37,8 +58,6 @@ namespace ARBISTO_POS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Customers Customers)
         {
-            //bool nameExists = await _context.Customers
-            //    .AnyAsync(i => i.Name.Trim().ToLower() == Customers.Name.Trim().ToLower());            
             Customers.CreatedDate = DateTime.UtcNow;
 
             if (ModelState.IsValid)
@@ -106,11 +125,6 @@ namespace ARBISTO_POS.Controllers
             if (id != Customers.Id)
                 return NotFound();
 
-            //bool nameExists = await _context.Customers
-            //    .AnyAsync(i =>
-            //        i.Id != Customers.Id &&
-            //        i.Name.Trim().ToLower() == Customers.Name.Trim().ToLower());            
-
             if (ModelState.IsValid)
             {
                 try
@@ -174,8 +188,6 @@ namespace ARBISTO_POS.Controllers
             return View(Customers);
         }
 
-        
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
@@ -184,7 +196,6 @@ namespace ARBISTO_POS.Controllers
             if (item == null)
                 return Json(new { success = false, message = "Customer not found" });
 
-            // delete image
             if (!string.IsNullOrEmpty(item.CusImage))
             {
                 string imagePath = Path.Combine(
@@ -201,9 +212,6 @@ namespace ARBISTO_POS.Controllers
 
             return Json(new { success = true, message = "Customer deleted successfully" });
         }
-
-
-
 
         // GET: Customers/Details/{id}
         public async Task<IActionResult> Details(int? id)

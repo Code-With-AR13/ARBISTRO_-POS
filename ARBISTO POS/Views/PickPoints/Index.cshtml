@@ -50,7 +50,7 @@
 
                         <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle dataTable">
+                                <table class="table table-hover align-middle dataTable" id="pickTable">
                                     <thead class="table-light">
                                         <tr>
                                             <th>Pick Point</th>
@@ -62,64 +62,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @if (Model != null && Model.Any())
-                                        {
-                                            foreach (var point in Model)
-                                            {
-                                                <tr id="row-@point.Id">
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">@point.PicTittle</span>
-                                                                <small class="text-muted">Created At: @point.CreatedDate</small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>@point.PersonName</td>
-                                                    <td>@point.PhoneNo</td>
-                                                    <td>@point.Address</td>
-                                                    <td>
-                                                        @if (!string.IsNullOrEmpty(point.PicDescription))
-                                                        {
-                                                            @(point.PicDescription.Length > 80
-                                                                                                            ? point.PicDescription.Substring(0, 80) + "..."
-                                                                                                            : point.PicDescription)
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="text-muted fst-italic">No description</span>
-                                                        }
-                                                    </td>
-
-                                                    <td class="text-center">
-                                                        <div class="d-inline-flex gap-1">
-                                                            <a asp-controller="PickPoints"
-                                                               asp-action="Edit"
-                                                               asp-route-id="@point.Id"
-                                                               class="btn btn-sm btn-light"
-                                                               title="Edit">
-                                                                <i class="feather-edit-3"></i>
-                                                            </a>
-
-                                                            <form id="delete-form-@point.Id"
-                                                                  asp-controller="PickPoints"
-                                                                  asp-action="DeleteConfirmed"
-                                                                  asp-route-id="@point.Id"
-                                                                  method="post"
-                                                                  class="d-inline">
-                                                                @Html.AntiForgeryToken()
-                                                                <button type="button"
-                                                                        class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@point.Id"
-                                                                        title="Delete">
-                                                                    <i class="feather-trash-2"></i>
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
+                                        @* AJAX DATA WILL LOAD HERE *@
                                     </tbody>
                                 </table>
                             </div>
@@ -135,14 +78,75 @@
     <script>
         $(document).ready(function () {
 
-            var table = $('.dataTable').DataTable();
+            var table = $('#pickTable').DataTable({
+                
+                "serverSide": false,
+                "ajax": {
+                    "url": "/PickPoints/GetAll", // ⚠️ backend required
+                    "type": "GET",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    {
+                        "data": null,
+                        "render": function (data) {
+                            return `
+                                <div class="d-flex flex-column">
+                                    <span class="fw-semibold">${data.picTittle}</span>
+                                    <small class="text-muted">Created At: ${data.createdDate}</small>
+                                </div>`;
+                        }
+                    },
+                    { "data": "personName" },
+                    { "data": "phoneNo" },
+                    { "data": "address" },
+                    {
+                        "data": "picDescription",
+                        "render": function (data) {
+                            if (!data)
+                                return '<span class="text-muted fst-italic">No description</span>';
 
+                            return data.length > 80 ? data.substring(0, 80) + "..." : data;
+                        }
+                    },
+                    {
+                        "data": null,
+                        "orderable": false,
+                        "className": "text-center",
+                        "render": function (data) {
+                            return `
+                                <div class="d-inline-flex gap-1">
+                                    <a href="/PickPoints/Edit/${data.id}"
+                                       class="btn btn-sm btn-light">
+                                        <i class="feather-edit-3"></i>
+                                    </a>
+
+                                    <form id="delete-form-${data.id}"
+                                          action="/PickPoints/DeleteConfirmed"
+                                          method="post"
+                                          class="d-none">
+                                        <input name="__RequestVerificationToken"
+                                               value="${$('input[name="__RequestVerificationToken"]').val()}" />
+                                        <input type="hidden" name="id" value="${data.id}" />
+                                    </form>
+
+                                    <button class="btn btn-sm btn-light js-delete"
+                                            data-id="${data.id}">
+                                        <i class="feather-trash-2"></i>
+                                    </button>
+                                </div>`;
+                        }
+                    }
+                ]
+            });
+
+            // DELETE (AJAX)
             $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
                 const id = $(this).data('id');
                 const form = $('#delete-form-' + id);
-                const token = form.find('input[name="__RequestVerificationToken"]').val();
+                const token = $('input[name="__RequestVerificationToken"]').val();
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -151,8 +155,7 @@
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, delete it!',
-                    cancelButtonText: 'Cancel'
+                    confirmButtonText: 'Yes, delete it!'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
@@ -161,23 +164,18 @@
                             data: { id: id, __RequestVerificationToken: token },
                             success: function (res) {
                                 if (res.success) {
-                                    table.row($('#row-' + id)).remove().draw(false);
+                                    table.ajax.reload(); // ✅ reload via AJAX
                                     Swal.fire('Deleted!', res.message, 'success');
                                 } else {
                                     Swal.fire('Error', res.message, 'error');
                                 }
-                            },
-                            error: function () {
-                                Swal.fire('Error', 'Something went wrong', 'error');
                             }
                         });
                     }
                 });
             });
 
-            // auto hide success message
             setTimeout(() => $('.alert-success').fadeOut('slow'), 5000);
         });
     </script>
 }
-

@@ -29,117 +29,117 @@ namespace ARBISTO_POS.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDashboardData()
         {
-            // ===========================
-            // 📊 TOTAL ORDERS
-            // ===========================
-            var totalOrders = await _context.SaleOrders.CountAsync();
-
-            // ===========================
-            // 💰 TOTAL PAID / UNPAID (AMOUNT)
-            // ===========================
-            var totalPaid = await _context.SaleOrders
-                .Where(x => x.PaymentStatus == "Paid")
+            var totalSale = await _context.SaleOrders
                 .SumAsync(x => (decimal?)x.GrandTotal) ?? 0;
 
-            var totalUnpaid = await _context.SaleOrders
-                .Where(x => x.PaymentStatus == "Unpaid")
-                .SumAsync(x => (decimal?)x.GrandTotal) ?? 0;
+            var totalTax = await _context.SaleOrders
+                .SumAsync(x => (decimal?)x.TaxAmount) ?? 0;
 
-            // ===========================
-            // 📉 TOTAL EXPENSE
-            // ===========================
-            var totalExpense = await _context.Expenses
+            var totalDiscount = await _context.SaleOrders
+                .SumAsync(x => (decimal?)x.DiscountAmount) ?? 0;
+
+            var totalCost = await _context.SaleOrderItems
+                .Include(x => x.Item)
+                .SumAsync(x => (decimal?)(x.Item.ItemPrice * x.Quantity)) ?? 0;
+
+            var totalExpenses = await _context.Expenses
                 .SumAsync(x => (decimal?)x.ExpenseAmount) ?? 0;
 
-            // ===========================
-            // 📊 TOTAL AMOUNT
-            // ===========================
-            var totalAmount = totalPaid + totalUnpaid;
+            var totalProfit = totalSale - totalCost ;
+            var profitAfterExpenses = totalProfit - totalExpenses;
 
-            // ===========================
-            // 📊 PERCENTAGES (PAID / UNPAID)
-            // ===========================
-            var paidPercent = totalAmount == 0 ? 0 : (int)((totalPaid * 100) / totalAmount);
-            var unpaidPercent = totalAmount == 0 ? 0 : (int)((totalUnpaid * 100) / totalAmount);
+            var baseAmount = totalSale == 0 ? 1 : totalSale;
 
-            // ===========================
-            // 📊 EXTRA PERCENTAGES (FOR CARDS)
-            // ===========================
+            int salePercent = totalSale > 0 ? 100 : 0;
+            int costPercent = (int)((totalCost * 100) / baseAmount);
+            int taxPercent = (int)((totalTax * 100) / baseAmount);
+            int discountPercent = (int)((totalDiscount * 100) / baseAmount);
+            int expensesPercent = (int)((totalExpenses * 100) / baseAmount);
+            int profitPercent = (int)((totalProfit * 100) / baseAmount);
+            int profitAfterPercent = (int)((profitAfterExpenses * 100) / baseAmount);
 
-            // Orders → full if exists
-            var ordersPercent = totalOrders > 0 ? 100 : 0;
+            costPercent = Math.Clamp(costPercent, 0, 100);
+            taxPercent = Math.Clamp(taxPercent, 0, 100);
+            discountPercent = Math.Clamp(discountPercent, 0, 100);
+            expensesPercent = Math.Clamp(expensesPercent, 0, 100);
+            profitPercent = Math.Clamp(profitPercent, 0, 100);
+            profitAfterPercent = Math.Clamp(profitAfterPercent, 0, 100);
 
-            // Expense → compared with total revenue
-            var expensePercent = totalAmount == 0 ? 0 : (int)((totalExpense * 100) / totalAmount);
+            return Json(new
+            {
+                totalSale,
+                totalCost,
+                totalDiscount,
+                totalProfit,
+                totalTax,
+                totalExpenses,
+                profitAfterExpenses,
 
-            if (expensePercent > 100)
-                expensePercent = 100;
+                salePercent,
+                costPercent,
+                discountPercent,
+                profitPercent,
+                taxPercent,
+                expensesPercent,
+                profitAfterPercent
+            });
+        }
 
-            // ===========================
-            // 📊 LINE CHART (LAST 7 DAYS)
-            // ===========================
-            var last7Days = Enumerable.Range(0, 7)
-                .Select(i => DateTime.Today.AddDays(-i))
-                .OrderBy(d => d)
-                .ToList();
-
-            var dbChartData = await _context.SaleOrders
-                .Where(x => x.PaymentStatus == "Paid")
-                .GroupBy(x => x.OrderDate.Date)
+        // ===========================
+        // 📊 FIXED GRAPH API (CURVED LINE READY 🔥)
+        // ===========================
+        [HttpGet]
+        public async Task<IActionResult> GetChartData()
+        {
+            // 👉 Sales grouped by month
+            var monthlySales = await _context.SaleOrders
+                .GroupBy(x => x.OrderDate.Month)
                 .Select(g => new
                 {
-                    Date = g.Key,
-                    Total = g.Sum(x => x.GrandTotal)
+                    month = g.Key,
+                    sale = g.Sum(x => (decimal?)x.GrandTotal) ?? 0
                 })
                 .ToListAsync();
 
-            var chartDates = new List<string>();
-            var chartPayments = new List<decimal>();
+            // 👉 Cost grouped by month
+            var monthlyCosts = await _context.SaleOrderItems
+                .Include(x => x.Order)
+                .Include(x => x.Item)
+                .GroupBy(x => x.Order.OrderDate.Month)
+                .Select(g => new
+                {
+                    month = g.Key,
+                    cost = g.Sum(x => (decimal?)(x.Item.ItemPrice * x.Quantity)) ?? 0
+                })
+                .ToListAsync();
 
-            foreach (var day in last7Days)
+            // 🔥 IMPORTANT: Generate FULL 12 months data
+            var finalData = Enumerable.Range(1, 12).Select(month => new
             {
-                var match = dbChartData.FirstOrDefault(x => x.Date == day.Date);
+                month = month,
+                sale = monthlySales.FirstOrDefault(x => x.month == month)?.sale ?? 0,
+                cost = monthlyCosts.FirstOrDefault(x => x.month == month)?.cost ?? 0
+            }).ToList();
 
-                chartDates.Add(day.ToString("dd MMM"));
-                chartPayments.Add(match != null ? match.Total : 0);
-            }
+            return Json(finalData);
+        }
 
-            // ===========================
-            // 🍩 DONUT CHART (COUNT)
-            // ===========================
-            var paidOrdersCount = await _context.SaleOrders
-                .Where(x => x.PaymentStatus == "Paid")
-                .CountAsync();
 
-            var unpaidOrdersCount = await _context.SaleOrders
-                .Where(x => x.PaymentStatus == "Unpaid")
-                .CountAsync();
+        [HttpGet]
+        public IActionResult GetOrders()
+        {
+            var orders = _context.SaleOrders
+                .OrderByDescending(o => o.OrderDate) // 🔥 Latest first from DB
+                .Select(o => new
+                {
+                    orderId = o.OrderId,
+                    customerName = o.Customer.Name,
+                    totalAmount = o.GrandTotal,
+                    orderDate = o.OrderDate
+                })
+                .ToList();
 
-            // ===========================
-            // ✅ FINAL RESPONSE
-            // ===========================
-            return Json(new
-            {
-                totalOrders,
-                totalOrdersAll = totalOrders,
-
-                totalPaid,
-                totalUnpaid,
-                totalExpense,
-
-                paidPercent,
-                unpaidPercent,
-
-                // 🔥 IMPORTANT (FOR PROGRESS BARS)
-                ordersPercent,
-                expensePercent,
-
-                chartDates,
-                chartPayments,
-
-                leadsData = new List<int> { paidOrdersCount, unpaidOrdersCount },
-                leadsLabels = new List<string> { "Paid", "Unpaid" }
-            });
+            return Json(new { data = orders });
         }
 
         // ===========================
@@ -164,4 +164,5 @@ namespace ARBISTO_POS.Controllers
             return Json(new { data = latestData });
         }
     }
+
 }

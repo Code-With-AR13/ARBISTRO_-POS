@@ -22,8 +22,8 @@
             <div class="page-header-right ms-auto">
                 <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
                     <a asp-controller="DataBaseBackup"
-                       asp-action="Generate"
-                       class="btn btn-primary js-generate-backup">
+                           asp-action="Generate"
+                           class="btn btn-primary js-generate-backup">
                         <i class="feather-plus me-2"></i>
                         <span>Generate Backup</span>
                     </a>
@@ -36,8 +36,7 @@
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <i class="feather-check-circle me-2"></i>
                 <strong>Success!</strong> @TempData["SuccessMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"
-                        aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
 
@@ -46,8 +45,7 @@
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <i class="feather-alert-triangle me-2"></i>
                 <strong>Error!</strong> @TempData["ErrorMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"
-                        aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
 
@@ -64,7 +62,7 @@
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle dataTable" id="backup-table">
                                     <thead class="table-light">
-                                        <tr>                                           
+                                        <tr>
                                             <th>Backup No</th>
                                             <th>File Name</th>
                                             <th>File Size</th>
@@ -74,49 +72,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @if (Model != null && Model.Any())
-                                        {
-                                            foreach (var item in Model)
-                                            {
-                                                <tr id="row-@item.BackupNumber">                                                   
-                                                    <td>DB-@(item.BackupNumber)</td>
-                                                    <td>@item.File_Name</td>
-                                                    <td>@item.File_Size</td>
-                                                    <td>@item.Backup_Date.ToString("yyyy-MM-dd HH:mm")</td>
-                                                    <td>@item.Discription</td>
-                                                    <td class="text-center">
-                                                        <div class="d-inline-flex gap-1">
-                                                            <!-- Restore Button -->
-                                                            <a asp-controller="DataBaseBackup"
-                                                               asp-action="Restore"
-                                                               asp-route-id="@item.BackupNumber"
-                                                               class="btn btn-sm btn-success js-restore"
-                                                               data-id="@item.BackupNumber"
-                                                               title="Restore">
-                                                                <i class="feather feather-refresh-cw"></i>
-                                                            </a>
-
-                                                            <!-- Delete Button -->
-                                                            <form id="delete-form-@item.BackupNumber"
-                                                                  asp-controller="DataBaseBackup"
-                                                                  asp-action="Delete"
-                                                                  asp-route-id="@item.BackupNumber"
-                                                                  method="post"
-                                                                  class="d-inline">
-                                                                @Html.AntiForgeryToken()
-                                                                <button type="button"
-                                                                        class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@item.BackupNumber"
-                                                                        title="Delete">
-                                                                    <i class="feather feather-trash-2"></i>
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                    </td>
-
-                                                </tr>
-                                            }
-                                        }
+                                        @* AJAX WILL LOAD DATA HERE *@
                                     </tbody>
                                 </table>
                             </div>
@@ -133,41 +89,83 @@
     <script>
         $(document).ready(function () {
 
-            var table = $('#backup-table').DataTable();                         // DataTables [web:27][web:30]                     // Generate backup: normal navigation + auto refresh
-                    $('.js-generate-backup').on('click', function (e) {
-                        // Default behaviour: window.location = /DataBaseBackup/Generate
-                        // jisse download prompt aayega
+            var table = $('#backup-table').DataTable({
+                
+                "serverSide": false,
+                "ajax": {
+                    "url": "/DataBaseBackup/GetAll", // ⚠️ backend required
+                    "type": "GET",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    {
+                        "data": "backupNumber",
+                        "render": function (data) {
+                            return "DB-" + data;
+                        }
+                    },
+                    { "data": "file_Name" },
+                    { "data": "file_Size" },
+                    {
+                        "data": "backup_Date",
+                        "render": function (data) {
+                            return data;
+                        }
+                    },
+                    { "data": "discription" },
+                    {
+                        "data": null,
+                        "orderable": false,
+                        "className": "text-center",
+                        "render": function (data) {
+                            return `
+                            <tr id="row-${data.backupNumber}">
+                                <div class="d-inline-flex gap-1">
 
-                        // Thodi der baad (e.g. 5 second) page reload kar do,
-                        // taake naya row list me aa jaye
-                        setTimeout(function () {
-                            window.location.href = '@Url.Action("Index", "DataBaseBackup")';
-                        }, 3000); // 5 second, zarurat ke mutabiq change kar sakte ho
-                    });
+                                    <a href="/DataBaseBackup/Restore/${data.backupNumber}"
+                                       class="btn btn-sm btn-success js-restore"
+                                       data-id="${data.backupNumber}">
+                                        <i class="feather feather-refresh-cw"></i>
+                                    </a>
+
+                                    <form id="delete-form-${data.backupNumber}"
+                                          action="/DataBaseBackup/Delete"
+                                          method="post"
+                                          class="d-none">
+                                        <input name="__RequestVerificationToken"
+                                               value="${$('input[name="__RequestVerificationToken"]').val()}" />
+                                        <input type="hidden" name="id" value="${data.backupNumber}" />
+                                    </form>
+
+                                    <button class="btn btn-sm btn-light js-delete"
+                                            data-id="${data.backupNumber}">
+                                        <i class="feather feather-trash-2"></i>
+                                    </button>
+
+                                </div>`;
+                        }
+                    }
+                ]
+            });
+
+            // Generate backup (same logic)
+            $('.js-generate-backup').on('click', function () {
+                setTimeout(function () {
+                    window.location.href = '@Url.Action("Index", "DataBaseBackup")';
+                }, 3000);
+            });
 
             setTimeout(function () {
                 $('.alert-success, .alert-danger').fadeOut('slow');
             }, 4000);
 
-            // Select all checkbox
-            $('#check-all').on('change', function () {
-                $('.row-check').prop('checked', this.checked);
-            });
-
-            // If koi ek uncheck kare to header bhi uncheck
-            $(document).on('change', '.row-check', function () {
-                if (!this.checked) {
-                    $('#check-all').prop('checked', false);
-                }
-            });
-
-            // Delete button (AJAX + SweetAlert)
-            $('.js-delete').on('click', function (e) {
+            // DELETE AJAX
+            $(document).on('click', '.js-delete', function (e) {
                 e.preventDefault();
 
                 const id = $(this).data('id');
                 const form = $('#delete-form-' + id);
-                const token = form.find('input[name="__RequestVerificationToken"]').val();
+                const token = $('input[name="__RequestVerificationToken"]').val();
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -189,41 +187,38 @@
                             },
                             success: function (res) {
                                 if (res.success) {
-
-                                    table.row($('#row-' + id)).remove().draw(false);
-
+                                    table.ajax.reload(); // ✅ reload instead of remove
                                     Swal.fire('Deleted!', res.message, 'success');
                                 } else {
                                     Swal.fire('Error', res.message, 'error');
                                 }
-                            },
-                            error: function () {
-                                Swal.fire('Error', 'Something went wrong', 'error');
                             }
                         });
                     }
                 });
-            });             
+            });
+
         });
-        // Restore button with confirmation
-$('.js-restore').on('click', function (e) {
-    e.preventDefault();
-    
-    const url = $(this).attr('href');
-    
-    Swal.fire({
-        title: 'Restore Database?',
-        text: 'This will overwrite current database with backup data. All current data will be replaced!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, restore it'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = url;
-        }
-    });
-});
+
+        // Restore confirmation (UNCHANGED)
+        $(document).on('click', '.js-restore', function (e) {
+            e.preventDefault();
+
+            const url = $(this).attr('href');
+
+            Swal.fire({
+                title: 'Restore Database?',
+                text: 'This will overwrite current database with backup data. All current data will be replaced!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, restore it'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = url;
+                }
+            });
+        });
     </script>
 }

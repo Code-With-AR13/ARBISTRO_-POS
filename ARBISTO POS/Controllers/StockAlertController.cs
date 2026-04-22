@@ -23,5 +23,27 @@ namespace ARBISTO_POS.Controllers
 
             return View(stock);
         }
+
+        // ================= 🔥 AJAX METHOD =================
+        [HttpGet]
+        public async Task<IActionResult> GetStockAlerts()
+        {
+            var data = await _context.Ingredients
+                .Where(x => x.AvailableQuantity < x.QuantityAlert)
+                .OrderBy(x => x.AvailableQuantity)
+                .Select(x => new
+                {
+                    id = x.Id,
+                    name = x.Name,
+                    cost = x.Cost,
+                    price = x.Price,
+                    availableQuantity = x.AvailableQuantity,
+                    quantityAlert = x.QuantityAlert,
+                    createdDate = x.CreatedDate.ToString("yyyy-MM-dd HH:mm")
+                })
+                .ToListAsync();
+
+            return Json(new { data });
+        }
     }
 }

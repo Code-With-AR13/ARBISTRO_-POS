@@ -7,7 +7,6 @@ using ARBISTO_POS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-
 [Permission("Overall Report")]
 public class OverallReportsController : Controller
 {
@@ -23,16 +22,11 @@ public class OverallReportsController : Controller
     {
         var model = new OverAllReportVm();
 
-        // dropdown: chefs
         model.Chefs = await _context.Employees
             .Where(e => e.EmpRole == "Chef")
             .OrderBy(e => e.FullName)
             .ToListAsync();
 
-        // dropdown: order types (agar VM me hard-coded list hai to ye skip karo)
-        // model.OrderTypes already set in constructor / property.
-
-        // base query
         var query = _context.SaleOrders
             .Include(o => o.Customer)
             .Include(o => o.Chef)
@@ -83,11 +77,53 @@ public class OverallReportsController : Controller
             GrandTotal = o.GrandTotal
         }).ToList();
 
-        // cost + totals
         model.TotalCostAmount = orders
             .SelectMany(o => o.OrderItems)
             .Sum(i => i.Quantity * i.Price);
 
         return View(model);
+    }
+
+    // ================= 🔥 AJAX METHOD =================
+    [HttpGet]
+    public async Task<IActionResult> GetOverallReportAjax(string orderType, int? chefId, DateTime? fromDate, DateTime? toDate)
+    {
+        var query = _context.SaleOrders
+            .Include(o => o.Customer)
+            .Include(o => o.Chef)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(orderType))
+            query = query.Where(o => o.OrderType == orderType);
+
+        if (chefId.HasValue && chefId.Value > 0)
+            query = query.Where(o => o.ChefId == chefId.Value);
+
+        if (fromDate.HasValue)
+            query = query.Where(o => o.OrderDate >= fromDate.Value.Date);
+
+        if (toDate.HasValue)
+        {
+            var end = toDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(o => o.OrderDate <= end);
+        }
+
+        var data = await query
+            .OrderByDescending(o => o.OrderDate)
+            .Select(o => new
+            {
+                orderNumber = o.OrderNumber,
+                orderDate = o.OrderDate,
+                orderType = o.OrderType,
+                customerName = o.Customer!.Name,
+                chefName = o.Chef != null ? o.Chef.FullName : "N/A",
+                subTotal = o.SubTotal,
+                taxAmount = o.TaxAmount ?? 0,
+                discountAmount = o.DiscountAmount ?? 0,
+                grandTotal = o.GrandTotal
+            })
+            .ToListAsync();
+
+        return Json(new { data });
     }
 }

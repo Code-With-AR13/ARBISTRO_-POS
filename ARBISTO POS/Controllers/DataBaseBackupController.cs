@@ -116,7 +116,22 @@ namespace ARBISTO_POS.Controllers
             return File(bytes, "application/octet-stream", entity.File_Name);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var data = await _context.DataBaseBackups
+                .Select(x => new
+                {
+                    backupNumber = x.BackupNumber,
+                    file_Name = x.File_Name,
+                    file_Size = x.File_Size,
+                    backup_Date = x.Backup_Date.ToString("yyyy-MM-dd HH:mm"),
+                    discription = x.Discription
+                })
+                .ToListAsync();
 
+            return Json(data);
+        }
 
         // POST: Delete (AJAX)
         [HttpPost]

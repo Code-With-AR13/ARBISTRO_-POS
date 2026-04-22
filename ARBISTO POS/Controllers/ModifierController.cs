@@ -28,6 +28,34 @@ namespace ARBISTO_POS.Controllers
             return View(items);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetModifiers()
+        {
+            var modifiers = await _context.Modifiers
+                .Include(m => m.ModifierIngredients)
+                    .ThenInclude(mi => mi.Ingredient)
+                .Select(m => new
+                {
+                    itemId = m.ItemId,
+                    modeName = m.ModeName,
+                    modeDiscription = m.ModeDiscription,
+                    modeImage = m.ModeImage,
+                    itemCost = m.ItemCost,
+                    itemPrice = m.ItemPrice,
+
+                    modifierIngredients = m.ModifierIngredients.Select(mi => new
+                    {
+                        ingredient = new
+                        {
+                            name = mi.Ingredient.Name
+                        }
+                    })
+                })
+                .ToListAsync();
+
+            return Json(modifiers);
+        }
+
         public IActionResult Create()
         {
             return View(new Modifier());

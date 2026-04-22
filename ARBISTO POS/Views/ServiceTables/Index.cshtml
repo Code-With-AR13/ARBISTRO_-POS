@@ -59,79 +59,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @if (Model != null && Model.Any())
-                                        {
-                                            foreach (var table in Model)
-                                            {
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="me-3">
-                                                                @if (!string.IsNullOrEmpty(table.TabImage))
-                                                                {
-                                                                    <img src="@table.TabImage"
-                                                                         class="rounded-circle border"
-                                                                         style="width:80px;height:80px;object-fit:cover;"
-                                                                         onerror="this.src='/assets/images/upload.jpg'">
-                                                                }
-                                                                else
-                                                                {
-                                                                    <img src="~/assets/images/Tables.jpg"
-                                                                         class="rounded-circle border"
-                                                                         style="width:80px;height:80px;object-fit:cover;">
-                                                                }
-                                                            </div>
-                                                            <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">@table.TabName</span>
-                                                                <small class="text-muted">Created At: @table.CreatedDate</small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    <td>
-                                                        @if (!string.IsNullOrEmpty(table.TabDescription))
-                                                        {
-                                                            @(table.TabDescription.Length > 80
-                                                                                                            ? table.TabDescription.Substring(0, 80) + "..."
-                                                                                                            : table.TabDescription)
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="text-muted fst-italic">No description</span>
-                                                        }
-                                                    </td>
-
-                                                    <td class="text-center">
-                                                        <div class="d-inline-flex gap-1">
-                                                            <a asp-controller="ServiceTables"
-                                                               asp-action="Edit"
-                                                               asp-route-id="@table.Id"
-                                                               class="btn btn-sm btn-light"
-                                                               title="Edit">
-                                                                <i class="feather-edit-3"></i>
-                                                            </a>
-
-                                                            <form id="delete-form-@table.Id"
-                                                                  asp-controller="ServiceTables"
-                                                                  asp-action="DeleteConfirmedAjax"
-                                                                  asp-route-id="@table.Id"
-                                                                  method="post"
-                                                                  class="d-inline">
-                                                                @Html.AntiForgeryToken()
-                                                                <button type="button"
-                                                                        class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@table.Id"
-                                                                        title="Delete">
-                                                                    <i class="feather-trash-2"></i>
-                                                                </button>
-                                                            </form>
-
-
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
+                                        <!-- AJAX will fill data -->
                                     </tbody>
                                 </table>
                             </div>
@@ -147,9 +75,79 @@
     <script>
         $(document).ready(function () {
 
-            if ($.fn.DataTable) {
-                var table = $('.dataTable').DataTable();
-            }
+            var table = $('.dataTable').DataTable({
+                ajax: {
+                    url: '/ServiceTables/GetAll', // 👉 create this action
+                    type: 'GET',
+                    dataSrc: 'data'
+                },
+                columns: [
+                    {
+                        data: null,
+                        render: function (data) {
+
+                            var img = data.tabImage
+                                ? `<img src="${data.tabImage}" class="rounded-circle border"
+                                        style="width:80px;height:80px;object-fit:cover;"
+                                        onerror="this.src='/assets/images/upload.jpg'">`
+                                : `<img src="/assets/images/Tables.jpg"
+                                        class="rounded-circle border"
+                                        style="width:80px;height:80px;object-fit:cover;">`;
+
+                            return `
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">${img}</div>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-semibold">${data.tabName}</span>
+                                        <small class="text-muted">Created At: ${data.createdDate}</small>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    },
+                    {
+                        data: "tabDescription",
+                        render: function (data) {
+                            if (!data) return '<span class="text-muted fst-italic">No description</span>';
+                            return data.length > 80 ? data.substring(0, 80) + "..." : data;
+                        }
+                    },
+                    {
+                        data: "id",
+                        className: "text-center",
+                        render: function (data) {
+
+                            return `
+                            <div class="d-inline-flex gap-1">
+
+                                <a href="/ServiceTables/Edit/${data}"
+                                   class="btn btn-sm btn-light"
+                                   title="Edit">
+                                    <i class="feather-edit-3"></i>
+                                </a>
+
+                                <form id="delete-form-${data}"
+                                      action="/ServiceTables/DeleteConfirmedAjax/${data}"
+                                      method="post"
+                                      class="d-inline">
+
+                                    <input name="__RequestVerificationToken"
+                                           type="hidden"
+                                           value="${$('input[name="__RequestVerificationToken"]').val()}" />
+
+                                    <button type="button"
+                                            class="btn btn-sm btn-light js-delete"
+                                            data-id="${data}"
+                                            title="Delete">
+                                        <i class="feather-trash-2"></i>
+                                    </button>
+                                </form>
+
+                            </div>`;
+                        }
+                    }
+                ]
+            });
 
             setTimeout(function () {
                 $('.alert-success').fadeOut('slow');
@@ -183,12 +181,7 @@
                             success: function (response) {
                                 if (response.success) {
                                     Swal.fire('Deleted!', response.message, 'success');
-                                    // Remove row from DataTable
-                                    if ($.fn.DataTable) {
-                                        table.row(row).remove().draw();
-                                    } else {
-                                        row.remove();
-                                    }
+                                    table.row(row).remove().draw();
                                 } else {
                                     Swal.fire('Error!', response.message, 'error');
                                 }
@@ -204,4 +197,3 @@
         });
     </script>
 }
-

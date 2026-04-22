@@ -5,7 +5,6 @@ using ARBISTO_POS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-
 [Permission("Expense Report")]
 public class ExpenseReportsController : Controller
 {
@@ -16,12 +15,15 @@ public class ExpenseReportsController : Controller
         _context = context;
     }
 
+    // =========================
+    // 📄 INDEX (UNCHANGED)
+    // =========================
     [HttpGet]
     public async Task<IActionResult> Index(int? expenseTypeId, DateTime? fromDate, DateTime? toDate)
     {
         var model = new ExpenseReportVm();
 
-        // Dropdown ke liye saare expense types
+        // Dropdown
         model.ExpenseTypes = await _context.ExpenseTypes
             .OrderBy(x => x.ExpenseName)
             .ToListAsync();
@@ -30,7 +32,42 @@ public class ExpenseReportsController : Controller
         model.FromDate = fromDate;
         model.ToDate = toDate;
 
-        // Base query
+        var query = _context.Expenses
+            .Include(x => x.ExpenseType)
+            .AsQueryable();
+
+        if (expenseTypeId.HasValue && expenseTypeId.Value > 0)
+            query = query.Where(x => x.ExpenseTypeId == expenseTypeId.Value);
+
+        if (fromDate.HasValue)
+            query = query.Where(x => x.CreatedDate >= fromDate.Value.Date);
+
+        if (toDate.HasValue)
+        {
+            var end = toDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(x => x.CreatedDate <= end);
+        }
+
+        model.Items = await query
+            .OrderBy(x => x.CreatedDate)
+            .Select(x => new ExpenseReportViewModel
+            {
+                CreatedDate = x.CreatedDate,
+                ExpenseName = x.ExpenseName,
+                ExpenseTypeName = x.ExpenseType.ExpenseName,
+                ExpenseAmount = x.ExpenseAmount
+            })
+            .ToListAsync();
+
+        return View(model);
+    }
+
+    // =========================
+    // 🔥 AJAX: REPORT DATA
+    // =========================
+    [HttpGet]
+    public async Task<IActionResult> GetReportData(int? expenseTypeId, DateTime? fromDate, DateTime? toDate)
+    {
         var query = _context.Expenses
             .Include(x => x.ExpenseType)
             .AsQueryable();
@@ -46,22 +83,21 @@ public class ExpenseReportsController : Controller
         // Filter: to date
         if (toDate.HasValue)
         {
-            var end = toDate.Value.Date.AddDays(1).AddTicks(-1); // din ka end
+            var end = toDate.Value.Date.AddDays(1).AddTicks(-1);
             query = query.Where(x => x.CreatedDate <= end);
         }
 
-        // Data ko ViewModel me map karo
-        model.Items = await query
-            .OrderBy(x => x.CreatedDate)
-            .Select(x => new ExpenseReportViewModel
+        var data = await query
+            .OrderByDescending(x => x.CreatedDate)
+            .Select(x => new
             {
-                CreatedDate = x.CreatedDate,
-                ExpenseName = x.ExpenseName,
-                ExpenseTypeName = x.ExpenseType.ExpenseName,
-                ExpenseAmount = x.ExpenseAmount
+                createdDate = x.CreatedDate.ToString("dd MMM yyyy"),
+                expenseName = x.ExpenseName,
+                expenseTypeName = x.ExpenseType != null ? x.ExpenseType.ExpenseName : "",
+                expenseAmount = x.ExpenseAmount
             })
             .ToListAsync();
 
-        return View(model);
+        return Json(new { data });
     }
 }

@@ -5,6 +5,7 @@
 
 <main class="nxl-container-fluid">
     <div class="nxl-content">
+
         <!-- header ... same as yours ... -->
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
@@ -16,6 +17,7 @@
                     <li class="breadcrumb-item active">@ViewData["Title"]</li>
                 </ul>
             </div>
+
             <div class="page-header-right ms-auto">
                 <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
                     <a asp-controller="Ingredients" asp-action="Create" class="btn btn-primary">
@@ -31,7 +33,7 @@
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <i class="feather-check-circle me-2"></i>
                 <strong>Success!</strong> @TempData["SuccessMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
 
@@ -39,13 +41,16 @@
             <div class="row">
                 <div class="col-lg-12">
                     <div class="card stretch stretch-full">
+
                         <div class="card-header">
                             <h5 class="card-title mb-0">
                                 <i class="feather-list me-2"></i>All Ingredients
                             </h5>
                         </div>
+
                         <div class="card-body p-0">
                             <div class="table-responsive">
+
                                 <table class="table table-hover align-middle dataTable">
                                     <thead class="table-light">
                                         <tr>
@@ -58,77 +63,20 @@
                                             <th class="text-center" style="width: 120px;">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        @if (Model != null && Model.Any())
-                                        {
-                                            @foreach (var item in Model)
-                                            {
-                                                <tr id="row-@item.Id">
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="me-3">
-                                                                @if (!string.IsNullOrEmpty(item.CateImage))
-                                                                {
-                                                                    <img src="@item.CateImage"
-                                                                         alt="@item.Name"
-                                                                         class="rounded-circle border"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;"
-                                                                         onerror="this.src='/assets/images/upload.jpg'">
-                                                                }
-                                                                else
-                                                                {
-                                                                    <img src="~/assets/images/upload.jpg"
-                                                                         alt="No Image"
-                                                                         class="rounded-circle border"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;">
-                                                                }
-                                                            </div>
-                                                            <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">@item.Name</span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>@item.Cost</td>
-                                                    <td>@item.Price</td>
-                                                    <td>@item.Unit</td>
-                                                    <td>@item.AvailableQuantity</td>
-                                                    <td>@item.QuantityAlert</td>
-                                                    <td class="text-center">
-                                                        <div class="d-inline-flex gap-1">
-                                                            <a asp-action="Edit"
-                                                               asp-route-id="@item.Id"
-                                                               class="btn btn-sm btn-light"
-                                                               title="Edit">
-                                                                <i class="feather-edit-3"></i>
-                                                            </a>
 
-                                                            <!-- unique id per form -->
-                                                            <form id="delete-form-@item.Id"
-                                                                  asp-action="Delete"
-                                                                  asp-route-id="@item.Id"
-                                                                  method="post"
-                                                                  class="d-inline">
-                                                                @Html.AntiForgeryToken()
-                                                                <button type="button"
-                                                                        class="btn btn-sm btn-light js-delete"
-                                                                        data-id="@item.Id"
-                                                                        title="Delete">
-                                                                    <i class="feather feather-trash-2"></i>
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }                                       
-                                    </tbody>
+                                    <!-- ❌ removed foreach -->
+                                    <tbody></tbody>
+
                                 </table>
+
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </main>
 
@@ -136,16 +84,76 @@
     <script>
         $(document).ready(function () {
 
-            var table = $('.dataTable').DataTable();
+            var table = $('.dataTable').DataTable({
+             
+                serverSide: false,
+                ajax: {
+                    url: '/Ingredients/GetIngredientsList', // 👈 create this API
+                    type: 'GET',
+                    dataSrc: ''
+                },
 
-                    setTimeout(function () {
-            $('.alert-success, .alert-danger').fadeOut('slow');
-        }, 5000);
+                columns: [
 
-            // tooltips
+                    {
+                        data: null,
+                        render: function (data) {
+
+                            let image = data.cateImage
+                                ? `<img src="${data.cateImage}" class="rounded-circle border" style="width:80px;height:80px;object-fit:cover;" onerror="this.src='/assets/images/upload.jpg'">`
+                                : `<img src="/assets/images/upload.jpg" class="rounded-circle border" style="width:80px;height:80px;">`;
+
+                            return `
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">${image}</div>
+                                <div class="d-flex flex-column">
+                                    <span class="fw-semibold">${data.name}</span>
+                                </div>
+                            </div>`;
+                        }
+                    },
+
+                    { data: 'cost' },
+                    { data: 'price' },
+                    { data: 'unit' },
+                    { data: 'availableQuantity' },
+                    { data: 'quantityAlert' },
+
+                    {
+                        data: 'id',
+                        orderable: false,
+                        className: "text-center",
+                        render: function (id) {
+
+                            return `
+                            <div class="d-inline-flex gap-1">
+
+                                <a href="/Ingredients/Edit/${id}" class="btn btn-sm btn-light">
+                                    <i class="feather-edit-3"></i>
+                                </a>
+
+                                <form id="delete-form-${id}" method="post" action="/Ingredients/Delete/${id}" class="d-inline">
+                                    <input name="__RequestVerificationToken" type="hidden" value="${$('input[name="__RequestVerificationToken"]').val()}"/>
+                                    <button type="button" class="btn btn-sm btn-light js-delete" data-id="${id}">
+                                        <i class="feather feather-trash-2"></i>
+                                    </button>
+                                </form>
+
+                            </div>`;
+                        }
+                    }
+                ]
+            });
+
+            setTimeout(function () {
+                $('.alert-success, .alert-danger').fadeOut('slow');
+            }, 5000);
+
             $('[title]').tooltip();
 
+            // DELETE (same logic, only reload changed)
             $(document).on('click', '.js-delete', function (e) {
+
                 e.preventDefault();
 
                 const id = $(this).data('id');
@@ -159,8 +167,7 @@
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, delete it',
-                    cancelButtonText: 'Cancel'
+                    confirmButtonText: 'Yes, delete it'
                 }).then((result) => {
 
                     if (result.isConfirmed) {
@@ -175,14 +182,8 @@
                             success: function (res) {
 
                                 if (res.success) {
-
-                                    table
-                                        .row($('#row-' + id))
-                                        .remove()
-                                        .draw(false);
-
+                                    table.ajax.reload(); // ✅ key change
                                     Swal.fire('Deleted!', res.message, 'success');
-
                                 } else {
                                     Swal.fire('Error', res.message, 'error');
                                 }
@@ -194,7 +195,7 @@
                     }
                 });
             });
+
         });
     </script>
 }
-
