@@ -52,14 +52,14 @@ namespace ARBISTO_POS.Controllers
 
             int salePercent = totalSale > 0 ? 100 : 0;
             int costPercent = (int)((totalCost * 100) / baseAmount);
-            int taxPercent = (int)((totalTax * 100) / baseAmount);
+          
             int discountPercent = (int)((totalDiscount * 100) / baseAmount);
             int expensesPercent = (int)((totalExpenses * 100) / baseAmount);
             int profitPercent = (int)((totalProfit * 100) / baseAmount);
             int profitAfterPercent = (int)((profitAfterExpenses * 100) / baseAmount);
 
             costPercent = Math.Clamp(costPercent, 0, 100);
-            taxPercent = Math.Clamp(taxPercent, 0, 100);
+            
             discountPercent = Math.Clamp(discountPercent, 0, 100);
             expensesPercent = Math.Clamp(expensesPercent, 0, 100);
             profitPercent = Math.Clamp(profitPercent, 0, 100);
@@ -79,7 +79,7 @@ namespace ARBISTO_POS.Controllers
                 costPercent,
                 discountPercent,
                 profitPercent,
-                taxPercent,
+                
                 expensesPercent,
                 profitAfterPercent
             });
