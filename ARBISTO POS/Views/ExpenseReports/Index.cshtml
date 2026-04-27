@@ -19,6 +19,19 @@
                     <li class="breadcrumb-item active">Expense Report</li>
                 </ul>
             </div>
+            <!-- ADD inside .page-header (after your existing content) -->
+            <div class="ms-auto">
+                <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Action
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" id="exportExcel">Export Excel</a></li>
+                        <li><a class="dropdown-item" href="#" id="exportCsv">Export CSV</a></li>
+                        <li><a class="dropdown-item" href="#" id="exportPdf">Export PDF</a></li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
         <div class="main-content">
@@ -141,34 +154,63 @@
 </main>
 
 @section Scripts {
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
     <script>
         $(document).ready(function () {
 
-                   var table = $('.dataTable').DataTable({
-            "ajax": {
-                "url": "/ExpenseReports/GetReportData",
-                "type": "GET",
-                "data": function (d) {
-                    d.expenseTypeId = $('#expenseTypeId').val() || null;
-                    d.fromDate = $('#fromDate').val() || null;
-                    d.toDate = $('#toDate').val() || null;
-                },
-                "error": function (xhr) {
-                    console.log("ERROR:", xhr.responseText);
-                }
-            },
-            "columns": [
-                { "data": "createdDate" },
-                { "data": "expenseName" },
-                { "data": "expenseTypeName" },
-                {
-                    "data": "expenseAmount",
-                    "className": "text-end",
-                    "render": function (data) {
-                        return data.toLocaleString();
-                    }
-                }
-            ]
+        var table = $('.dataTable').DataTable({
+        "ajax": {
+        "url": "/ExpenseReports/GetReportData",
+        "type": "GET",
+        "data": function (d) {
+        d.expenseTypeId = $('#expenseTypeId').val() || null;
+        d.fromDate = $('#fromDate').val() || null;
+        d.toDate = $('#toDate').val() || null;
+        },
+        "error": function (xhr) {
+        console.log("ERROR:", xhr.responseText);
+        }
+        },
+        "columns": [
+        { "data": "createdDate" },
+        { "data": "expenseName" },
+        { "data": "expenseTypeName" },
+        {
+        "data": "expenseAmount",
+        "className": "text-end",
+        "render": function (data) {
+        return data.toLocaleString();
+        }
+        }
+        ],
+
+        // ✅ ADDED (export support)
+        dom: 'lBfrtip',
+        buttons: [
+        { extend: 'excelHtml5' },
+        { extend: 'csvHtml5' },
+        { extend: 'pdfHtml5' }
+        ]
+        });
+
+        // ✅ ADDED (hide default buttons)
+        table.buttons().container().hide();
+
+        // ✅ ADDED (Action dropdown working)
+        $('#exportExcel').click(function () {
+        table.button(0).trigger();
+        });
+
+        $('#exportCsv').click(function () {
+        table.button(1).trigger();
+        });
+
+        $('#exportPdf').click(function () {
+        table.button(2).trigger();
         });
 
         });

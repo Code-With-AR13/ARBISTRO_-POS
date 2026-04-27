@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Overall Report";
 }
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css" />
 
 <main class="nxl-container-fluid">
     <div class="nxl-content">
@@ -19,6 +20,20 @@
                     </li>
                     <li class="breadcrumb-item active">Overall Report</li>
                 </ul>
+
+            </div>
+            <!-- ADD inside .page-header (after your existing content) -->
+            <div class="ms-auto">
+                <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Action
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" id="exportExcel">Export Excel</a></li>
+                        <li><a class="dropdown-item" href="#" id="exportCsv">Export CSV</a></li>
+                        <li><a class="dropdown-item" href="#" id="exportPdf">Export PDF</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
 
@@ -163,13 +178,7 @@
                             </div>
 
                             <!-- EMPTY STATE -->
-                            <div id="emptyState" style="border:1px dashed #cfd8dc;border-radius:8px;min-height:300px;"
-                                 class="d-flex align-items-center justify-content-center mt-3">
-                                <div class="text-center text-muted">
-                                    <i class="feather-info mb-3" style="font-size:32px;"></i>
-                                    <p class="mb-0">Please select filters and click Generate to view data.</p>
-                                </div>
-                            </div>
+                            
 
                         </div>
                     </div>
@@ -181,65 +190,94 @@
 </main>
 
 @section Scripts {
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
     <script>
         let table;
 
         $(document).ready(function () {
 
-            table = $('.dataTable').DataTable({
-                "processing": true,
-                "serverSide": false,
-                "searching": false,
-                "paging": true,
-                "info": true,
-                "ajax": {
-                    "url": "/OverallReports/GetOverallReportAjax",
-                    "type": "GET",
-                    "data": function (d) {
-                        d.orderType = $('#orderType').val();
-                        d.chefId = $('#chefId').val();
-                        d.fromDate = $('#fromDate').val();
-                        d.toDate = $('#toDate').val();
-                    }
-                },
-                "columns": [
-                    { "data": "orderNumber" },
-                    {
-                        "data": "orderDate",
-                        "render": function (data) {
-                            return moment(data).format("DD MMM YYYY");
-                        }
-                    },
-                    { "data": "orderType" },
-                    { "data": "customerName" },
-                    { "data": "chefName" },
-                    {
-                        "data": "subTotal",
-                        "className": "text-end",
-                        "render": $.fn.dataTable.render.number(',', '.', 0)
-                    },
-                    {
-                        "data": "taxAmount",
-                        "className": "text-end",
-                        "render": $.fn.dataTable.render.number(',', '.', 0)
-                    },
-                    {
-                        "data": "discountAmount",
-                        "className": "text-end",
-                        "render": $.fn.dataTable.render.number(',', '.', 0)
-                    },
-                    {
-                        "data": "grandTotal",
-                        "className": "text-end fw-bold",
-                        "render": $.fn.dataTable.render.number(',', '.', 0)
-                    }
-                ]
-            });
+        table = $('.dataTable').DataTable({
+        "processing": true,
+        "serverSide": false,
+        "searching": false,
+        "paging": true,
+        "info": true,
+        "ajax": {
+        "url": "/OverallReports/GetOverallReportAjax",
+        "type": "GET",
+        "data": function (d) {
+        d.orderType = $('#orderType').val();
+        d.chefId = $('#chefId').val();
+        d.fromDate = $('#fromDate').val();
+        d.toDate = $('#toDate').val();
+        }
+        },
+        "columns": [
+        { "data": "orderNumber" },
+        {
+        "data": "orderDate",
+        "render": function (data) {
+        return moment(data).format("DD MMM YYYY");
+        }
+        },
+        { "data": "orderType" },
+        { "data": "customerName" },
+        { "data": "chefName" },
+        {
+        "data": "subTotal",
+        "className": "text-end",
+        "render": $.fn.dataTable.render.number(',', '.', 0)
+        },
+        {
+        "data": "taxAmount",
+        "className": "text-end",
+        "render": $.fn.dataTable.render.number(',', '.', 0)
+        },
+        {
+        "data": "discountAmount",
+        "className": "text-end",
+        "render": $.fn.dataTable.render.number(',', '.', 0)
+        },
+        {
+        "data": "grandTotal",
+        "className": "text-end fw-bold",
+        "render": $.fn.dataTable.render.number(',', '.', 0)
+        }
+        ],
 
-            $('#btnGenerate').click(function () {
-                $('#emptyState').hide();
-                table.ajax.reload();
-            });
+        // ✅ ADDED (for export + show entries)
+        dom: 'l<"mb-5">Bfrtip',
+        buttons: [
+        { extend: 'excelHtml5' },
+        { extend: 'csvHtml5' },
+        { extend: 'pdfHtml5' }
+        ]
+        });
+
+        // ✅ ADDED (hide default buttons)
+        table.buttons().container().hide();
+
+        // ✅ ADDED (Action dropdown working)
+        $('#exportExcel').click(function () {
+        table.button(0).trigger();
+        });
+
+        $('#exportCsv').click(function () {
+        table.button(1).trigger();
+        });
+
+        $('#exportPdf').click(function () {
+        table.button(2).trigger();
+        });
+
+        $('#btnGenerate').click(function () {
+        $('#emptyState').hide();
+        table.ajax.reload();
+        });
 
         });
     </script>

@@ -80,20 +80,19 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-18deg);
-            padding: 12px 26px; /* bigger padding */
-            border: 4px solid Black; /* thicker border */
+            padding: 12px 26px;
+            border: 4px solid Black;
             color: black;
             font-weight: 800;
-            font-size: 26px; /* bigger text */
+            font-size: 26px;
             text-transform: uppercase;
             opacity: 0.35;
             border-radius: 6px;
-            letter-spacing: 3px; /* wider letters */
+            letter-spacing: 3px;
         }
 
-
         .invoice-wrapper {
-            position: relative; /* stamp overlay ke liye important */
+            position: relative;
             width: 80mm;
             margin: 10px auto;
             background: #fff;
@@ -112,7 +111,7 @@
                 PAID
             </div>
         }
-        <!-- TOP: STORE -->
+
         <div class="text-center mb-1">
             <div class="store-logo">
                 😊
@@ -126,14 +125,12 @@
             </div>
         </div>
 
-        <!-- BARCODE AREA -->
         <div class="barcode-box border border-0">
             <img src="https://barcode.tec-it.com/barcode.ashx?data=@barcodeValue&amp;code=Code128&amp;translate-esc=true"
                  style="height:48px;width:180px;"
                  alt="Barcode" />
         </div>
 
-        <!-- DATE / CUSTOMER INFO -->
         <div class="mt-2 mb-1">
             <div class="d-flex justify-content-between info-row">
                 <small>Date:</small>
@@ -145,7 +142,6 @@
             </div>
         </div>
 
-        <!-- ITEMS TABLE -->
         <div class="mt-2">
             <table class="table table-bordered table-sm mb-1 invoice-items">
                 <thead class="table-dark">
@@ -170,7 +166,6 @@
             </table>
         </div>
 
-        <!-- TOTALS -->
         <table class="w-100 totals-table mb-2">
             <tr>
                 <td>Subtotal:</td>
@@ -190,13 +185,13 @@
             </tr>
         </table>
 
-        <!-- FOOTER TEXT -->
+        <!-- ✅ UPDATED FOOTER (ONLY ADDITION HERE) -->
         <div class="footer-text mb-2">
-            Thank you for choosing ARBISTRO<br />
-            Developed by AR
+            Thank you for choosing ARBISTRO>
+            <br />
+            Website: Dynsof.com | Phone: 03208983255
         </div>
 
-        <!-- BUTTONS -->
         <div class="d-flex justify-content-center gap-2">
             <button class="btn btn-dark btn-sm btn-print" onclick="window.print();">
                 Print
@@ -209,12 +204,10 @@
     </div>
 
     <script>
-        // Page load hote hi print dialog open karo
         window.addEventListener('load', function () {
             window.print();
         });
 
-        // Cancel par SaleOrder/Index par redirect
         function goBackToIndex() {
             window.location.href = '@Url.Action("Index", "SaleOrder")';
         }
